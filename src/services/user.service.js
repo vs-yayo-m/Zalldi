@@ -1,10 +1,7 @@
 // src/services/user.service.js
 
 import { db } from '@config/firebase'
-import { collection, doc, getDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, limit,
-  arrayUnion,
-  arrayRemove,
-  serverTimestamp } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, limit, arrayUnion, arrayRemove, serverTimestamp } from 'firebase/firestore'
 
 export const userService = {
   async getUser(userId) {
@@ -24,7 +21,7 @@ export const userService = {
       const userRef = doc(db, 'users', userId)
       await updateDoc(userRef, {
         ...data,
-        updatedAt: new Date()
+        updatedAt: serverTimestamp()
       })
       return { success: true }
     } catch (error) {
@@ -35,12 +32,15 @@ export const userService = {
   async updateProfile(userId, profileData) {
     try {
       const userRef = doc(db, 'users', userId)
-      await updateDoc(userRef, {
-        displayName: profileData.displayName,
-        phoneNumber: profileData.phoneNumber,
-        photoURL: profileData.photoURL,
-        updatedAt: new Date()
-      })
+      const updateData = {}
+      
+      if (profileData.displayName !== undefined) updateData.displayName = profileData.displayName
+      if (profileData.phoneNumber !== undefined) updateData.phoneNumber = profileData.phoneNumber
+      if (profileData.photoURL !== undefined) updateData.photoURL = profileData.photoURL
+      
+      updateData.updatedAt = serverTimestamp()
+      
+      await updateDoc(userRef, updateData)
       return { success: true }
     } catch (error) {
       throw error
@@ -53,27 +53,33 @@ export const userService = {
       if (!userDoc.exists()) throw new Error('User not found')
       
       const userData = userDoc.data()
-      const addresses = userData.addresses || []
+      const addresses = Array.isArray(userData.addresses) ? [...userData.addresses] : []
       
       const newAddress = {
         ...address,
         id: Date.now().toString(),
-        createdAt: new Date()
+        createdAt: serverTimestamp()
       }
       
-      if (newAddress.isDefault) {
-        addresses.forEach(addr => addr.isDefault = false)
+      if (newAddress.isDefault || addresses.length === 0) {
+        addresses.forEach(addr => {
+          if (addr && typeof addr === 'object') {
+            addr.isDefault = false
+          }
+        })
+        newAddress.isDefault = true
       }
       
       addresses.push(newAddress)
       
       await updateDoc(doc(db, 'users', userId), {
         addresses,
-        updatedAt: new Date()
+        updatedAt: serverTimestamp()
       })
       
       return newAddress
     } catch (error) {
+      console.error('Error in addAddress:', error)
       throw error
     }
   },
@@ -84,28 +90,33 @@ export const userService = {
       if (!userDoc.exists()) throw new Error('User not found')
       
       const userData = userDoc.data()
-      const addresses = userData.addresses || []
+      const addresses = Array.isArray(userData.addresses) ? [...userData.addresses] : []
       
-      const addressIndex = addresses.findIndex(addr => addr.id === addressId)
+      const addressIndex = addresses.findIndex(addr => addr && addr.id === addressId)
       if (addressIndex === -1) throw new Error('Address not found')
       
       if (addressData.isDefault) {
-        addresses.forEach(addr => addr.isDefault = false)
+        addresses.forEach(addr => {
+          if (addr && typeof addr === 'object') {
+            addr.isDefault = false
+          }
+        })
       }
       
       addresses[addressIndex] = {
         ...addresses[addressIndex],
         ...addressData,
-        updatedAt: new Date()
+        updatedAt: serverTimestamp()
       }
       
       await updateDoc(doc(db, 'users', userId), {
         addresses,
-        updatedAt: new Date()
+        updatedAt: serverTimestamp()
       })
       
       return addresses[addressIndex]
     } catch (error) {
+      console.error('Error in updateAddress:', error)
       throw error
     }
   },
@@ -116,17 +127,18 @@ export const userService = {
       if (!userDoc.exists()) throw new Error('User not found')
       
       const userData = userDoc.data()
-      const addresses = userData.addresses || []
+      const addresses = Array.isArray(userData.addresses) ? [...userData.addresses] : []
       
-      const filteredAddresses = addresses.filter(addr => addr.id !== addressId)
+      const filteredAddresses = addresses.filter(addr => addr && addr.id !== addressId)
       
       await updateDoc(doc(db, 'users', userId), {
         addresses: filteredAddresses,
-        updatedAt: new Date()
+        updatedAt: serverTimestamp()
       })
       
       return { success: true }
     } catch (error) {
+      console.error('Error in deleteAddress:', error)
       throw error
     }
   },
@@ -137,19 +149,22 @@ export const userService = {
       if (!userDoc.exists()) throw new Error('User not found')
       
       const userData = userDoc.data()
-      const addresses = userData.addresses || []
+      const addresses = Array.isArray(userData.addresses) ? [...userData.addresses] : []
       
       addresses.forEach(addr => {
-        addr.isDefault = addr.id === addressId
+        if (addr && typeof addr === 'object') {
+          addr.isDefault = addr.id === addressId
+        }
       })
       
       await updateDoc(doc(db, 'users', userId), {
         addresses,
-        updatedAt: new Date()
+        updatedAt: serverTimestamp()
       })
       
       return { success: true }
     } catch (error) {
+      console.error('Error in setDefaultAddress:', error)
       throw error
     }
   },
@@ -158,8 +173,21 @@ export const userService = {
     try {
       const userRef = doc(db, 'users', userId)
       await updateDoc(userRef, {
-        notifications: settings,
-        updatedAt: new Date()
+        notifications: settings || {},
+        updatedAt: serverTimestamp()
+      })
+      return { success: true }
+    } catch (error) {
+      throw error
+    }
+  },
+  
+  async updateSettings(userId, settings) {
+    try {
+      const userRef = doc(db, 'users', userId)
+      await updateDoc(userRef, {
+        settings: settings || {},
+        updatedAt: serverTimestamp()
       })
       return { success: true }
     } catch (error) {
@@ -204,10 +232,12 @@ export const userService = {
         ...doc.data()
       }))
       
+      const term = (searchTerm || '').toLowerCase()
+      
       return customers.filter(customer =>
-        customer.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        customer.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        customer.phoneNumber?.includes(searchTerm)
+        (customer.displayName || '').toLowerCase().includes(term) ||
+        (customer.email || '').toLowerCase().includes(term) ||
+        (customer.phoneNumber || '').includes(searchTerm)
       )
     } catch (error) {
       throw error
@@ -238,8 +268,8 @@ export const userService = {
         totalOrders,
         totalSpent,
         averageOrderValue: totalOrders > 0 ? totalSpent / totalOrders : 0,
-        joinedDate: userData.createdAt,
-        lastOrderDate: userData.lastOrderDate
+        joinedDate: userData.createdAt || null,
+        lastOrderDate: userData.lastOrderDate || null
       }
     } catch (error) {
       throw error
@@ -261,25 +291,33 @@ export const userService = {
  * Used by WishlistContext
  */
 export const updateUserWishlist = async (userId, productId, action = 'add') => {
-  if (!userId || !productId) return
+  try {
+    if (!userId || !productId) {
+      throw new Error('User ID and Product ID are required')
+    }
 
-  const userRef = doc(db, 'users', userId)
+    const userRef = doc(db, 'users', userId)
 
-  const update =
-    action === 'remove'
-      ? {
-          wishlist: arrayRemove(productId),
-          updatedAt: serverTimestamp()
-        }
-      : {
-          wishlist: arrayUnion(productId),
-          updatedAt: serverTimestamp()
-        }
+    const update =
+      action === 'remove'
+        ? {
+            wishlist: arrayRemove(productId),
+            updatedAt: serverTimestamp()
+          }
+        : {
+            wishlist: arrayUnion(productId),
+            updatedAt: serverTimestamp()
+          }
 
-  await updateDoc(userRef, update)
+    await updateDoc(userRef, update)
 
-  return { success: true }
+    return { success: true }
+  } catch (error) {
+    console.error('Error in updateUserWishlist:', error)
+    throw error
+  }
 }
+
 /**
  * Bulk update user addresses
  * ⚠️ SAFE: backward-compatible with existing imports
@@ -295,9 +333,10 @@ export const updateUserAddresses = async (userId, addresses = []) => {
       throw new Error('Addresses must be an array')
     }
 
-    // Ensure only ONE default address
     let hasDefault = false
-    const normalizedAddresses = addresses.map((addr, index) => {
+    const normalizedAddresses = addresses.map((addr) => {
+      if (!addr || typeof addr !== 'object') return null
+      
       if (addr.isDefault && !hasDefault) {
         hasDefault = true
         return { ...addr }
@@ -308,9 +347,8 @@ export const updateUserAddresses = async (userId, addresses = []) => {
       }
 
       return { ...addr }
-    })
+    }).filter(Boolean)
 
-    // If no default exists, auto-assign first address
     if (!hasDefault && normalizedAddresses.length > 0) {
       normalizedAddresses[0].isDefault = true
     }
@@ -319,12 +357,12 @@ export const updateUserAddresses = async (userId, addresses = []) => {
 
     await updateDoc(userRef, {
       addresses: normalizedAddresses,
-      updatedAt: new Date()
+      updatedAt: serverTimestamp()
     })
 
     return { success: true }
   } catch (error) {
-    console.error('updateUserAddresses error:', error)
+    console.error('Error in updateUserAddresses:', error)
     throw error
   }
 }
@@ -345,7 +383,7 @@ export const updateUserProfile = async (userId, profileData = {}) => {
 
     return await userService.updateProfile(userId, profileData)
   } catch (error) {
-    console.error('updateUserProfile error:', error)
+    console.error('Error in updateUserProfile:', error)
     throw error
   }
 }
@@ -366,7 +404,7 @@ export const updateUserSettings = async (userId, settings = {}) => {
 
     return await userService.updateSettings(userId, settings)
   } catch (error) {
-    console.error('updateUserSettings error:', error)
+    console.error('Error in updateUserSettings:', error)
     throw error
   }
 }
