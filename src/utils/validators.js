@@ -127,7 +127,20 @@ export const validateWard = (ward) => {
 export const validateAddress = (address) => {
   const errors = {}
   
-  if (!address.ward) {
+  // 🛡 HARD GUARD
+  if (!address || typeof address !== 'object') {
+    return {
+      ward: 'Invalid address data',
+      area: 'Invalid address data',
+      street: 'Invalid address data'
+    }
+  }
+  
+  if (
+    address.ward === undefined ||
+    address.ward === null ||
+    address.ward === ''
+  ) {
     errors.ward = 'Ward is required'
   } else {
     const wardError = validateWard(address.ward)
