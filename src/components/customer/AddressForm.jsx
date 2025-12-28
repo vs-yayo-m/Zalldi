@@ -69,8 +69,9 @@ export default function AddressForm({
   
   return (
     <motion.form
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.25, ease: 'easeOut' }}
       onSubmit={handleSubmit}
       className="space-y-6"
     >
@@ -117,7 +118,7 @@ export default function AddressForm({
           required
         >
           <option value="">Select Ward</option>
-          {WARDS.map(ward => (
+          {WARDS.map((ward) => (
             <option key={ward.value} value={ward.value}>
               {ward.label}
             </option>
