@@ -1,0 +1,58 @@
+// storage.rules
+
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isValidImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    
+    function isValidSize(maxSizeMB) {
+      return request.resource.size < maxSizeMB * 1024 * 1024;
+    }
+    
+    match /products/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated() && 
+                    isValidImage() && 
+                    isValidSize(5);
+    }
+    
+    match /users/{userId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId) && 
+                    isValidImage() && 
+                    isValidSize(5);
+    }
+    
+    match /orders/{orderId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && 
+                    isValidImage() && 
+                    isValidSize(5);
+    }
+    
+    match /reviews/{reviewId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated() && 
+                    isValidImage() && 
+                    isValidSize(5);
+    }
+    
+    match /banners/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated() && 
+                    isValidImage() && 
+                    isValidSize(10);
+    }
+  }
+}
