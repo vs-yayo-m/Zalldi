@@ -1,7 +1,7 @@
 // src/services/user.service.js
 
 import { db } from '@config/firebase'
-import { collection, doc, getDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, limit, arrayUnion, arrayRemove, serverTimestamp } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, limit, arrayUnion, arrayRemove, serverTimestamp, Timestamp } from 'firebase/firestore'
 
 export const userService = {
   async getUser(userId) {
@@ -55,13 +55,20 @@ export const userService = {
       const userData = userDoc.data()
       const addresses = Array.isArray(userData.addresses) ? [...userData.addresses] : []
       
+      // Use Timestamp.now() instead of serverTimestamp() for nested objects
       const newAddress = {
-        ...address,
         id: Date.now().toString(),
-        createdAt: serverTimestamp()
+        type: address.type || 'home',
+        ward: address.ward || '',
+        area: address.area || '',
+        street: address.street || '',
+        landmark: address.landmark || '',
+        isDefault: false,
+        createdAt: Timestamp.now()
       }
       
-      if (newAddress.isDefault || addresses.length === 0) {
+      // Set as default if it's the first address or explicitly marked
+      if (address.isDefault || addresses.length === 0) {
         addresses.forEach(addr => {
           if (addr && typeof addr === 'object') {
             addr.isDefault = false
@@ -73,7 +80,7 @@ export const userService = {
       addresses.push(newAddress)
       
       await updateDoc(doc(db, 'users', userId), {
-        addresses,
+        addresses: addresses,
         updatedAt: serverTimestamp()
       })
       
@@ -106,11 +113,11 @@ export const userService = {
       addresses[addressIndex] = {
         ...addresses[addressIndex],
         ...addressData,
-        updatedAt: serverTimestamp()
+        updatedAt: Timestamp.now()
       }
       
       await updateDoc(doc(db, 'users', userId), {
-        addresses,
+        addresses: addresses,
         updatedAt: serverTimestamp()
       })
       
@@ -158,7 +165,7 @@ export const userService = {
       })
       
       await updateDoc(doc(db, 'users', userId), {
-        addresses,
+        addresses: addresses,
         updatedAt: serverTimestamp()
       })
       
@@ -337,16 +344,22 @@ export const updateUserAddresses = async (userId, addresses = []) => {
     const normalizedAddresses = addresses.map((addr) => {
       if (!addr || typeof addr !== 'object') return null
       
+      const normalizedAddr = {
+        id: addr.id || Date.now().toString(),
+        type: addr.type || 'home',
+        ward: addr.ward || '',
+        area: addr.area || '',
+        street: addr.street || '',
+        landmark: addr.landmark || '',
+        isDefault: false
+      }
+      
       if (addr.isDefault && !hasDefault) {
         hasDefault = true
-        return { ...addr }
+        normalizedAddr.isDefault = true
       }
 
-      if (addr.isDefault && hasDefault) {
-        return { ...addr, isDefault: false }
-      }
-
-      return { ...addr }
+      return normalizedAddr
     }).filter(Boolean)
 
     if (!hasDefault && normalizedAddresses.length > 0) {
