@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { MapPin, Home, Briefcase, X } from 'lucide-react'
+import { MapPin, Home, Briefcase } from 'lucide-react'
 import Button from '@components/ui/Button'
 import Input from '@components/ui/Input'
 import Select from '@components/ui/Select'
@@ -12,11 +12,7 @@ import { WARDS, ADDRESS_TYPES } from '@utils/constants'
 import { validateAddress } from '@utils/validators'
 import toast from 'react-hot-toast'
 
-export default function AddressForm({
-  initialData = null,
-  onSuccess,
-  onCancel
-}) {
+export default function AddressForm({ initialData = null, onSuccess, onCancel }) {
   const { user } = useAuth()
   const { addAddress, updateAddress } = useUser(user?.uid)
   
@@ -49,7 +45,6 @@ export default function AddressForm({
     }
     
     setIsSubmitting(true)
-    
     try {
       if (initialData?.id) {
         await updateAddress(initialData.id, formData)
@@ -73,13 +68,14 @@ export default function AddressForm({
   }
   
   return (
-    <motion.form
+      <motion.form
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       onSubmit={handleSubmit}
-      className="space-y-6"
+      className="space-y-6 overflow-visible" // <-- fix dropdown clipping
     >
+      {/* Address Type */}
       <div>
         <label className="block text-body-sm font-medium text-neutral-700 mb-3">
           Address Type
@@ -120,21 +116,31 @@ export default function AddressForm({
         </div>
       </div>
 
+      {/* Ward & Area */}
       <div className="grid md:grid-cols-2 gap-4">
-        <Select
-          label="Ward Number"
-          value={formData.ward}
-          onChange={(e) => handleChange('ward', e.target.value)}
-          error={errors.ward}
-          required
+        {/* Animated Ward Select */}
+        <motion.div
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.2 }}
+          className="relative"
         >
-          <option value="">Select Ward</option>
-          {WARDS.map(ward => (
-            <option key={ward.value} value={ward.value}>
-              {ward.label}
-            </option>
-          ))}
-        </Select>
+          <Select
+            label="Ward Number"
+            value={formData.ward}
+            onChange={(e) => handleChange('ward', e.target.value)}
+            error={errors.ward}
+            required
+            className={formData.ward ? 'border-orange-500 text-orange-600' : ''}
+          >
+            <option value="">Select Ward</option>
+            {WARDS.map(ward => (
+              <option key={ward.value} value={ward.value}>
+                {ward.label}
+              </option>
+            ))}
+          </Select>
+        </motion.div>
 
         <Input
           label="Area/Locality"
@@ -146,6 +152,7 @@ export default function AddressForm({
         />
       </div>
 
+      {/* Street */}
       <Input
         label="Street/House Number"
         placeholder="e.g., Main Road, House #25"
@@ -155,6 +162,7 @@ export default function AddressForm({
         required
       />
 
+      {/* Landmark */}
       <Input
         label="Landmark (Optional)"
         placeholder="e.g., Near Hospital"
@@ -162,6 +170,7 @@ export default function AddressForm({
         onChange={(e) => handleChange('landmark', e.target.value)}
       />
 
+      {/* Default Address Toggle */}
       <motion.label
         className="flex items-center space-x-3 p-4 rounded-xl border border-neutral-200 hover:border-orange-200 cursor-pointer transition-all"
         whileHover={{ scale: 1.01 }}
@@ -178,6 +187,7 @@ export default function AddressForm({
         </span>
       </motion.label>
 
+      {/* Buttons */}
       <div className="flex items-center justify-end space-x-3 pt-4 border-t border-neutral-200">
         {onCancel && (
           <Button
