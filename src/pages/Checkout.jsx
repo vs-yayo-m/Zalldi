@@ -1,87 +1,74 @@
 // src/pages/Checkout.jsx
 
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { useAuth } from '@hooks/useAuth'
-import { useCart } from '@hooks/useCart'
+import Header from '@components/layout/Header'
+import Footer from '@components/layout/Footer'
 import Checkout from '@components/customer/Checkout'
-import LoadingScreen from '@components/shared/LoadingScreen'
+import { useCart } from '@hooks/useCart'
+import { ROUTES } from '@utils/constants'
+import { seoUtils } from '@utils/seo'
 import EmptyState from '@components/shared/EmptyState'
-import { ShoppingCart } from 'lucide-react'
+import { ShoppingBag } from 'lucide-react'
 
 export default function CheckoutPage() {
   const navigate = useNavigate()
-  const { user, loading: authLoading } = useAuth()
-  const { items, loading: cartLoading } = useCart()
-  const [isInitializing, setIsInitializing] = useState(true)
+  const { items } = useCart()
   
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsInitializing(false)
-    }, 300)
-    return () => clearTimeout(timer)
+    seoUtils.setPageMeta({
+      title: 'Checkout',
+      description: 'Complete your order and get it delivered in 1 hour',
+      url: `${window.location.origin}${ROUTES.CHECKOUT}`
+    })
   }, [])
   
   useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/login?redirect=/checkout', { replace: true })
+    if (items.length === 0) {
+      navigate(ROUTES.SHOP)
     }
-  }, [user, authLoading, navigate])
-  
-  useEffect(() => {
-    if (!cartLoading && items.length === 0 && !isInitializing) {
-      navigate('/shop', { replace: true })
-    }
-  }, [items, cartLoading, navigate, isInitializing])
-  
-  if (authLoading || cartLoading || isInitializing) {
-    return <LoadingScreen />
-  }
-  
-  if (!user) {
-    return null
-  }
+  }, [items, navigate])
   
   if (items.length === 0) {
     return (
-      <div className="min-h-screen bg-neutral-50 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <EmptyState
-            icon={ShoppingCart}
-            title="Your cart is empty"
-            description="Add items to your cart before checking out"
-            actionLabel="Continue Shopping"
-            onAction={() => navigate('/shop')}
-          />
+      <>
+        <Header />
+        <div className="min-h-screen bg-neutral-50 pt-20">
+          <div className="max-w-7xl mx-auto px-4 py-12">
+            <EmptyState
+              icon={ShoppingBag}
+              title="Your cart is empty"
+              message="Add items to your cart before proceeding to checkout"
+              actionLabel="Continue Shopping"
+              onAction={() => navigate(ROUTES.SHOP)}
+            />
+          </div>
         </div>
-      </div>
+        <Footer />
+      </>
     )
   }
   
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="min-h-screen bg-neutral-50 py-8 sm:py-12"
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.1 }}
-        >
-          <h1 className="font-display text-3xl sm:text-4xl font-bold text-neutral-900 mb-2">
-            Checkout
-          </h1>
-          <p className="text-neutral-600 mb-8">
-            Complete your order and get it delivered in 1 hour
-          </p>
-        </motion.div>
-
-        <Checkout />
-      </div>
-    </motion.div>
+    <>
+      <Header />
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="min-h-screen bg-gradient-to-br from-neutral-50 via-orange-50/30 to-neutral-50 pt-20"
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.1 }}
+          >
+            <Checkout />
+          </motion.div>
+        </div>
+      </motion.div>
+      <Footer />
+    </>
   )
 }

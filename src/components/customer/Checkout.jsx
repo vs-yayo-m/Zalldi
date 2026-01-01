@@ -1,85 +1,85 @@
 // src/components/customer/Checkout.jsx
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useCart } from '@hooks/useCart'
-import { useAuth } from '@hooks/useAuth'
+import { Package, CreditCard, MapPin, Clock, AlertCircle } from 'lucide-react'
 import CheckoutStepper from './CheckoutStepper'
 import AddressList from './AddressList'
 import AddressForm from './AddressForm'
 import CartSummary from './CartSummary'
 import Button from '@components/ui/Button'
-import Alert from '@components/ui/Alert'
-import { createOrder } from '@services/order.service'
-import { PAYMENT_METHODS } from '@utils/constants'
+import { useAuth } from '@hooks/useAuth'
+import { useCart } from '@hooks/useCart'
+import { orderService } from '@services/order.service'
+import { notificationService } from '@services/notification.service'
+import { ROUTES, PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from '@utils/constants'
+import { formatCurrency } from '@utils/formatters'
 import { calculateOrderTotal } from '@utils/calculations'
 import toast from 'react-hot-toast'
-import { MapPin, CreditCard, Package, Plus } from 'lucide-react'
 
 export default function Checkout() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { items, clearCart } = useCart()
+
   const [currentStep, setCurrentStep] = useState(1)
   const [selectedAddress, setSelectedAddress] = useState(null)
   const [showAddressForm, setShowAddressForm] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS.COD)
-  const [deliveryNotes, setDeliveryNotes] = useState('')
+  const [notes, setNotes] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
-  const [error, setError] = useState(null)
 
   const orderTotals = calculateOrderTotal(items, 'standard', 0)
+
+  useEffect(() => {
+    if (user?.addresses?.length > 0) {
+      const defaultAddress = user.addresses.find(addr => addr.isDefault) || user.addresses[0]
+      setSelectedAddress(defaultAddress)
+    }
+  }, [user])
 
   const handleAddressSelect = (address) => {
     setSelectedAddress(address)
     setShowAddressForm(false)
-    setError(null)
   }
 
-  const handleAddressCreated = (address) => {
-    setSelectedAddress(address)
+  const handleAddressAdded = (newAddress) => {
+    setSelectedAddress(newAddress)
     setShowAddressForm(false)
     setCurrentStep(2)
-    toast.success('Address added successfully')
   }
 
   const handleContinueToPayment = () => {
     if (!selectedAddress) {
-      setError('Please select a delivery address')
+      toast.error('Please select a delivery address')
       return
     }
     setCurrentStep(2)
-    setError(null)
-  }
-
-  const handleContinueToReview = () => {
-    if (!paymentMethod) {
-      setError('Please select a payment method')
-      return
-    }
-    setCurrentStep(3)
-    setError(null)
   }
 
   const handlePlaceOrder = async () => {
-    if (!selectedAddress || !paymentMethod) {
-      setError('Please complete all required fields')
+    if (!selectedAddress) {
+      toast.error('Please select a delivery address')
+      return
+    }
+
+    if (!paymentMethod) {
+      toast.error('Please select a payment method')
       return
     }
 
     setIsProcessing(true)
-    setError(null)
 
     try {
       const orderData = {
         customerId: user.uid,
-        customerName: user.displayName || user.email,
-        customerPhone: user.phoneNumber || '',
+        customerName: user.displayName,
+        customerPhone: user.phoneNumber,
         customerEmail: user.email,
         items: items.map(item => ({
           productId: item.id,
-          supplierId: item.supplierId || 'default_supplier',
+          supplierId: item.supplierId,
           name: item.name,
           image: item.images?.[0] || '',
           price: item.price,
@@ -90,256 +90,225 @@ export default function Checkout() {
         deliveryFee: orderTotals.deliveryFee,
         discount: orderTotals.discount,
         total: orderTotals.total,
-        deliveryAddress: {
-          ward: selectedAddress.ward,
-          area: selectedAddress.area,
-          street: selectedAddress.street,
-          landmark: selectedAddress.landmark || '',
-          coordinates: selectedAddress.coordinates || null
-        },
-        paymentMethod,
-        notes: deliveryNotes || null,
+        deliveryAddress: selectedAddress,
         deliveryType: 'standard',
-        status: 'pending',
-        paymentStatus: 'pending'
+        paymentMethod,
+        paymentStatus: 'pending',
+        notes
       }
 
-      const order = await createOrder(orderData)
-      
-      await clearCart()
-      
+      const order = await orderService.createOrder(orderData)
+
+      await notificationService.notifyOrderPlaced(order)
+
+      clearCart()
+
       toast.success('Order placed successfully!')
-      
-      navigate(`/order-success/${order.id}`, { replace: true })
-    } catch (err) {
-      console.error('Order placement error:', err)
-      setError(err.message || 'Failed to place order. Please try again.')
-      toast.error('Failed to place order')
+      navigate(`/order-success/${order.id}`)
+    } catch (error) {
+      toast.error('Failed to place order. Please try again.')
     } finally {
       setIsProcessing(false)
     }
   }
 
-  const steps = [
-    { number: 1, label: 'Address', icon: MapPin },
-    { number: 2, label: 'Payment', icon: CreditCard },
-    { number: 3, label: 'Review', icon: Package }
-  ]
-
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div className="grid lg:grid-cols-3 gap-8">
       <div className="lg:col-span-2 space-y-6">
-        <CheckoutStepper steps={steps} currentStep={currentStep} />
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="bg-white rounded-2xl shadow-card p-6 lg:p-8"
+        >
+          <h1 className="text-display font-display font-bold text-neutral-800 mb-6">
+            Checkout
+          </h1>
 
-        {error && (
-          <Alert variant="error" onClose={() => setError(null)}>
-            {error}
-          </Alert>
-        )}
+          <CheckoutStepper currentStep={currentStep} />
 
-        <AnimatePresence mode="wait">
-          {currentStep === 1 && (
-            <motion.div
-              key="step-1"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="bg-white rounded-2xl shadow-card p-6"
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="font-display text-2xl font-bold text-neutral-900">
-                  Delivery Address
-                </h2>
-                {!showAddressForm && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowAddressForm(true)}
-                    leftIcon={<Plus className="w-4 h-4" />}
-                  >
-                    Add New
-                  </Button>
-                )}
-              </div>
-
-              {showAddressForm ? (
-                <AddressForm
-                  onSuccess={handleAddressCreated}
-                  onCancel={() => setShowAddressForm(false)}
-                />
-              ) : (
-                <>
-                  <AddressList
-                    selectedId={selectedAddress?.id}
-                    onSelect={handleAddressSelect}
-                  />
-                  <div className="mt-6 flex justify-end">
-                    <Button
-                      onClick={handleContinueToPayment}
-                      disabled={!selectedAddress}
-                      size="lg"
-                    >
-                      Continue to Payment
-                    </Button>
+          <div className="mt-8">
+            <AnimatePresence mode="wait">
+              {currentStep === 1 && (
+                <motion.div
+                  key="step1"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-6"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                        <MapPin className="w-5 h-5 text-orange-600" />
+                      </div>
+                      <h2 className="text-heading font-semibold text-neutral-800">
+                        Delivery Address
+                      </h2>
+                    </div>
+                    {!showAddressForm && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setShowAddressForm(true)}
+                      >
+                        Add New Address
+                      </Button>
+                    )}
                   </div>
-                </>
+
+                  {showAddressForm ? (
+                    <AddressForm
+                      onSuccess={handleAddressAdded}
+                      onCancel={() => setShowAddressForm(false)}
+                    />
+                  ) : (
+                    <AddressList
+                      selectedAddress={selectedAddress}
+                      onSelectAddress={handleAddressSelect}
+                    />
+                  )}
+
+                  {!showAddressForm && (
+                    <div className="flex justify-end pt-4">
+                      <Button
+                        onClick={handleContinueToPayment}
+                        disabled={!selectedAddress}
+                        className="min-w-[200px]"
+                      >
+                        Continue to Payment
+                      </Button>
+                    </div>
+                  )}
+                </motion.div>
               )}
-            </motion.div>
-          )}
 
-          {currentStep === 2 && (
-            <motion.div
-              key="step-2"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="bg-white rounded-2xl shadow-card p-6"
-            >
-              <h2 className="font-display text-2xl font-bold text-neutral-900 mb-6">
-                Payment Method
-              </h2>
-
-              <div className="space-y-3">
-                <label className="flex items-center p-4 border-2 border-neutral-200 rounded-xl cursor-pointer hover:border-primary-500 transition-colors">
-                  <input
-                    type="radio"
-                    name="payment"
-                    value={PAYMENT_METHODS.COD}
-                    checked={paymentMethod === PAYMENT_METHODS.COD}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="w-5 h-5 text-primary-500 focus:ring-primary-500"
-                  />
-                  <div className="ml-4">
-                    <p className="font-semibold text-neutral-900">Cash on Delivery</p>
-                    <p className="text-sm text-neutral-600">Pay when you receive your order</p>
-                  </div>
-                </label>
-
-                <label className="flex items-center p-4 border-2 border-neutral-200 rounded-xl cursor-not-allowed opacity-50">
-                  <input
-                    type="radio"
-                    name="payment"
-                    disabled
-                    className="w-5 h-5"
-                  />
-                  <div className="ml-4">
-                    <p className="font-semibold text-neutral-900">eSewa</p>
-                    <p className="text-sm text-neutral-600">Coming soon</p>
-                  </div>
-                </label>
-
-                <label className="flex items-center p-4 border-2 border-neutral-200 rounded-xl cursor-not-allowed opacity-50">
-                  <input
-                    type="radio"
-                    name="payment"
-                    disabled
-                    className="w-5 h-5"
-                  />
-                  <div className="ml-4">
-                    <p className="font-semibold text-neutral-900">Khalti</p>
-                    <p className="text-sm text-neutral-600">Coming soon</p>
-                  </div>
-                </label>
-              </div>
-
-              <div className="mt-6 flex gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentStep(1)}
-                  size="lg"
+              {currentStep === 2 && (
+                <motion.div
+                  key="step2"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-6"
                 >
-                  Back
-                </Button>
-                <Button
-                  onClick={handleContinueToReview}
-                  disabled={!paymentMethod}
-                  size="lg"
-                  className="flex-1"
-                >
-                  Continue to Review
-                </Button>
-              </div>
-            </motion.div>
-          )}
-
-          {currentStep === 3 && (
-            <motion.div
-              key="step-3"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="space-y-6"
-            >
-              <div className="bg-white rounded-2xl shadow-card p-6">
-                <h2 className="font-display text-2xl font-bold text-neutral-900 mb-6">
-                  Review Order
-                </h2>
-
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="font-semibold text-neutral-900 mb-2">Delivery Address</h3>
-                    <div className="p-4 bg-neutral-50 rounded-xl">
-                      <p className="text-neutral-900">{selectedAddress?.street}</p>
-                      <p className="text-neutral-600">{selectedAddress?.area}, Ward {selectedAddress?.ward}</p>
-                      {selectedAddress?.landmark && (
-                        <p className="text-neutral-600 text-sm mt-1">Near {selectedAddress.landmark}</p>
-                      )}
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                      <CreditCard className="w-5 h-5 text-orange-600" />
                     </div>
+                    <h2 className="text-heading font-semibold text-neutral-800">
+                      Payment Method
+                    </h2>
                   </div>
 
-                  <div>
-                    <h3 className="font-semibold text-neutral-900 mb-2">Payment Method</h3>
-                    <div className="p-4 bg-neutral-50 rounded-xl">
-                      <p className="text-neutral-900">Cash on Delivery</p>
-                    </div>
+                  <div className="space-y-3">
+                    {Object.entries(PAYMENT_METHOD_LABELS).map(([key, label]) => (
+                      <motion.button
+                        key={key}
+                        onClick={() => setPaymentMethod(key)}
+                        whileHover={{ scale: 1.01 }}
+                        whileTap={{ scale: 0.99 }}
+                        className={`
+                          w-full p-4 rounded-xl border-2 transition-all duration-200 text-left
+                          ${paymentMethod === key 
+                            ? 'border-orange-500 bg-orange-50' 
+                            : 'border-neutral-200 hover:border-orange-200'
+                          }
+                        `}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-4">
+                            <div className={`
+                              w-5 h-5 rounded-full border-2 flex items-center justify-center
+                              ${paymentMethod === key ? 'border-orange-500' : 'border-neutral-300'}
+                            `}>
+                              {paymentMethod === key && (
+                                <div className="w-3 h-3 bg-orange-500 rounded-full" />
+                              )}
+                            </div>
+                            <span className="font-medium text-neutral-800">{label}</span>
+                          </div>
+                          {key === PAYMENT_METHODS.COD && (
+                            <span className="text-caption text-green-600 font-medium">
+                              Available
+                            </span>
+                          )}
+                        </div>
+                      </motion.button>
+                    ))}
                   </div>
 
-                  <div>
-                    <h3 className="font-semibold text-neutral-900 mb-2">Delivery Notes (Optional)</h3>
+                  <div className="pt-4">
+                    <label className="block text-body-sm font-medium text-neutral-700 mb-2">
+                      Order Notes (Optional)
+                    </label>
                     <textarea
-                      value={deliveryNotes}
-                      onChange={(e) => setDeliveryNotes(e.target.value)}
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
                       placeholder="Any special instructions for delivery..."
                       rows={3}
-                      className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+                      className="w-full px-4 py-3 rounded-xl border border-neutral-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all resize-none"
                     />
                   </div>
-                </div>
 
-                <div className="mt-6 flex gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={() => setCurrentStep(2)}
-                    size="lg"
-                    disabled={isProcessing}
-                  >
-                    Back
-                  </Button>
-                  <Button
-                    onClick={handlePlaceOrder}
-                    disabled={isProcessing}
-                    loading={isProcessing}
-                    size="lg"
-                    className="flex-1"
-                  >
-                    {isProcessing ? 'Placing Order...' : 'Place Order'}
-                  </Button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                  <div className="flex items-center space-x-2 p-4 bg-orange-50 rounded-xl border border-orange-200">
+                    <Clock className="w-5 h-5 text-orange-600 flex-shrink-0" />
+                    <p className="text-body-sm text-neutral-700">
+                      Your order will be delivered within <strong className="text-orange-600">1 hour</strong>
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-4">
+                    <Button
+                      variant="secondary"
+                      onClick={() => setCurrentStep(1)}
+                    >
+                      Back
+                    </Button>
+                    <Button
+                      onClick={handlePlaceOrder}
+                      disabled={isProcessing}
+                      className="min-w-[200px]"
+                    >
+                      {isProcessing ? 'Processing...' : 'Place Order'}
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.1 }}
+          className="bg-orange-50 border border-orange-200 rounded-2xl p-6"
+        >
+          <div className="flex items-start space-x-3">
+            <AlertCircle className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-semibold text-neutral-800 mb-2">Order Information</h3>
+              <ul className="space-y-2 text-body-sm text-neutral-600">
+                <li>• All products are quality checked before delivery</li>
+                <li>• Delivery within 1 hour or it's free</li>
+                <li>• Cash on Delivery available for all orders</li>
+                <li>• 100% satisfaction guaranteed</li>
+              </ul>
+            </div>
+          </div>
+        </motion.div>
       </div>
 
-      <div className="lg:col-span-1">
-        <div className="sticky top-24">
-          <CartSummary
-            items={items}
-            totals={orderTotals}
-            showCheckout={false}
-          />
-        </div>
-      </div>
+      <motion.div
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.2 }}
+        className="lg:sticky lg:top-24 h-fit"
+      >
+        <CartSummary
+          items={items}
+          showCheckoutButton={false}
+        />
+      </motion.div>
     </div>
   )
 }
