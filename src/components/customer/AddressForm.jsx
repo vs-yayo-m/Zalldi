@@ -5,7 +5,6 @@ import { motion } from 'framer-motion'
 import { MapPin, Home, Briefcase } from 'lucide-react'
 import Button from '@components/ui/Button'
 import Input from '@components/ui/Input'
-import Select from '@components/ui/Select'
 import { useAuth } from '@hooks/useAuth'
 import { useUser } from '@hooks/useUsers'
 import { WARDS, ADDRESS_TYPES } from '@utils/constants'
@@ -68,12 +67,12 @@ export default function AddressForm({ initialData = null, onSuccess, onCancel })
   }
   
   return (
-      <motion.form
+    <motion.form
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       onSubmit={handleSubmit}
-      className="space-y-6 overflow-visible" // <-- fix dropdown clipping
+      className="space-y-6 overflow-visible"
     >
       {/* Address Type */}
       <div>
@@ -118,20 +117,18 @@ export default function AddressForm({ initialData = null, onSuccess, onCancel })
 
       {/* Ward & Area */}
       <div className="grid md:grid-cols-2 gap-4">
-        {/* Animated Ward Select */}
-        <motion.div
-          initial={{ scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.2 }}
-          className="relative"
-        >
-          <Select
-            label="Ward Number"
+        {/* ✅ Native HTML Select for Ward */}
+        <div className="flex flex-col">
+          <label className="block text-body-sm font-medium text-neutral-700 mb-2">
+            Ward Number
+          </label>
+          <select
             value={formData.ward}
             onChange={(e) => handleChange('ward', e.target.value)}
-            error={errors.ward}
+            className={`w-full p-2 border rounded-md transition-colors focus:outline-none
+              ${errors.ward ? 'border-red-500' : 'border-neutral-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-200'}
+            `}
             required
-            className={formData.ward ? 'border-orange-500 text-orange-600' : ''}
           >
             <option value="">Select Ward</option>
             {WARDS.map(ward => (
@@ -139,8 +136,9 @@ export default function AddressForm({ initialData = null, onSuccess, onCancel })
                 {ward.label}
               </option>
             ))}
-          </Select>
-        </motion.div>
+          </select>
+          {errors.ward && <p className="text-red-500 text-sm mt-1">{errors.ward}</p>}
+        </div>
 
         <Input
           label="Area/Locality"
