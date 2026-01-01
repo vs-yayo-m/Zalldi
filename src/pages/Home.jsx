@@ -1,499 +1,646 @@
-//src/pages/Home jsx
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
-  motion, 
-  AnimatePresence, 
-  useScroll, 
-  useTransform,
-  useSpring
-} from 'framer-motion';
-import { 
-  MapPin, Clock, Heart, ShoppingBag, User, Gift, Search,
-  TrendingUp, Sparkles, Zap, Star, ChevronRight, Plus, Minus,
-  ArrowRight, Ticket, Flame, Timer, ShieldCheck, Leaf, 
-  Bike, CreditCard, ChevronDown, X
-} from 'lucide-react';
+// 1. src/pages/Home.jsx
 
-// Assuming these exist in your project structure, or standard fallbacks
-import Header from '@components/layout/Header'; 
-import Footer from '@components/layout/Footer';
-import { useCart } from '@hooks/useCart';
-import { ROUTES } from '@utils/constants';
-import toast from 'react-hot-toast';
+import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
+import { 
+  MapPin, Clock, Heart, ShoppingCart, User, Gift, Search,
+  TrendingUp, Sparkles, Snowflake, Package, Star, Zap,
+  CheckCircle, Home as HomeIcon, RotateCcw, DollarSign, MessageCircle, X,
+  ChevronRight, Timer, ShieldCheck, ArrowRight, Plus
+} from 'lucide-react'
+import Header from '@components/layout/Header'
+import Footer from '@components/layout/Footer'
+import Button from '@components/ui/Button'
+import { useCart } from '@hooks/useCart'
+import { useAuth } from '@hooks/useAuth'
+import { ROUTES, CATEGORIES } from '@utils/constants'
+import FlyToCart from '@components/animations/FlyToCart'
+import { FadeInWhenVisible } from '@components/animations/FadeIn'
+import toast from 'react-hot-toast'
 
-// --- MOCK DATA FOR PREVIEW (Replace with your actual constants) ---
+// --- CONSTANTS & DATA (Preserved & Enhanced) ---
+
 const HERO_SLIDES = [
   {
     id: 1,
-    title: "10-Minute Grocery Delivery",
-    subtitle: "Freshness you can trust, speed you can't believe.",
-    cta: "Shop Now",
-    color: "from-emerald-600 to-teal-900",
-    image: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1000",
-    accent: "#10b981"
+    title: "Butwal's First Quick Commerce",
+    subtitle: "Everything you need, delivered in minutes.",
+    primaryCTA: "Shop Now",
+    secondaryCTA: "About Zalldi",
+    primaryLink: ROUTES.SHOP,
+    secondaryLink: ROUTES.ABOUT,
+    background: "linear-gradient(135deg, #FFF1EC 0%, #FFD6C9 100%)", // Lighter orange theme background
+    accent: "#ff6b35",
+    image: "/images/hero-1.webp",
+    darkText: true
   },
   {
     id: 2,
     title: "Late Night Cravings?",
-    subtitle: "We deliver until 2 AM. Snacks, drinks & more.",
-    cta: "Order Snacks",
-    color: "from-indigo-600 to-purple-900",
-    image: "https://images.unsplash.com/photo-1595981267035-7b04ca84a82d?auto=format&fit=crop&q=80&w=1000",
-    accent: "#6366f1"
+    subtitle: "Ordered now. At your door before you sleep 😴",
+    primaryCTA: "Order Now",
+    secondaryCTA: "Late-Night Picks",
+    primaryLink: ROUTES.SHOP,
+    secondaryLink: `${ROUTES.SHOP}?category=snacks`,
+    background: "linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)",
+    accent: "#818cf8",
+    image: "/images/hero-2.webp",
+    darkText: false
   },
   {
     id: 3,
-    title: "Farm Fresh Veggies",
-    subtitle: "Direct from local farmers to your doorstep.",
-    cta: "Get Fresh",
-    color: "from-green-500 to-emerald-800",
-    image: "https://images.unsplash.com/photo-1610832958506-aa56368176cf?auto=format&fit=crop&q=80&w=1000",
-    accent: "#22c55e"
+    title: "Powered by Local Stores.",
+    subtitle: "Your neighborhood shops, supercharged with speed.",
+    primaryCTA: "Explore Stores",
+    secondaryCTA: "How It Works",
+    primaryLink: ROUTES.SHOP,
+    secondaryLink: ROUTES.HOW_IT_WORKS,
+    background: "linear-gradient(135deg, #ecfccb 0%, #bef264 100%)",
+    accent: "#65a30d",
+    image: "/images/hero-3.webp",
+    darkText: true
+  },
+  {
+    id: 4,
+    title: "Fast Isn't Enough. Zalldi Is Faster.",
+    subtitle: "When speed matters, Zalldi delivers.",
+    primaryCTA: "Order Fast",
+    secondaryCTA: "See How Fast",
+    primaryLink: ROUTES.SHOP,
+    secondaryLink: ROUTES.HOW_IT_WORKS,
+    background: "linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)",
+    accent: "#f97316",
+    image: "/images/hero-4.webp",
+    darkText: true
+  },
+  {
+    id: 5,
+    title: "Wait Less. Eat Fresh.",
+    subtitle: "Fresh food delivered while it's still fresh.",
+    primaryCTA: "Get Fresh",
+    secondaryCTA: "Browse Food",
+    primaryLink: ROUTES.SHOP,
+    secondaryLink: `${ROUTES.SHOP}?category=vegetables`,
+    background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)",
+    accent: "#22c55e",
+    image: "/images/hero-5.webp",
+    darkText: true
   }
-];
+]
 
-const CATEGORIES = [
-  { id: 'veg', name: 'Vegetables', icon: '🥕', color: 'bg-green-50' },
-  { id: 'fruit', name: 'Fruits', icon: '🍎', color: 'bg-red-50' },
-  { id: 'dairy', name: 'Dairy & Bread', icon: '🥛', color: 'bg-blue-50' },
-  { id: 'snacks', name: 'Munchies', icon: '🍿', color: 'bg-yellow-50' },
-  { id: 'drinks', name: 'Cold Drinks', icon: '🥤', color: 'bg-purple-50' },
-  { id: 'bakery', name: 'Bakery', icon: '🥐', color: 'bg-orange-50' },
-  { id: 'meat', name: 'Meat & Fish', icon: '🍗', color: 'bg-rose-50' },
-  { id: 'personal', name: 'Care', icon: '🧴', color: 'bg-pink-50' },
-];
+const PARTNER_LOGOS = [
+  { name: "Fresh Mart", logo: "/logos/partner-1.png" },
+  { name: "Daily Needs", logo: "/logos/partner-2.png" },
+  { name: "Quick Store", logo: "/logos/partner-3.png" },
+  { name: "Super Bazaar", logo: "/logos/partner-4.png" },
+  { name: "Fresh Valley", logo: "/logos/partner-5.png" }
+]
 
-const FLASH_DEALS = [
-  { id: 101, name: "Amul Gold Milk", price: 64, originalPrice: 70, discount: 8, image: "https://images.unsplash.com/photo-1563636619-e9143da7973b?auto=format&fit=crop&q=60&w=200", time: "12m" },
-  { id: 102, name: "Farm Eggs (6pcs)", price: 45, originalPrice: 60, discount: 25, image: "https://images.unsplash.com/photo-1598965402089-897ce52e8355?auto=format&fit=crop&q=60&w=200", time: "08m" },
-  { id: 103, name: "Fortune Oil 1L", price: 145, originalPrice: 180, discount: 19, image: "https://images.unsplash.com/photo-1474631245212-32dc3c8310c6?auto=format&fit=crop&q=60&w=200", time: "15m" },
-  { id: 104, name: "Whole Wheat Atta", price: 320, originalPrice: 400, discount: 20, image: "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=60&w=200", time: "22m" },
-];
+const SAMPLE_PRODUCTS = [
+  { id: 1, name: "Fresh Milk Full Cream", price: 85, weight: "500 ml", image: "/products/milk.webp", badge: "🔥 Bestseller", discount: 10, time: "12 mins" },
+  { id: 2, name: "Farm Fresh Brown Eggs", price: 280, weight: "12 pcs", image: "/products/eggs.webp", badge: "⭐ Popular", discount: 0, time: "15 mins" },
+  { id: 3, name: "Hybrid Red Tomatoes", price: 60, weight: "1 kg", image: "/products/tomato.webp", badge: "🌱 Fresh", discount: 15, time: "10 mins" },
+  { id: 4, name: "Classic White Bread", price: 65, weight: "400 g", image: "/products/bread.webp", badge: "🔥 Hot", discount: 0, time: "8 mins" },
+  { id: 5, name: "Premium Basmati Rice", price: 180, weight: "1 kg", image: "/products/rice.webp", badge: "⭐ Top Rated", discount: 5, time: "25 mins" },
+  { id: 6, name: "Fresh Local Potatoes", price: 45, weight: "1 kg", image: "/products/potato.webp", badge: "🌱 Fresh", discount: 0, time: "14 mins" },
+  { id: 7, name: "Red Onions", price: 55, weight: "1 kg", image: "/products/onion.webp", badge: "🌱 Essential", discount: 10, time: "14 mins" },
+  { id: 8, name: "Robusta Banana", price: 120, weight: "1 dozen", image: "/products/banana.webp", badge: "🍌 Fresh", discount: 0, time: "11 mins" }
+]
 
-const CURATED_LISTS = [
-  { title: "Breakfast Corner", items: 120, image: "https://images.unsplash.com/photo-1533089862017-5614a957425c?auto=format&fit=crop&q=80&w=400" },
-  { title: "Snack Attack", items: 85, image: "https://images.unsplash.com/photo-1621939514649-280e2ee25f60?auto=format&fit=crop&q=80&w=400" },
-  { title: "Home Essentials", items: 200, image: "https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&q=80&w=400" },
-];
+const SEARCH_PLACEHOLDERS = [
+  "Search for 'Milk'...",
+  "Search for 'Kurkure'...",
+  "Search for 'Chocolate'...",
+  "Search for 'Paneer'...",
+  "Search for 'Bread'...",
+  "Search for 'Coke'..."
+]
 
-// --- UTILITY COMPONENTS ---
-
-const SectionHeader = ({ title, subtitle, action }) => (
-  <div className="flex items-end justify-between mb-6 px-1">
-    <div>
-      <h2 className="text-xl md:text-2xl font-bold text-gray-900 tracking-tight font-display">{title}</h2>
-      {subtitle && <p className="text-sm text-gray-500 mt-1 font-medium">{subtitle}</p>}
-    </div>
-    {action && (
-      <button className="text-emerald-600 font-bold text-sm flex items-center hover:text-emerald-700 transition-colors">
-        {action} <ChevronRight className="w-4 h-4 ml-0.5" />
-      </button>
-    )}
-  </div>
-);
-
-const CountDownTimer = ({ initialMinutes = 15 }) => {
-  return (
-    <div className="flex items-center space-x-1 bg-red-100 text-red-700 px-2 py-1 rounded-md text-xs font-bold">
-      <Timer className="w-3 h-3" />
-      <span>{initialMinutes}m left</span>
-    </div>
-  );
-};
-
-// --- ENTERPRISE SKELETON LOADER ---
-const HomeSkeleton = () => (
-  <div className="min-h-screen bg-gray-50 space-y-6 pb-20">
-    <div className="h-16 bg-white border-b" />
-    <div className="container mx-auto px-4 space-y-8 pt-4">
-      <div className="h-48 md:h-[400px] bg-gray-200 rounded-2xl animate-pulse" />
-      <div className="grid grid-cols-4 gap-4">
-        {[...Array(8)].map((_, i) => (
-          <div key={i} className="h-24 bg-gray-200 rounded-xl animate-pulse" />
-        ))}
-      </div>
-      <div className="h-8 w-48 bg-gray-200 rounded animate-pulse" />
-      <div className="flex space-x-4 overflow-hidden">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="h-64 w-48 bg-gray-200 rounded-2xl flex-shrink-0 animate-pulse" />
-        ))}
-      </div>
-    </div>
-  </div>
-);
-
-// --- MAIN HOME COMPONENT ---
+// --- MAIN COMPONENT ---
 
 export default function Home() {
-  const navigate = useNavigate();
-  // Safe destructuring with defaults in case hook isn't ready
-  const { addToCart, cartItems = [], removeFromCart } = useCart() || {}; 
-  const [isLoading, setIsLoading] = useState(true);
-  const [activeSlide, setActiveSlide] = useState(0);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [stickySearch, setStickySearch] = useState(false);
-  const scrollRef = useRef(null);
-  const { scrollY } = useScroll();
+  const navigate = useNavigate()
+  const { addToCart, cartCount, cartTotal } = useCart()
+  const { user } = useAuth()
+  
+  const [currentSlide, setCurrentSlide] = useState(0)
+  const [searchPlaceholder, setSearchPlaceholder] = useState(0)
+  const [flyToCartTrigger, setFlyToCartTrigger] = useState(0)
+  const [showWhatsApp, setShowWhatsApp] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [isScrolled, setIsScrolled] = useState(false)
 
-  // Simulate enterprise data loading
+  // Scroll detection for sticky header enhanced effects
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 1200);
-    return () => clearTimeout(timer);
-  }, []);
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 50)
+    }
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
-  // Sticky Search Bar Effect
+  // Auto-slide logic
   useEffect(() => {
-    return scrollY.onChange((latest) => {
-      setStickySearch(latest > 200);
-    });
-  }, [scrollY]);
+    const slideInterval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length)
+    }, 5000) // Slower for better readability
+    return () => clearInterval(slideInterval)
+  }, [])
 
-  // Placeholder Typewriter Effect
-  const PLACEHOLDERS = ["Search 'Milk'...", "Search 'Curd'...", "Search 'Chips'...", "Search 'Diapers'..."];
-  const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  // Search placeholder animation logic
   useEffect(() => {
-    const interval = setInterval(() => {
-      setPlaceholderIndex(prev => (prev + 1) % PLACEHOLDERS.length);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
+    const placeholderInterval = setInterval(() => {
+      setSearchPlaceholder((prev) => (prev + 1) % SEARCH_PLACEHOLDERS.length)
+    }, 3000)
+    return () => clearInterval(placeholderInterval)
+  }, [])
 
-  // Cart Helper
-  const getProductQty = (id) => cartItems?.find(i => i.id === id)?.quantity || 0;
+  // WhatsApp popup delay
+  useEffect(() => {
+    const timer = setTimeout(() => setShowWhatsApp(true), 4000)
+    return () => clearTimeout(timer)
+  }, [])
 
-  if (isLoading) return <HomeSkeleton />;
+  const handleAddToCart = (product, e) => {
+    // Prevent navigation if clicking the add button
+    if(e) e.stopPropagation();
+    
+    addToCart(product)
+    setFlyToCartTrigger(prev => prev + 1)
+    toast.custom((t) => (
+      <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-white shadow-lg rounded-xl pointer-events-auto flex ring-1 ring-black ring-opacity-5`}>
+        <div className="flex-1 w-0 p-4">
+          <div className="flex items-start">
+            <div className="flex-shrink-0 pt-0.5">
+              <img className="h-10 w-10 rounded-full object-cover" src={product.image} alt="" />
+            </div>
+            <div className="ml-3 flex-1">
+              <p className="text-sm font-medium text-gray-900">{product.name}</p>
+              <p className="text-sm text-gray-500">Added to cart</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    ))
+  }
+
+  const handleSearch = (e) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      navigate(`${ROUTES.SEARCH}?q=${encodeURIComponent(searchQuery)}`)
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] font-sans text-gray-900 pb-24 md:pb-10">
-      
-      {/* --- DELIVERY STATUS HEADER (STICKY) --- */}
-      <motion.div 
-        className={`sticky top-0 z-50 bg-white transition-all duration-300 ${stickySearch ? 'shadow-md pb-3' : 'border-b border-gray-100'}`}
-      >
+    <div className="min-h-screen bg-[#F4F6FB] pb-24 md:pb-10">
+      <Header />
+
+      {/* --- ENTERPRISE STICKY HEADER --- */}
+      <div className={`sticky top-0 z-40 bg-white transition-shadow duration-300 ${isScrolled ? 'shadow-md' : 'border-b border-gray-100'}`}>
         <div className="container mx-auto px-4">
+          {/* Top Bar: Location & Actions */}
           <div className="flex items-center justify-between py-3">
             <div className="flex flex-col">
-              <div className="flex items-center gap-1 cursor-pointer group">
-                <h3 className="text-lg font-extrabold text-gray-900 group-hover:text-emerald-600 transition-colors">
-                  12 Minutes
-                </h3>
-                <MapPin className="w-4 h-4 text-emerald-600 fill-emerald-100" />
-              </div>
-              <p className="text-xs text-gray-500 font-medium truncate max-w-[200px]">
-                Home - Butwal Ward 9, Rupandehi
-                <ChevronDown className="w-3 h-3 inline ml-1" />
-              </p>
+              <button className="flex items-center space-x-1 group">
+                <h2 className="text-lg font-bold text-gray-800 flex items-center gap-1 group-hover:text-orange-600 transition-colors">
+                  <MapPin className="w-5 h-5 text-orange-600 fill-orange-100" />
+                  Home - Butwal
+                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-orange-600" />
+                </h2>
+              </button>
+              <span className="text-xs text-gray-500 font-medium ml-6">Ward 9 • Delivery in 12 mins</span>
             </div>
 
-            <div className="flex items-center gap-3">
-              <button className="p-2 rounded-full hover:bg-gray-100 relative transition-colors">
-                <User className="w-6 h-6 text-gray-700" />
-              </button>
+            <div className="flex items-center space-x-3">
               <button 
-                onClick={() => navigate(ROUTES.CART)}
-                className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 active:scale-95"
+                onClick={() => navigate(ROUTES.CUSTOMER_WISHLIST)}
+                className="hidden md:flex items-center justify-center w-10 h-10 rounded-full bg-gray-50 hover:bg-orange-50 text-gray-600 hover:text-orange-600 transition-colors"
               >
-                <ShoppingBag className="w-5 h-5" />
-                {cartItems?.length > 0 ? (
-                   <span className="font-bold">₹{cartItems.reduce((acc, i) => acc + (i.price * i.quantity), 0)}</span>
-                ) : (
-                  <span className="font-bold text-sm">My Cart</span>
-                )}
+                <Heart className="w-5 h-5" />
               </button>
+              <div 
+                 onClick={() => navigate(ROUTES.CART)}
+                 className="flex flex-col items-end cursor-pointer"
+              >
+                 {cartCount > 0 ? (
+                   <div className="bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 shadow-sm hover:bg-green-800 transition-colors">
+                      <div className="flex flex-col items-start leading-none">
+                        <span className="text-[10px] uppercase font-bold opacity-80">{cartCount} items</span>
+                        <span className="text-xs font-bold">Rs {cartTotal || 0}</span>
+                      </div>
+                      <ShoppingCart className="w-4 h-4" />
+                   </div>
+                 ) : (
+                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-200 transition-colors">
+                        <User className="w-5 h-5" />
+                    </div>
+                 )}
+              </div>
             </div>
           </div>
 
-          {/* Search Bar - Transforms based on scroll */}
-          <div className={`transition-all duration-300 ease-in-out ${stickySearch ? 'block' : 'block pb-4'}`}>
-            <div className="relative group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-emerald-500 transition-colors" />
-              <input 
+          {/* Search Bar - Integrated & Slick */}
+          <div className={`pb-3 transition-all duration-300 ${isScrolled ? 'hidden md:block' : 'block'}`}>
+            <form onSubmit={handleSearch} className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Search className="h-5 w-5 text-gray-400 group-focus-within:text-orange-500 transition-colors" />
+              </div>
+              <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={PLACEHOLDERS[placeholderIndex]}
-                className="w-full bg-gray-100 border border-transparent focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 rounded-xl py-3 pl-12 pr-4 text-sm font-medium transition-all duration-300 outline-none placeholder-gray-400 shadow-sm"
+                className="block w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl leading-5 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all duration-200 sm:text-sm shadow-sm"
               />
-              {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2 p-1 bg-gray-200 rounded-full hover:bg-gray-300">
-                  <X className="w-3 h-3" />
-                </button>
+              {/* Animated Placeholder Overlay */}
+              {!searchQuery && (
+                <div className="absolute inset-y-0 left-11 flex items-center pointer-events-none overflow-hidden">
+                  <AnimatePresence mode="wait">
+                    <motion.span
+                      key={searchPlaceholder}
+                      initial={{ y: 20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      exit={{ y: -20, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="text-gray-400 text-sm"
+                    >
+                      {SEARCH_PLACEHOLDERS[searchPlaceholder]}
+                    </motion.span>
+                  </AnimatePresence>
+                </div>
               )}
-            </div>
+            </form>
           </div>
         </div>
-      </motion.div>
+      </div>
 
-      <div className="container mx-auto px-4 space-y-10 pt-6">
+      <div className="container mx-auto px-4 pt-6 space-y-10">
         
-        {/* --- HERO SECTION --- */}
-        <section className="relative h-[220px] md:h-[400px] rounded-3xl overflow-hidden shadow-2xl shadow-gray-200/50 group">
-          <AnimatePresence mode='wait'>
-            <motion.div 
-              key={activeSlide}
-              initial={{ opacity: 0, scale: 1.05 }}
-              animate={{ opacity: 1, scale: 1 }}
+        {/* --- HERO SECTION: MODERN CAROUSEL --- */}
+        <section className="relative rounded-3xl overflow-hidden shadow-lg h-[200px] md:h-[350px] lg:h-[400px]">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentSlide}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.7 }}
-              className={`absolute inset-0 bg-gradient-to-r ${HERO_SLIDES[activeSlide].color} flex items-center`}
+              transition={{ duration: 0.5 }}
+              className="absolute inset-0 w-full h-full"
+              style={{ background: HERO_SLIDES[currentSlide].background }}
             >
-              <div className="absolute inset-0 opacity-20 mix-blend-overlay bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
-              <img 
-                src={HERO_SLIDES[activeSlide].image} 
-                alt="Hero"
-                className="absolute right-0 top-0 h-full w-3/5 object-cover mask-image-linear-gradient"
-                style={{ maskImage: 'linear-gradient(to right, transparent, black)' }}
-              />
-              
-              <div className="relative z-10 p-8 md:p-16 max-w-xl">
-                <motion.span 
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  className="inline-block px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-bold text-white mb-4 border border-white/10"
+              <div className="absolute inset-0 bg-gradient-to-r from-black/10 to-transparent"></div>
+              <div className="relative h-full flex flex-col justify-center px-6 md:px-12 max-w-3xl">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2, duration: 0.5 }}
                 >
-                  #FastDelivery
-                </motion.span>
-                <motion.h1 
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.1 }}
-                  className="text-4xl md:text-6xl font-black text-white leading-tight mb-4 drop-shadow-lg"
-                >
-                  {HERO_SLIDES[activeSlide].title}
-                </motion.h1>
-                <motion.p 
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.2 }}
-                  className="text-white/90 text-lg mb-8 font-medium max-w-sm"
-                >
-                  {HERO_SLIDES[activeSlide].subtitle}
-                </motion.p>
-                <motion.button 
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="bg-white text-gray-900 px-8 py-3.5 rounded-xl font-bold text-sm shadow-xl hover:shadow-2xl transition-all flex items-center gap-2"
-                >
-                  {HERO_SLIDES[activeSlide].cta} <ArrowRight className="w-4 h-4" />
-                </motion.button>
+                  <span 
+                    className="inline-block px-3 py-1 rounded-full text-xs font-bold mb-4 uppercase tracking-wider"
+                    style={{ 
+                      backgroundColor: HERO_SLIDES[currentSlide].darkText ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.2)',
+                      color: HERO_SLIDES[currentSlide].darkText ? '#333' : '#fff'
+                    }}
+                  >
+                    #{currentSlide + 1} Trending
+                  </span>
+                  <h1 className={`text-2xl md:text-4xl lg:text-5xl font-extrabold mb-3 leading-tight ${HERO_SLIDES[currentSlide].darkText ? 'text-gray-900' : 'text-white'}`}>
+                    {HERO_SLIDES[currentSlide].title}
+                  </h1>
+                  <p className={`text-sm md:text-lg mb-6 max-w-lg font-medium ${HERO_SLIDES[currentSlide].darkText ? 'text-gray-700' : 'text-white/90'}`}>
+                    {HERO_SLIDES[currentSlide].subtitle}
+                  </p>
+                  
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={() => navigate(HERO_SLIDES[currentSlide].primaryLink)}
+                      className="bg-gray-900 text-white hover:bg-gray-800 border-none shadow-xl"
+                    >
+                      {HERO_SLIDES[currentSlide].primaryCTA}
+                    </Button>
+                    <button
+                      onClick={() => navigate(HERO_SLIDES[currentSlide].secondaryLink)}
+                      className={`px-6 py-2 rounded-xl font-semibold transition-all ${
+                        HERO_SLIDES[currentSlide].darkText 
+                          ? 'text-gray-900 bg-white/50 hover:bg-white' 
+                          : 'text-white bg-white/20 hover:bg-white/30'
+                      }`}
+                    >
+                      {HERO_SLIDES[currentSlide].secondaryCTA}
+                    </button>
+                  </div>
+                </motion.div>
               </div>
+              
+              {/* Decorative Background Image (Optional) */}
+              {/* <div className="absolute right-0 bottom-0 h-full w-1/2 bg-contain bg-no-repeat bg-right-bottom opacity-20 pointer-events-none" style={{ backgroundImage: `url(${HERO_SLIDES[currentSlide].image})` }} /> */}
             </motion.div>
           </AnimatePresence>
           
-          {/* Slide Indicators */}
-          <div className="absolute bottom-6 left-8 flex space-x-2 z-20">
+          {/* Indicators */}
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
             {HERO_SLIDES.map((_, idx) => (
-              <button
+              <div 
                 key={idx}
-                onClick={() => setActiveSlide(idx)}
-                className={`h-1.5 rounded-full transition-all duration-300 ${activeSlide === idx ? 'w-8 bg-white' : 'w-2 bg-white/40 hover:bg-white/60'}`}
+                onClick={() => setCurrentSlide(idx)}
+                className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${currentSlide === idx ? 'w-8 bg-gray-900' : 'w-2 bg-gray-400/50'}`}
               />
             ))}
           </div>
         </section>
 
-        {/* --- CATEGORY GRID --- */}
-        <section>
-          <SectionHeader title="Shop by Category" />
-          <div className="grid grid-cols-4 md:grid-cols-8 gap-3 md:gap-6">
-            {CATEGORIES.map((cat, idx) => (
-              <motion.div
-                key={cat.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.05 }}
-                className="flex flex-col items-center gap-2 cursor-pointer group"
-              >
-                <div className={`${cat.color} w-20 h-20 md:w-24 md:h-24 rounded-2xl flex items-center justify-center text-4xl shadow-sm group-hover:shadow-md group-hover:-translate-y-1 transition-all duration-300 border border-gray-100`}>
-                  {cat.icon}
+        {/* --- PARTNER MARQUEE --- */}
+        <section className="overflow-hidden bg-white rounded-xl shadow-sm border border-gray-100 py-4">
+           <div className="flex items-center gap-2 mb-2 px-4">
+             <Sparkles className="w-4 h-4 text-orange-500" />
+             <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Trusted Partners</span>
+           </div>
+           <div className="relative flex overflow-x-hidden group">
+            <motion.div 
+              className="flex space-x-12 whitespace-nowrap py-2"
+              animate={{ x: [0, -1000] }}
+              transition={{ repeat: Infinity, duration: 40, ease: "linear" }}
+            >
+              {[...PARTNER_LOGOS, ...PARTNER_LOGOS, ...PARTNER_LOGOS].map((partner, index) => (
+                <div key={index} className="flex items-center space-x-3 opacity-60 grayscale hover:grayscale-0 hover:opacity-100 transition-all cursor-pointer">
+                   <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                     <Package className="w-4 h-4 text-gray-600" />
+                   </div>
+                   <span className="font-semibold text-gray-700">{partner.name}</span>
                 </div>
-                <span className="text-xs md:text-sm font-semibold text-gray-700 text-center leading-tight group-hover:text-emerald-700 transition-colors">
-                  {cat.name}
-                </span>
-              </motion.div>
-            ))}
+              ))}
+            </motion.div>
           </div>
         </section>
 
-        {/* --- FLASH SALE RAIL (HORIZONTAL SCROLL) --- */}
-        <section className="bg-gradient-to-br from-rose-50 to-orange-50 rounded-3xl p-6 border border-rose-100">
-          <SectionHeader 
-            title={
-              <span className="flex items-center gap-2 text-rose-600">
-                <Flame className="w-6 h-6 fill-rose-600" /> Flash Deals
-              </span>
-            } 
-            subtitle="Lowest prices in 30 days"
-            action="See all"
-          />
-          
-          <div className="flex space-x-4 overflow-x-auto pb-6 scrollbar-hide -mx-2 px-2">
-            {FLASH_DEALS.map((product) => (
-              <ProductCard 
-                key={product.id} 
-                product={product} 
-                cartQty={getProductQty(product.id)}
-                addToCart={addToCart}
-                removeFromCart={removeFromCart}
-                type="flash"
-              />
-            ))}
-          </div>
-        </section>
-
-        {/* --- CURATED COLLECTIONS (MASONRY-ISH) --- */}
-        <section>
-          <SectionHeader title="Curated For You" subtitle="Handpicked essentials for every mood" />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {CURATED_LISTS.map((list, idx) => (
-              <motion.div
-                key={idx}
-                whileHover={{ y: -5 }}
-                className="relative h-48 rounded-2xl overflow-hidden cursor-pointer group shadow-lg"
-              >
-                <img src={list.image} alt={list.title} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
-                <div className="absolute bottom-0 left-0 p-5 w-full">
-                  <h3 className="text-white text-xl font-bold mb-1">{list.title}</h3>
-                  <div className="flex items-center justify-between">
-                    <p className="text-gray-300 text-sm">{list.items} items</p>
-                    <div className="w-8 h-8 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <ChevronRight className="w-5 h-5 text-white" />
+        {/* --- CATEGORY GRID (BLINKIT STYLE) --- */}
+        <FadeInWhenVisible>
+          <section>
+            <div className="flex items-center justify-between mb-4">
+               <h2 className="text-xl md:text-2xl font-extrabold text-gray-800">Shop by Category</h2>
+            </div>
+            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-3 md:gap-4">
+              {CATEGORIES.slice(0, 15).map((category, idx) => (
+                <motion.div
+                  key={category.id}
+                  whileHover={{ y: -5 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => navigate(`${ROUTES.CATEGORY}/${category.id}`)}
+                  className="cursor-pointer flex flex-col items-center"
+                >
+                  <div 
+                    className="w-full aspect-[4/5] rounded-2xl mb-2 relative overflow-hidden flex items-center justify-center transition-all duration-300 shadow-sm hover:shadow-md"
+                    style={{ backgroundColor: `${category.color}15` }}
+                  >
+                    <div className="text-4xl md:text-5xl transform hover:scale-110 transition-transform duration-300">
+                      {category.icon === 'ShoppingBasket' && '🛒'}
+                      {category.icon === 'Carrot' && '🥕'}
+                      {category.icon === 'Apple' && '🍎'}
+                      {category.icon === 'Milk' && '🥛'}
+                      {category.icon === 'Fish' && '🐟'}
+                      {category.icon === 'Croissant' && '🥐'}
+                      {category.icon === 'Coffee' && '☕'}
+                      {/* Add more generic fallbacks if needed */}
+                      {!['ShoppingBasket', 'Carrot', 'Apple', 'Milk', 'Fish', 'Croissant', 'Coffee'].includes(category.icon) && '📦'}
                     </div>
                   </div>
-                </div>
+                  <span className="text-xs md:text-sm font-semibold text-center text-gray-700 leading-tight px-1">
+                    {category.name}
+                  </span>
+                </motion.div>
+              ))}
+              <motion.div
+                whileHover={{ y: -5 }}
+                onClick={() => navigate(ROUTES.SHOP)}
+                className="cursor-pointer flex flex-col items-center"
+              >
+                 <div className="w-full aspect-[4/5] rounded-2xl mb-2 relative overflow-hidden flex items-center justify-center bg-orange-50 border-2 border-dashed border-orange-200">
+                    <ArrowRight className="w-8 h-8 text-orange-500" />
+                 </div>
+                 <span className="text-xs md:text-sm font-semibold text-center text-orange-600">See All</span>
               </motion.div>
-            ))}
-          </div>
-        </section>
+            </div>
+          </section>
+        </FadeInWhenVisible>
 
-        {/* --- BANK OFFERS / PROMO STRIP --- */}
-        <section className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1 bg-indigo-600 rounded-2xl p-6 flex items-center justify-between text-white relative overflow-hidden shadow-xl shadow-indigo-200">
-            <div className="relative z-10">
-              <p className="text-xs font-bold uppercase tracking-wider opacity-80 mb-1">Pay with UPI</p>
-              <h3 className="text-2xl font-bold mb-1">Get 20% Cashback</h3>
-              <p className="text-sm opacity-90">Use code: ZALLDI20</p>
-            </div>
-            <CreditCard className="w-24 h-24 absolute -right-4 -bottom-4 opacity-20 rotate-12" />
-            <div className="bg-white/10 px-4 py-2 rounded-lg font-mono text-sm font-bold border border-white/20 backdrop-blur-sm relative z-10">
-              COPY
-            </div>
-          </div>
-          
-          <div className="flex-1 bg-emerald-600 rounded-2xl p-6 flex items-center justify-between text-white relative overflow-hidden shadow-xl shadow-emerald-200">
-            <div className="relative z-10">
-              <p className="text-xs font-bold uppercase tracking-wider opacity-80 mb-1">Free Delivery</p>
-              <h3 className="text-2xl font-bold mb-1">On orders above ₹199</h3>
-              <p className="text-sm opacity-90">First 3 orders only</p>
-            </div>
-            <Bike className="w-24 h-24 absolute -right-4 -bottom-4 opacity-20 rotate-12" />
-          </div>
-        </section>
+        {/* --- HORIZONTAL PRODUCT RAILS --- */}
+        
+        {/* Rail 1: Bestsellers */}
+        <ProductRail 
+          title="🔥 Bestsellers in your area" 
+          products={SAMPLE_PRODUCTS.slice(0, 5)} 
+          onAdd={handleAddToCart}
+          onViewAll={() => navigate(ROUTES.SHOP)}
+          bg="bg-gradient-to-r from-orange-50 to-transparent"
+        />
 
-        {/* --- TRUST BADGES --- */}
-        <section className="py-8 border-t border-dashed border-gray-200">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <TrustItem icon={<Zap className="text-amber-500" />} title="Superfast Delivery" sub="Within 15 mins" />
-            <TrustItem icon={<ShieldCheck className="text-emerald-500" />} title="Safe & Hygienic" sub="Regular checks" />
-            <TrustItem icon={<Star className="text-indigo-500" />} title="Best Prices" sub="Cheaper than market" />
-            <TrustItem icon={<Leaf className="text-green-500" />} title="Fresh Guarantee" sub="Refund if not fresh" />
+        {/* Rail 2: Fresh */}
+        <ProductRail 
+          title="🥦 Farm Fresh Vegetables" 
+          products={SAMPLE_PRODUCTS.slice(2, 7)} 
+          onAdd={handleAddToCart}
+          onViewAll={() => navigate(`${ROUTES.SHOP}?category=vegetables`)}
+        />
+
+        {/* Rail 3: Daily Essentials */}
+        <ProductRail 
+          title="🥛 Daily Essentials" 
+          products={SAMPLE_PRODUCTS} 
+          onAdd={handleAddToCart}
+          onViewAll={() => navigate(`${ROUTES.SHOP}?category=essentials`)}
+        />
+
+        {/* --- TRUST BANNER --- */}
+        <FadeInWhenVisible>
+          <div className="relative overflow-hidden bg-gray-900 rounded-3xl p-8 md:p-12 text-white shadow-2xl">
+            <div className="absolute top-0 right-0 p-4 opacity-10">
+              <Zap className="w-64 h-64" />
+            </div>
+            <div className="relative z-10 grid md:grid-cols-2 gap-8 items-center">
+               <div>
+                  <h2 className="text-3xl md:text-4xl font-extrabold mb-4">Why Zalldi?</h2>
+                  <p className="text-gray-300 text-lg mb-8">We don't just deliver groceries; we deliver time, freshness, and trust straight to your doorstep in Butwal.</p>
+                  <Button onClick={() => navigate(ROUTES.ABOUT)} className="bg-orange-500 hover:bg-orange-600 border-none text-white">
+                    Read Our Story
+                  </Button>
+               </div>
+               <div className="grid grid-cols-2 gap-4">
+                  <TrustItem icon={<Clock className="w-6 h-6 text-orange-400" />} title="12 Min Delivery" desc="Fastest in town" />
+                  <TrustItem icon={<ShieldCheck className="w-6 h-6 text-orange-400" />} title="Quality Check" desc="No bad produce" />
+                  <TrustItem icon={<DollarSign className="w-6 h-6 text-orange-400" />} title="Best Prices" desc="Direct from mandi" />
+                  <TrustItem icon={<RotateCcw className="w-6 h-6 text-orange-400" />} title="Easy Returns" desc="No questions asked" />
+               </div>
+            </div>
           </div>
-        </section>
+        </FadeInWhenVisible>
+
       </div>
+
+      {/* --- FLOATING ELEMENTS --- */}
+
+      {/* WhatsApp Button */}
+      <AnimatePresence>
+        {showWhatsApp && (
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            className="fixed bottom-24 md:bottom-10 right-4 z-50"
+          >
+            <div className="relative group">
+              <button
+                onClick={() => window.open('https://wa.me/9779821072912', '_blank')}
+                className="w-14 h-14 bg-[#25D366] rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-105"
+              >
+                <MessageCircle className="w-7 h-7 text-white" />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowWhatsApp(false) }}
+                className="absolute -top-1 -right-1 w-5 h-5 bg-gray-200 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors"
+              >
+                <X className="w-3 h-3 text-gray-600 hover:text-white" />
+              </button>
+              <span className="absolute right-full top-1/2 -translate-y-1/2 mr-3 px-3 py-1 bg-white shadow-md rounded-lg text-xs font-bold text-gray-700 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                Chat with us
+              </span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Sticky Cart Summary (Mobile Only) */}
+      <AnimatePresence>
+        {cartCount > 0 && (
+          <motion.div
+            initial={{ y: 100 }}
+            animate={{ y: 0 }}
+            exit={{ y: 100 }}
+            className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 p-4 shadow-[0_-5px_20px_rgba(0,0,0,0.1)] md:hidden"
+          >
+            <button 
+              onClick={() => navigate(ROUTES.CART)}
+              className="w-full bg-green-700 text-white rounded-xl p-3 flex items-center justify-between shadow-lg active:scale-[0.99] transition-transform"
+            >
+               <div className="flex flex-col items-start">
+                 <span className="text-xs uppercase opacity-90 font-bold">{cartCount} Items</span>
+                 <span className="text-lg font-bold">Rs {cartTotal}</span>
+               </div>
+               <div className="flex items-center font-bold">
+                 View Cart <ChevronRight className="w-5 h-5 ml-1" />
+               </div>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <FlyToCart trigger={flyToCartTrigger} />
+      <Footer />
     </div>
-  );
+  )
 }
 
-// --- SUB-COMPONENTS ---
+// --- SUB COMPONENTS ---
 
-function TrustItem({ icon, title, sub }) {
+function ProductRail({ title, products, onAdd, onViewAll, bg = "" }) {
   return (
-    <div className="flex items-center gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-      <div className="p-3 bg-gray-50 rounded-full">{icon}</div>
-      <div>
-        <h4 className="font-bold text-gray-900 text-sm">{title}</h4>
-        <p className="text-xs text-gray-500">{sub}</p>
-      </div>
-    </div>
-  );
+    <FadeInWhenVisible>
+      <section className={`rounded-2xl py-6 ${bg}`}>
+        <div className="flex items-center justify-between mb-4 px-2">
+          <h2 className="text-xl font-bold text-gray-800">{title}</h2>
+          <button onClick={onViewAll} className="text-orange-600 font-bold text-sm hover:underline flex items-center">
+            See All <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+        
+        <div className="flex overflow-x-auto gap-4 pb-6 px-2 scrollbar-hide snap-x">
+          {products.map((product) => (
+            <ProductCard key={product.id} product={product} onAdd={onAdd} />
+          ))}
+          {/* "See More" Card at end of rail */}
+          <div className="min-w-[140px] md:min-w-[180px] flex flex-col justify-center items-center">
+             <button 
+                onClick={onViewAll}
+                className="w-12 h-12 rounded-full border-2 border-orange-500 text-orange-500 flex items-center justify-center hover:bg-orange-500 hover:text-white transition-all"
+             >
+               <ArrowRight className="w-6 h-6" />
+             </button>
+             <span className="mt-2 text-sm font-semibold text-gray-600">View all</span>
+          </div>
+        </div>
+      </section>
+    </FadeInWhenVisible>
+  )
 }
 
-function ProductCard({ product, cartQty, addToCart, removeFromCart, type = 'standard' }) {
-  const isFlash = type === 'flash';
-  
+function ProductCard({ product, onAdd }) {
   return (
-    <motion.div 
-      className={`relative bg-white rounded-2xl p-3 flex flex-col justify-between flex-shrink-0 group transition-all duration-300 ${
-        isFlash ? 'w-[160px] md:w-[200px] border border-rose-100 shadow-md hover:shadow-lg' : 'w-full border border-gray-100'
-      }`}
-    >
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 min-w-[160px] md:min-w-[200px] flex flex-col snap-start relative group">
       {/* Badges */}
-      <div className="absolute top-3 left-3 z-10 flex flex-col gap-1">
+      <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">
         {product.discount > 0 && (
-          <span className="bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm">
+          <span className="bg-[#566cd6] text-white text-[10px] font-bold px-2 py-0.5 rounded-r-lg shadow-sm uppercase tracking-wide">
             {product.discount}% OFF
           </span>
         )}
+        {product.badge && (
+           <span className="bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-r-lg shadow-sm flex items-center gap-1">
+             {product.badge}
+           </span>
+        )}
       </div>
-
-      {isFlash && (
-        <div className="absolute top-3 right-3 z-10">
-          <CountDownTimer initialMinutes={parseInt(product.time)} />
-        </div>
-      )}
 
       {/* Image Area */}
-      <div className="relative h-32 mb-3 rounded-xl overflow-hidden bg-gray-50 flex items-center justify-center">
-        <img src={product.image} alt={product.name} className="h-full w-full object-contain mix-blend-multiply p-2 group-hover:scale-110 transition-transform duration-500" />
+      <div className="relative p-4 h-40 flex items-center justify-center">
+         <img 
+            src={product.image} 
+            alt={product.name} 
+            className="h-full w-full object-contain group-hover:scale-110 transition-transform duration-300"
+            onError={(e) => {e.target.src = 'https://placehold.co/200x200/f3f4f6/a3a3a3?text=Product';}}
+         />
+         <div className="absolute bottom-2 left-2 bg-gray-100/90 backdrop-blur-sm px-2 py-0.5 rounded text-[10px] font-bold text-gray-600 flex items-center gap-1">
+           <Timer className="w-3 h-3" /> {product.time}
+         </div>
       </div>
 
-      {/* Content */}
-      <div className="space-y-1">
-        <div className="flex items-center gap-1 text-[10px] text-gray-500 font-medium">
-          <Clock className="w-3 h-3" /> {isFlash ? product.time : '12 mins'}
-        </div>
-        <h3 className="font-semibold text-gray-800 text-sm line-clamp-2 min-h-[40px] leading-tight">
+      {/* Content Area */}
+      <div className="p-3 pt-0 flex flex-col flex-grow">
+        <p className="text-xs text-gray-500 font-medium mb-1">{product.weight}</p>
+        <h3 className="text-sm font-semibold text-gray-800 leading-snug line-clamp-2 mb-3 h-10">
           {product.name}
         </h3>
-        <p className="text-xs text-gray-500">500g</p> {/* Mock Unit */}
         
-        <div className="flex items-end justify-between pt-2">
-          <div>
-             <span className="block text-gray-400 text-xs line-through">₹{product.originalPrice}</span>
-             <span className="block text-gray-900 font-extrabold text-base">₹{product.price}</span>
+        {/* Footer: Price & Add Button */}
+        <div className="mt-auto flex items-center justify-between">
+          <div className="flex flex-col">
+            <span className="text-xs text-gray-400 line-through">
+              {product.discount > 0 ? `Rs ${Math.round(product.price / (1 - product.discount / 100))}` : ''}
+            </span>
+            <span className="text-sm font-bold text-gray-900">Rs {product.price}</span>
           </div>
-
-          {/* ADD BUTTON / COUNTER */}
-          {cartQty > 0 ? (
-            <div className="flex items-center bg-emerald-50 border border-emerald-600 rounded-lg h-9 overflow-hidden shadow-sm">
-              <button 
-                onClick={() => removeFromCart(product.id)}
-                className="w-8 h-full flex items-center justify-center text-emerald-700 hover:bg-emerald-100 transition-colors"
-              >
-                <Minus className="w-4 h-4" />
-              </button>
-              <span className="w-6 text-center text-sm font-bold text-emerald-700">{cartQty}</span>
-              <button 
-                onClick={() => addToCart(product)}
-                className="w-8 h-full flex items-center justify-center text-emerald-700 hover:bg-emerald-100 transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-              </button>
-            </div>
-          ) : (
-            <button 
-              onClick={() => addToCart && addToCart(product)}
-              className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all shadow-sm active:scale-95 uppercase tracking-wide"
-            >
-              ADD
-            </button>
-          )}
+          
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={(e) => onAdd(product, e)}
+            className="border-green-600 text-green-700 hover:bg-green-50 px-4 py-1 h-auto text-xs uppercase font-extrabold rounded-lg tracking-wide bg-green-50/50"
+          >
+            ADD
+          </Button>
         </div>
       </div>
-    </motion.div>
-  );
+    </div>
+  )
+}
+
+function TrustItem({ icon, title, desc }) {
+  return (
+    <div className="bg-gray-800/50 rounded-xl p-4 flex flex-col items-center text-center backdrop-blur-sm hover:bg-gray-800 transition-colors">
+      <div className="mb-2 bg-gray-700 p-2 rounded-full">
+        {icon}
+      </div>
+      <h3 className="font-bold text-sm mb-1">{title}</h3>
+      <p className="text-xs text-gray-400 leading-tight">{desc}</p>
+    </div>
+  )
 }
 
