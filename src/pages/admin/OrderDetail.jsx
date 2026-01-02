@@ -12,7 +12,7 @@ import Footer from '@components/layout/Footer'
 import Button from '@components/ui/Button'
 import Badge from '@components/ui/Badge'
 import LoadingScreen from '@components/shared/LoadingScreen'
-import { orderService } from '@services/order.service'
+import { getOrderById, updateOrderStatus, cancelOrder } from '@services/order.service'
 import { ORDER_STATUS, ORDER_STATUS_LABELS } from '@utils/constants'
 import { formatCurrency, formatDateTime, formatAddress } from '@utils/formatters'
 import toast from 'react-hot-toast'
@@ -33,7 +33,7 @@ export default function AdminOrderDetail() {
   const fetchOrder = async () => {
     try {
       setLoading(true)
-      const data = await orderService.getOrder(orderId)
+      const data = await getOrderById(orderId)
       setOrder(data)
     } catch (error) {
       console.error('Error fetching order:', error)
@@ -46,7 +46,7 @@ export default function AdminOrderDetail() {
   const handleStatusUpdate = async (newStatus) => {
     try {
       setUpdating(true)
-      await orderService.updateOrderStatus(orderId, newStatus)
+      await updateOrderStatus(orderId, newStatus)
       toast.success(`Order status updated to ${ORDER_STATUS_LABELS[newStatus]}`)
       await fetchOrder()
     } catch (error) {
@@ -62,7 +62,7 @@ export default function AdminOrderDetail() {
 
     try {
       setUpdating(true)
-      await orderService.updateOrderStatus(orderId, ORDER_STATUS.CANCELLED)
+      await cancelOrder(orderId, 'Cancelled by admin')
       toast.success('Order cancelled')
       await fetchOrder()
     } catch (error) {
