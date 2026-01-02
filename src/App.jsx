@@ -15,10 +15,6 @@ import ProtectedRoute from '@components/shared/ProtectedRoute'
 import ScrollToTop from '@components/layout/ScrollToTop'
 import { ROUTES } from '@utils/constants'
 
-// Add import at top
-const SupplierSetup = lazy(() => import('@pages/SupplierSetup'))
-
-
 const Home = lazy(() => import('@pages/Home'))
 const Shop = lazy(() => import('@pages/Shop'))
 const ProductDetail = lazy(() => import('@pages/ProductDetail'))
@@ -52,6 +48,7 @@ const SupplierAnalytics = lazy(() => import('@pages/supplier/Analytics'))
 
 const AdminDashboard = lazy(() => import('@pages/admin/Dashboard'))
 const AdminOrders = lazy(() => import('@pages/admin/Orders'))
+const AdminOrderDetail = lazy(() => import('@pages/admin/OrderDetail'))
 const AdminProducts = lazy(() => import('@pages/admin/Products'))
 const AdminCustomers = lazy(() => import('@pages/admin/Customers'))
 const AdminSuppliers = lazy(() => import('@pages/admin/Suppliers'))
@@ -191,6 +188,11 @@ export default function App() {
                             <AdminOrders />
                           </ProtectedRoute>
                         } />
+                        <Route path="/admin/orders/:orderId" element={
+                          <ProtectedRoute allowedRoles={['admin']}>
+                            <AdminOrderDetail />
+                          </ProtectedRoute>
+                        } />
                         <Route path={ROUTES.ADMIN_PRODUCTS} element={
                           <ProtectedRoute allowedRoles={['admin']}>
                             <AdminProducts />
@@ -234,10 +236,6 @@ export default function App() {
                         <Route path={ROUTES.FAQ} element={<FAQ />} />
 
                         <Route path="*" element={<NotFound />} />
-                        
-                        // Add route
-<Route path="/supplier-setup" element={<SupplierSetup />} />
-
                       </Routes>
                     </Suspense>
 
