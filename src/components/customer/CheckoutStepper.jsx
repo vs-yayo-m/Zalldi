@@ -1,7 +1,5 @@
-// src/components/customer/CheckoutStepper.jsx
-
 import { motion } from 'framer-motion'
-import { MapPin, CreditCard, Check } from 'lucide-react'
+import { MapPin, CreditCard, Package, Check } from 'lucide-react'
 
 export default function CheckoutStepper({ currentStep = 1 }) {
   const steps = [
@@ -9,18 +7,24 @@ export default function CheckoutStepper({ currentStep = 1 }) {
       number: 1,
       title: 'Address',
       icon: MapPin,
-      description: 'Delivery address'
+      description: 'Where to deliver?'
     },
     {
       number: 2,
       title: 'Payment',
       icon: CreditCard,
-      description: 'Payment method'
+      description: 'How to pay?'
+    },
+    {
+        number: 3,
+        title: 'Review',
+        icon: Package,
+        description: 'Check details'
     }
   ]
 
   return (
-    <div className="relative">
+    <div className="relative w-full max-w-2xl mx-auto">
       <div className="flex items-center justify-between">
         {steps.map((step, index) => {
           const isActive = currentStep === step.number
@@ -28,46 +32,44 @@ export default function CheckoutStepper({ currentStep = 1 }) {
           const Icon = step.icon
 
           return (
-            <div key={step.number} className="flex-1 relative">
+            <div key={step.number} className="flex-1 relative last:flex-none last:w-12">
               <div className="flex items-center">
-                <div className="flex flex-col items-center flex-1">
+                <div className="flex flex-col items-center relative z-10">
                   <motion.div
                     initial={false}
                     animate={{
-                      scale: isActive ? 1.1 : 1,
+                      scale: isActive ? 1.15 : 1,
                       backgroundColor: isCompleted 
-                        ? '#10B981' 
+                        ? '#15803d' // green-700
                         : isActive 
-                        ? '#FF6B35' 
-                        : '#E5E7EB'
+                        ? '#000000' 
+                        : '#f5f5f5'
                     }}
                     className={`
-                      relative w-12 h-12 rounded-full flex items-center justify-center
-                      transition-all duration-300 shadow-lg z-10
-                      ${isCompleted ? 'bg-green-500' : isActive ? 'bg-orange-500' : 'bg-neutral-300'}
+                      w-12 h-12 rounded-2xl flex items-center justify-center
+                      transition-all duration-300 shadow-xl
                     `}
                   >
                     {isCompleted ? (
                       <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                        initial={{ scale: 0, rotate: -45 }}
+                        animate={{ scale: 1, rotate: 0 }}
                       >
-                        <Check className="w-6 h-6 text-white" strokeWidth={3} />
+                        <Check className="w-6 h-6 text-white" strokeWidth={4} />
                       </motion.div>
                     ) : (
                       <Icon className={`
-                        w-5 h-5
-                        ${isActive ? 'text-white' : 'text-neutral-500'}
+                        w-5 h-5 transition-colors
+                        ${isActive ? 'text-white' : 'text-neutral-400'}
                       `} />
                     )}
 
                     {isActive && (
                       <motion.div
-                        className="absolute inset-0 rounded-full bg-orange-500 opacity-30"
+                        className="absolute inset-0 rounded-2xl bg-black opacity-20"
                         animate={{
-                          scale: [1, 1.5, 1],
-                          opacity: [0.3, 0, 0.3]
+                          scale: [1, 1.4, 1],
+                          opacity: [0.2, 0, 0.2]
                         }}
                         transition={{
                           duration: 2,
@@ -78,41 +80,26 @@ export default function CheckoutStepper({ currentStep = 1 }) {
                     )}
                   </motion.div>
 
-                  <div className="mt-3 text-center">
-                    <motion.p
-                      animate={{
-                        color: isCompleted 
-                          ? '#10B981' 
-                          : isActive 
-                          ? '#FF6B35' 
-                          : '#9CA3AF',
-                        fontWeight: isActive ? 600 : 500
-                      }}
-                      className="text-body-sm font-medium"
-                    >
-                      {step.title}
-                    </motion.p>
+                  <div className="mt-4 absolute -bottom-12 whitespace-nowrap text-center">
                     <p className={`
-                      text-caption mt-0.5
-                      ${isActive ? 'text-neutral-600' : 'text-neutral-400'}
+                      text-[10px] font-black uppercase tracking-widest transition-colors
+                      ${isCompleted ? 'text-green-700' : isActive ? 'text-neutral-900' : 'text-neutral-300'}
                     `}>
-                      {step.description}
+                      {step.title}
                     </p>
                   </div>
                 </div>
 
                 {index < steps.length - 1 && (
-                  <div className="absolute top-6 left-1/2 w-full h-0.5 -z-10">
-                    <div className="relative w-full h-full bg-neutral-200">
-                      <motion.div
-                        className="absolute inset-0 bg-gradient-to-r from-orange-500 to-green-500"
-                        initial={{ width: '0%' }}
-                        animate={{
-                          width: currentStep > step.number ? '100%' : '0%'
-                        }}
-                        transition={{ duration: 0.5, ease: 'easeInOut' }}
-                      />
-                    </div>
+                  <div className="flex-1 h-[3px] bg-neutral-100 mx-4 rounded-full overflow-hidden">
+                    <motion.div
+                      className="h-full bg-gradient-to-r from-green-700 to-green-500"
+                      initial={{ width: '0%' }}
+                      animate={{
+                        width: isCompleted ? '100%' : '0%'
+                      }}
+                      transition={{ duration: 0.6, ease: 'circOut' }}
+                    />
                   </div>
                 )}
               </div>
@@ -120,18 +107,10 @@ export default function CheckoutStepper({ currentStep = 1 }) {
           )
         })}
       </div>
-
-      <motion.div
-        className="mt-6 p-4 bg-orange-50 border border-orange-200 rounded-xl"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
-        <p className="text-body-sm text-neutral-700">
-          <strong className="text-orange-600">Step {currentStep} of {steps.length}:</strong>{' '}
-          {steps[currentStep - 1]?.description}
-        </p>
-      </motion.div>
+      
+      {/* Spacer for titles below icons */}
+      <div className="h-12" />
     </div>
   )
 }
+
