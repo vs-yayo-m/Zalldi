@@ -1,0 +1,274 @@
+/* src/styles/print.css */
+
+@media print {
+  /* Hide unnecessary elements */
+  header,
+  footer,
+  .no-print,
+  button:not(.print-button),
+  nav,
+  .sticky,
+  .fixed,
+  .hide-print {
+    display: none !important;
+  }
+
+  /* Reset page styles */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body {
+    margin: 0;
+    padding: 20px;
+    background: white !important;
+    color: black !important;
+    font-size: 12pt;
+  }
+
+  /* Page setup */
+  @page {
+    size: A4;
+    margin: 1cm;
+  }
+
+  /* Prevent page breaks inside elements */
+  .print-section,
+  .print-item {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Add page breaks before sections */
+  .page-break-before {
+    page-break-before: always;
+    break-before: always;
+  }
+
+  .page-break-after {
+    page-break-after: always;
+    break-after: always;
+  }
+
+  /* Print-specific visibility */
+  .print-only {
+    display: block !important;
+  }
+
+  /* Order detail print styles */
+  .print-header {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #FF6B35;
+  }
+
+  .print-logo {
+    width: 120px;
+    height: auto;
+    margin-bottom: 10px;
+  }
+
+  .print-title {
+    font-size: 24pt;
+    font-weight: bold;
+    color: #2D2D2D;
+    margin-bottom: 5px;
+  }
+
+  .print-subtitle {
+    font-size: 14pt;
+    color: #737373;
+  }
+
+  /* Order details table */
+  .print-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+  }
+
+  .print-table th,
+  .print-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #E5E5E5;
+  }
+
+  .print-table th {
+    background-color: #FFF8F3;
+    font-weight: bold;
+    color: #2D2D2D;
+  }
+
+  .print-table tbody tr:last-child td {
+    border-bottom: 2px solid #2D2D2D;
+  }
+
+  /* Product image in print */
+  .print-table img {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+  }
+
+  /* Summary section */
+  .print-summary {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #F5F5F5;
+    border-radius: 8px;
+  }
+
+  .print-summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    font-size: 11pt;
+  }
+
+  .print-summary-total {
+    font-size: 14pt;
+    font-weight: bold;
+    padding-top: 10px;
+    margin-top: 10px;
+    border-top: 2px solid #2D2D2D;
+  }
+
+  /* Customer details box */
+  .print-info-box {
+    border: 1px solid #E5E5E5;
+    padding: 15px;
+    margin: 15px 0;
+    border-radius: 8px;
+  }
+
+  .print-info-title {
+    font-size: 12pt;
+    font-weight: bold;
+    color: #FF6B35;
+    margin-bottom: 10px;
+    display: block;
+  }
+
+  .print-info-content {
+    font-size: 11pt;
+    line-height: 1.6;
+  }
+
+  /* Status badge print */
+  .print-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 10pt;
+    font-weight: bold;
+  }
+
+  .print-badge.pending {
+    background-color: #FED7AA;
+    color: #9A3412;
+  }
+
+  .print-badge.confirmed {
+    background-color: #BFDBFE;
+    color: #1E40AF;
+  }
+
+  .print-badge.delivered {
+    background-color: #BBF7D0;
+    color: #166534;
+  }
+
+  .print-badge.cancelled {
+    background-color: #FECACA;
+    color: #991B1B;
+  }
+
+  /* Footer with print info */
+  .print-footer {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid #E5E5E5;
+    text-align: center;
+    font-size: 9pt;
+    color: #737373;
+  }
+
+  /* Timeline print */
+  .print-timeline {
+    margin: 20px 0;
+  }
+
+  .print-timeline-item {
+    padding: 10px 0;
+    border-left: 2px solid #FF6B35;
+    padding-left: 20px;
+    margin-left: 10px;
+  }
+
+  .print-timeline-item:last-child {
+    border-left-color: transparent;
+  }
+
+  /* Contact info */
+  .print-contact {
+    font-size: 10pt;
+    margin-top: 10px;
+  }
+
+  /* Receipt printer format (80mm width) */
+  @media print and (max-width: 80mm) {
+    @page {
+      size: 80mm auto;
+      margin: 5mm;
+    }
+
+    body {
+      font-size: 10pt;
+      padding: 5mm;
+    }
+
+    .print-table th,
+    .print-table td {
+      padding: 6px 4px;
+      font-size: 9pt;
+    }
+
+    .print-table img {
+      width: 30px;
+      height: 30px;
+    }
+
+    .print-title {
+      font-size: 16pt;
+    }
+  }
+
+  /* Force specific elements to print */
+  .force-print {
+    display: block !important;
+    visibility: visible !important;
+  }
+
+  /* Remove shadows and transitions in print */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    transition: none !important;
+    animation: none !important;
+  }
+
+  /* Links should show URL in print */
+  a[href]:after {
+    content: " (" attr(href) ")";
+    font-size: 9pt;
+    color: #737373;
+  }
+
+  /* But not for internal links */
+  a[href^="#"]:after,
+  a[href^="javascript:"]:after {
+    content: "";
+  }
+}
