@@ -13,6 +13,7 @@ import ErrorBoundary from '@components/shared/ErrorBoundary'
 import LoadingScreen from '@components/shared/LoadingScreen'
 import ProtectedRoute from '@components/shared/ProtectedRoute'
 import ScrollToTop from '@components/layout/ScrollToTop'
+import MobileBottomNav from '@components/layout/MobileBottomNav'
 import { ROUTES } from '@utils/constants'
 
 const Home = lazy(() => import('@pages/Home'))
@@ -265,6 +266,8 @@ export default function App() {
                         }
                       }}
                     />
+
+                    <MobileBottomNav />
                   </SearchProvider>
                 </NotificationProvider>
               </WishlistProvider>

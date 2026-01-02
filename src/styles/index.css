@@ -192,3 +192,39 @@
     transform: rotate(360deg);
   }
 }
+
+
+/* Add these styles to src/styles/index.css for Mobile Bottom Navigation */
+
+/* Safe area support for mobile devices with notches */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Ensure body has proper padding for mobile nav */
+@media (max-width: 768px) {
+  body {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Prevent text selection on mobile nav items */
+.mobile-nav-item {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
