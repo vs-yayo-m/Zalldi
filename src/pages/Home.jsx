@@ -24,7 +24,7 @@ const HERO_SLIDES = [
   {
     id: 1,
     title: "Butwal's First Quick Commerce",
-    subtitle: "Everything you need, delivered in 1 hour",
+    subtitle: "Everything you need, delivered in minutes ",
     primaryCTA: "Shop Now",
     secondaryCTA: "About Zalldi",
     primaryLink: ROUTES.SHOP,
@@ -35,7 +35,7 @@ const HERO_SLIDES = [
   {
     id: 2,
     title: "Late Night Cravings?",
-    subtitle: "Order now. At your door in 1 hour",
+    subtitle: "Order now. At your door in minutes",
     primaryCTA: "Order Now",
     secondaryCTA: "Browse Snacks",
     primaryLink: ROUTES.SHOP,
