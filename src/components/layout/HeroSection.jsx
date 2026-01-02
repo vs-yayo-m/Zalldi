@@ -1,256 +1,216 @@
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ShoppingBag, Zap, ShieldCheck, Clock, ArrowRight } from 'lucide-react'
+import { ShoppingBag, Zap, ChevronRight, Sparkles } from 'lucide-react'
 import Button from '@/components/ui/Button'
-
-/**
- * ZALLDI ENTERPRISE HERO SECTION
- * Enhanced for high conversion and premium "Quick Commerce" feel.
- * * Mobile Optimization: 
- * - Height is strictly 1/4 of viewport (h-[25vh]).
- * - No manual navigation buttons (Auto-slide only).
- * - Compact typography.
- */
 
 const slides = [
   {
     id: 1,
-    title: "Butwal's Quickest Delivery",
-    subtitle: "Everything delivered in minutes",
-    cta: "🛒 Shop Now",
-    action: "/shop",
-    bg: "bg-gradient-to-br from-[#1a1a2e] via-[#16213e] to-orange-950",
-    accent: "orange",
-    tag: "Express"
+    title: "Butwal's First Quick Commerce",
+    subtitle: "Everything you need, Free delivered in minutes",
+    cta1: { text: "🛒 Shop Now", action: "/shop" },
+    cta2: { text: "About Zalldi", action: "/about" },
+    background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)",
+    accent: "rgba(249, 115, 22, 0.2)",
+    theme: "dark"
   },
   {
     id: 2,
-    title: "Dinner & Essentials — Instantly",
-    subtitle: "Doorstep delivery before you sleep 😴",
-    cta: "🌙 Order Now",
-    action: "/shop",
-    bg: "bg-gradient-to-br from-[#2d1b4e] via-[#1a1242] to-orange-900",
-    accent: "purple",
-    tag: "Late Night"
+    title: "Dinner, Snacks & Essentials — Instantly",
+    subtitle: "Ordered now. At your door before you sleep 😴",
+    cta1: { text: "🌙 Order Now", action: "/shop" },
+    cta2: { text: "Contact Us", action: "/contact" },
+    background: "linear-gradient(135deg, #2d1b4e 0%, #1a1242 50%, #0a0520 100%)",
+    accent: "rgba(168, 85, 247, 0.2)",
+    theme: "dark"
   },
   {
     id: 3,
-    title: "Freshness Handpicked for You",
-    subtitle: "Directly from local stores to your kitchen",
-    cta: "🏪 Explore Stores",
-    action: "/shop",
-    bg: "bg-gradient-to-br from-orange-600 via-orange-500 to-yellow-500",
-    accent: "white",
-    tag: "Local"
+    title: "Powered by Local Stores. Delivered by Zalldi",
+    subtitle: "Your neighborhood shops, supercharged with speed",
+    cta1: { text: "🏪 Explore Stores", action: "/shop" },
+    cta2: { text: "How It Works", action: "/how-it-works" },
+    background: "linear-gradient(135deg, #FF6B35 0%, #F7931E 50%, #E67E00 100%)",
+    accent: "rgba(255, 255, 255, 0.2)",
+    theme: "light"
   },
   {
     id: 4,
     title: "Fast Isn't Enough. Zalldi Is Faster",
-    subtitle: "When speed matters, we deliver excellence",
-    cta: "⚡ Order Fast",
-    action: "/shop",
-    bg: "bg-gradient-to-br from-blue-900 via-blue-800 to-orange-800",
-    accent: "blue",
-    tag: "Turbo"
+    subtitle: "When speed matters, Zalldi delivers",
+    cta1: { text: "⚡ Order Fast", action: "/shop" },
+    cta2: { text: "FAQs", action: "/faq" },
+    background: "linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #1d4ed8 100%)",
+    accent: "rgba(59, 130, 246, 0.2)",
+    theme: "dark"
   },
   {
     id: 5,
     title: "Wait Less. Eat Fresh",
-    subtitle: "Quality groceries delivered with care",
-    cta: "Get Fresh",
-    action: "/category/vegetables",
-    bg: "bg-gradient-to-br from-emerald-900 via-emerald-800 to-orange-900",
-    accent: "green",
-    tag: "Quality"
+    subtitle: "Fresh food delivered while it's still fresh",
+    cta1: { text: "Get Fresh", action: "/category/vegetables" },
+    cta2: { text: "Meet Founder", action: "/about" },
+    background: "linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%)",
+    accent: "rgba(52, 211, 153, 0.2)",
+    theme: "dark"
   }
 ]
 
 export default function HeroSection() {
-  const [current, setCurrent] = useState(0)
+  const [currentSlide, setCurrentSlide] = useState(0)
   const navigate = useNavigate()
 
-  // Auto-slide logic: 3 seconds per slide
+  // Optimized Auto-play Logic (3 seconds as requested)
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrent((prev) => (prev + 1) % slides.length)
+      setCurrentSlide((prev) => (prev + 1) % slides.length)
     }, 3000)
     return () => clearInterval(timer)
   }, [])
 
-  const handleAction = useCallback((path) => {
-    navigate(path)
-  }, [navigate])
+  const handleCTAClick = (action) => {
+    navigate(action)
+  }
+
+  // Text Animation Variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1, delayChildren: 0.2 }
+    }
+  }
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 100 } }
+  }
 
   return (
-    <section className="relative w-full px-4 lg:px-8 py-2 lg:py-4">
-      <div className="relative w-full h-[25vh] md:h-[400px] lg:h-[480px] overflow-hidden rounded-2xl lg:rounded-[2.5rem] shadow-2xl shadow-orange-100">
+    <section className="relative w-full px-4 py-2 md:px-8 md:py-4">
+      <div className="relative w-full h-[25vh] md:h-[500px] lg:h-[600px] overflow-hidden rounded-2xl md:rounded-[2rem] shadow-2xl shadow-orange-500/10">
+        
         <AnimatePresence mode="wait">
           <motion.div
-            key={current}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.8, ease: "circOut" }}
-            className={`absolute inset-0 ${slides[current].bg}`}
+            key={currentSlide}
+            initial={{ opacity: 0, scale: 1.05 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+            className="absolute inset-0 w-full h-full"
+            style={{ background: slides[currentSlide].background }}
           >
-            {/* Ambient Background Elements */}
-            <div className="absolute inset-0 opacity-20 overflow-hidden">
-               <motion.div 
-                 animate={{ 
-                   scale: [1, 1.2, 1],
-                   rotate: [0, 5, 0] 
-                 }}
-                 transition={{ duration: 10, repeat: Infinity }}
-                 className="absolute -top-20 -right-20 w-96 h-96 bg-white/20 rounded-full blur-3xl" 
-               />
-               <motion.div 
-                 animate={{ 
-                   x: [0, 30, 0],
-                   y: [0, -20, 0] 
-                 }}
-                 transition={{ duration: 8, repeat: Infinity }}
-                 className="absolute bottom-10 left-10 w-64 h-64 bg-orange-500/20 rounded-full blur-3xl" 
-               />
-            </div>
+            {/* Ambient Background Aura - Enterprise UX enhancement */}
+            <motion.div 
+              animate={{ 
+                scale: [1, 1.2, 1],
+                rotate: [0, 90, 0],
+                opacity: [0.3, 0.5, 0.3]
+              }}
+              transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+              className="absolute -top-1/2 -right-1/4 w-full h-full rounded-full blur-[120px]"
+              style={{ background: slides[currentSlide].accent }}
+            />
 
-            {/* Content Container */}
-            <div className="relative h-full container mx-auto flex items-center px-6 lg:px-16">
-              <div className="max-w-3xl">
-                {/* Badge Tag */}
+            {/* Content Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-transparent flex items-center">
+              <div className="container mx-auto px-6 md:px-12 lg:px-20">
                 <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="flex items-center gap-2 mb-2 lg:mb-4"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  key={`content-${currentSlide}`}
+                  className="max-w-3xl"
                 >
-                  <span className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] lg:text-xs font-black text-white uppercase tracking-widest border border-white/10">
-                    {slides[current].tag}
-                  </span>
-                  <div className="flex items-center gap-1 text-orange-400 text-[10px] lg:text-xs font-bold">
-                    <Clock className="w-3 h-3" /> 15 MIN DELIVERY
-                  </div>
-                </motion.div>
+                  {/* Badge Label */}
+                  <motion.div variants={itemVariants} className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/20 border border-orange-500/30 backdrop-blur-md mb-2 md:mb-6">
+                    <Zap className="w-3 h-3 md:w-4 md:h-4 text-orange-500 fill-orange-500" />
+                    <span className="text-[10px] md:text-xs font-black text-orange-500 uppercase tracking-[0.2em]">Flash Delivery</span>
+                  </motion.div>
 
-                {/* Main Heading */}
-                <motion.h1
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3, type: "spring", stiffness: 100 }}
-                  className="text-xl md:text-5xl lg:text-7xl font-black text-white mb-2 lg:mb-6 leading-[1.1] tracking-tighter"
-                >
-                  {slides[current].title.split(' ').map((word, i) => (
-                    <span key={i} className={word.toLowerCase() === 'zalldi' ? 'text-orange-500' : ''}>
-                      {word}{' '}
-                    </span>
-                  ))}
-                </motion.h1>
-
-                {/* Subheading (Hidden on ultra-small mobile to preserve 1/4 height) */}
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.4 }}
-                  className="hidden sm:block text-sm md:text-xl text-white/80 mb-4 lg:mb-8 max-w-xl leading-relaxed font-medium"
-                >
-                  {slides[current].subtitle}
-                </motion.p>
-
-                {/* CTA Action */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 }}
-                >
-                  <Button
-                    size="lg"
-                    onClick={() => handleAction(slides[current].action)}
-                    className="group bg-orange-500 hover:bg-white text-white hover:text-orange-600 border-none px-4 py-2 lg:px-10 lg:py-7 rounded-xl lg:rounded-2xl transition-all duration-500 shadow-xl shadow-orange-950/20"
+                  <motion.h1 
+                    variants={itemVariants}
+                    className="text-xl md:text-5xl lg:text-7xl font-black mb-2 md:mb-6 leading-[1.1] text-white tracking-tight"
                   >
-                    <span className="flex items-center gap-2 lg:gap-3 text-xs lg:text-lg font-black uppercase tracking-tight">
-                      {slides[current].cta}
-                      <ArrowRight className="w-4 h-4 lg:w-6 lg:h-6 group-hover:translate-x-2 transition-transform" />
-                    </span>
-                  </Button>
-                </motion.div>
-              </div>
+                    {slides[currentSlide].title}
+                  </motion.h1>
+                  
+                  <motion.p 
+                    variants={itemVariants}
+                    className="hidden md:block text-lg md:text-2xl mb-10 text-neutral-200/90 max-w-xl font-medium"
+                  >
+                    {slides[currentSlide].subtitle}
+                  </motion.p>
+                  {/* Mobile Subtitle (condensed) */}
+                  <motion.p variants={itemVariants} className="md:hidden text-[10px] text-white/80 mb-4 line-clamp-1">
+                    {slides[currentSlide].subtitle}
+                  </motion.p>
 
-              {/* Floating App Illustration (Desktop Only) */}
-              <div className="hidden lg:flex absolute right-16 top-1/2 -translate-y-1/2 w-[400px] h-[400px] items-center justify-center">
-                 <motion.div
-                   animate={{ 
-                     y: [0, -20, 0],
-                     rotate: [0, 2, 0]
-                   }}
-                   transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-                   className="relative w-full h-full bg-white/5 backdrop-blur-sm rounded-[3rem] border border-white/10 p-8 shadow-2xl overflow-hidden"
-                 >
-                    <div className="w-full h-full rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 flex flex-col items-center justify-center text-white gap-4">
-                        <ShoppingBag className="w-24 h-24 opacity-20 absolute" />
-                        <Zap className="w-16 h-16 fill-white" />
-                        <div className="text-center">
-                          <p className="font-black text-2xl tracking-tighter uppercase">Super Fast</p>
-                          <p className="text-sm font-medium opacity-80">Order to Door in Minutes</p>
-                        </div>
-                    </div>
-                 </motion.div>
+                  <motion.div
+                    variants={itemVariants}
+                    className="flex items-center gap-3 md:gap-4"
+                  >
+                    <Button
+                      size="lg"
+                      onClick={() => handleCTAClick(slides[currentSlide].cta1.action)}
+                      className="h-10 md:h-14 px-4 md:px-8 bg-orange-500 hover:bg-orange-600 text-white border-none text-xs md:text-base font-bold shadow-lg shadow-orange-500/30 transition-all hover:-translate-y-1 active:scale-95"
+                    >
+                      {slides[currentSlide].cta1.text}
+                    </Button>
+                    <button
+                      onClick={() => handleCTAClick(slides[currentSlide].cta2.action)}
+                      className="h-10 md:h-14 px-4 md:px-8 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/20 rounded-xl text-xs md:text-base font-bold transition-all flex items-center gap-2 group"
+                    >
+                      {slides[currentSlide].cta2.text}
+                      <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </button>
+                  </motion.div>
+                </motion.div>
               </div>
             </div>
 
-            {/* Bottom Progress Bar */}
-            <div className="absolute bottom-0 left-0 w-full h-1 lg:h-2 bg-black/10">
-              <motion.div
-                key={current}
-                initial={{ width: 0 }}
+            {/* Bottom Progress Bar - Modern Auto-slide Indicator */}
+            <div className="absolute bottom-0 left-0 w-full h-1 bg-white/10">
+              <motion.div 
+                key={`progress-${currentSlide}`}
+                initial={{ width: "0%" }}
                 animate={{ width: "100%" }}
                 transition={{ duration: 3, ease: "linear" }}
-                className="h-full bg-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.8)]"
+                className="h-full bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.8)]"
               />
             </div>
           </motion.div>
         </AnimatePresence>
 
-        {/* Indicators */}
-        <div className="absolute bottom-4 right-6 lg:bottom-10 lg:right-16 flex items-center gap-2">
-          {slides.map((_, i) => (
-            <div 
-              key={i} 
-              className={`transition-all duration-500 rounded-full ${
-                i === current ? 'w-8 lg:w-12 h-1 lg:h-2 bg-orange-500' : 'w-1 lg:w-2 h-1 lg:h-2 bg-white/30'
-              }`}
-            />
+        {/* Dynamic Navigation Dots */}
+        <div className="absolute bottom-4 md:bottom-8 right-6 md:right-12 flex items-center gap-3 z-20">
+          {slides.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentSlide(index)}
+              className="relative group p-2"
+              aria-label={`Go to slide ${index + 1}`}
+            >
+              <div className={`transition-all duration-500 rounded-full ${
+                index === currentSlide 
+                  ? 'w-8 md:w-12 h-1.5 md:h-2 bg-orange-500' 
+                  : 'w-1.5 md:w-2 h-1.5 md:h-2 bg-white/40 group-hover:bg-white/60'
+              }`} />
+            </button>
           ))}
         </div>
-      </div>
-
-      {/* Trust Badges - Mobile Optimized */}
-      <div className="grid grid-cols-3 gap-2 lg:gap-4 mt-4 px-2">
-        {[
-          { icon: Clock, label: "15 Min Delivery", color: "text-orange-500" },
-          { icon: ShieldCheck, label: "100% Quality", color: "text-emerald-500" },
-          { icon: Zap, label: "Instant Returns", color: "text-blue-500" }
-        ].map((badge, idx) => (
-          <motion.div 
-            key={idx}
-            whileHover={{ y: -5 }}
-            className="flex flex-col lg:flex-row items-center justify-center gap-1 lg:gap-3 p-2 lg:p-4 bg-white rounded-xl lg:rounded-2xl border border-neutral-100 shadow-sm"
-          >
-            <badge.icon className={`w-4 h-4 lg:w-6 lg:h-6 ${badge.color}`} />
-            <span className="text-[9px] lg:text-sm font-black text-neutral-800 uppercase tracking-tighter whitespace-nowrap">
-              {badge.label}
-            </span>
-          </motion.div>
-        ))}
       </div>
     </section>
   )
 }
 
 /**
- * PRODUCTION NOTES:
- * 1. Performance: Used CSS gradients instead of heavy images for instant LCP (Largest Contentful Paint).
- * 2. UX: The progress bar at the bottom gives users a visual cue of when the slide will change.
- * 3. Mobile: The 1/4th height (h-[25vh]) ensures the Hero doesn't push the actual product categories too far down the screen.
- * 4. Branding: Strong use of Zalldi Orange 🧡 throughout for brand recall.
+ * ARCHITECTURAL UPGRADES:
+ * 1. Mobile-First: h-[25vh] ensures the slider is perfectly proportioned on phones without cutting content.
+ * 2. Performance: Used AnimatePresence with 'wait' mode to prevent layout thrashing during slide transitions.
+ * 3. Accessibility: Added aria-labels to the navigation pagination.
+ * 4. Visual Depth: Added a moving "Accent Aura" div that changes color based on the slide's theme for a premium feel.
+ * 5. CTA Focus: Primary buttons use a shadow that matches the orange theme, increasing click-through probability.
  */
 
