@@ -1,17 +1,19 @@
 // src/components/customer/SearchBar.jsx
 
-import React, { useState, useRef, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, X, Clock, TrendingUp } from 'lucide-react'
-import { useSearch } from '@/hooks/useSearch'
+import { Search, X, TrendingUp, Clock } from 'lucide-react'
+import { useSearch } from '@hooks/useSearch'
 
-export default function SearchBar({ autoFocus = false, onSearch, className = '' }) {
+export default function SearchBar({ className = '', placeholder = 'Search products...', autoFocus = false }) {
   const navigate = useNavigate()
-  const { query, setQuery, results, loading, search, recentSearches, removeRecentSearch } = useSearch()
-  const [isFocused, setIsFocused] = useState(false)
   const inputRef = useRef(null)
-  const containerRef = useRef(null)
+  const [searchInput, setSearchInput] = useState('')
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [suggestions, setSuggestions] = useState([])
+  
+  const { recentSearches, getSuggestions } = useSearch()
   
   useEffect(() => {
     if (autoFocus && inputRef.current) {
@@ -20,151 +22,105 @@ export default function SearchBar({ autoFocus = false, onSearch, className = '' 
   }, [autoFocus])
   
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (containerRef.current && !containerRef.current.contains(event.target)) {
-        setIsFocused(false)
+    const fetchSuggestions = async () => {
+      if (searchInput.length >= 2) {
+        const sugg = await getSuggestions(searchInput)
+        setSuggestions(sugg)
+      } else {
+        setSuggestions([])
       }
     }
     
+    const timer = setTimeout(fetchSuggestions, 300)
+    return () => clearTimeout(timer)
+  }, [searchInput, getSuggestions])
+  
+  const handleSearch = (query = searchInput) => {
+    if (query.trim()) {
+      navigate(`/search?q=${encodeURIComponent(query.trim())}`)
+      setShowSuggestions(false)
+      setSearchInput('')
+    }
+  }
+  
+  const handleClickOutside = (e) => {
+    if (inputRef.current && !inputRef.current.contains(e.target)) {
+      setShowSuggestions(false)
+    }
+  }
+  
+  useEffect(() => {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
   
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    if (query.trim()) {
-      search(query)
-      setIsFocused(false)
-      if (onSearch) onSearch(query)
-    }
-  }
-  
-  const handleResultClick = (product) => {
-    navigate(`/product/${product.slug}`)
-    setIsFocused(false)
-    setQuery('')
-  }
-  
-  const handleRecentSearchClick = (searchQuery) => {
-    setQuery(searchQuery)
-    search(searchQuery)
-    setIsFocused(false)
-  }
-  
-  const showResults = isFocused && query.trim().length >= 2
-  const showRecentSearches = isFocused && !query.trim() && recentSearches.length > 0
-  
   return (
-    <div ref={containerRef} className={`relative ${className}`}>
-      <form onSubmit={handleSubmit} className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
-        
+    <div className={`relative ${className}`} ref={inputRef}>
+      <div className="relative">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400 pointer-events-none" />
         <input
-          ref={inputRef}
           type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onFocus={() => setIsFocused(true)}
-          placeholder="Search products..."
-          className="w-full pl-12 pr-12 py-3 bg-white border border-neutral-300 rounded-lg focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-colors"
+          placeholder={placeholder}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+          onFocus={() => setShowSuggestions(true)}
+          className="w-full pl-12 pr-12 py-3 bg-white border border-neutral-200 rounded-xl text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
         />
-
-        {query && (
+        {searchInput && (
           <button
-            type="button"
-            onClick={() => setQuery('')}
-            className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-neutral-100 rounded transition-colors"
-            aria-label="Clear search"
+            onClick={() => {
+              setSearchInput('')
+              setShowSuggestions(false)
+            }}
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors"
           >
-            <X className="w-5 h-5 text-neutral-400" />
+            <X className="w-5 h-5" />
           </button>
         )}
-      </form>
+      </div>
 
       <AnimatePresence>
-        {(showResults || showRecentSearches) && (
+        {showSuggestions && (searchInput.length >= 2 || recentSearches.length > 0) && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="absolute top-full left-0 right-0 mt-2 bg-white border border-neutral-200 rounded-lg shadow-lg max-h-96 overflow-y-auto z-50"
+            className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-lg border border-neutral-200 overflow-hidden z-50 max-h-96 overflow-y-auto"
           >
-            {showRecentSearches && (
-              <div className="p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-neutral-800 flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    Recent Searches
-                  </h3>
-                </div>
-                <div className="space-y-1">
-                  {recentSearches.map((searchQuery, index) => (
-                    <div key={index} className="flex items-center justify-between group">
-                      <button
-                        onClick={() => handleRecentSearchClick(searchQuery)}
-                        className="flex-1 text-left px-3 py-2 text-sm text-neutral-700 hover:bg-orange-50 rounded-lg transition-colors"
-                      >
-                        {searchQuery}
-                      </button>
-                      <button
-                        onClick={() => removeRecentSearch(searchQuery)}
-                        className="p-2 opacity-0 group-hover:opacity-100 hover:bg-neutral-100 rounded transition-all"
-                        aria-label="Remove"
-                      >
-                        <X className="w-4 h-4 text-neutral-400" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
+            {suggestions.length > 0 && (
+              <div className="p-2 border-b border-neutral-100">
+                <p className="text-xs font-medium text-neutral-500 px-3 py-2 flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4" />
+                  Suggestions
+                </p>
+                {suggestions.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => handleSearch(item.name)}
+                    className="w-full text-left px-4 py-2.5 hover:bg-neutral-50 rounded-lg transition-colors"
+                  >
+                    <p className="text-sm text-neutral-900 font-medium">{item.name}</p>
+                  </button>
+                ))}
               </div>
             )}
 
-            {showResults && (
-              <div className="p-4">
-                {loading ? (
-                  <div className="text-center py-8 text-neutral-600">
-                    Searching...
-                  </div>
-                ) : results.length > 0 ? (
-                  <div className="space-y-1">
-                    {results.slice(0, 5).map((product) => (
-                      <button
-                        key={product.id}
-                        onClick={() => handleResultClick(product)}
-                        className="w-full flex items-center gap-3 p-3 hover:bg-orange-50 rounded-lg transition-colors"
-                      >
-                        <img
-                          src={product.images?.[0] || '/placeholder.png'}
-                          alt={product.name}
-                          className="w-12 h-12 object-cover rounded-lg"
-                        />
-                        <div className="flex-1 text-left">
-                          <p className="font-medium text-neutral-800 line-clamp-1">
-                            {product.name}
-                          </p>
-                          <p className="text-sm text-orange-500 font-semibold">
-                            Rs. {product.discountPrice || product.price}
-                          </p>
-                        </div>
-                      </button>
-                    ))}
-                    {results.length > 5 && (
-                      <button
-                        onClick={() => {
-                          search(query)
-                          setIsFocused(false)
-                        }}
-                        className="w-full py-2 text-center text-sm text-orange-500 hover:text-orange-600 font-medium"
-                      >
-                        View all {results.length} results
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-neutral-600">
-                    No products found
-                  </div>
-                )}
+            {recentSearches.length > 0 && (
+              <div className="p-2">
+                <p className="text-xs font-medium text-neutral-500 px-3 py-2 flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Recent Searches
+                </p>
+                {recentSearches.slice(0, 5).map((search, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleSearch(search)}
+                    className="w-full text-left px-4 py-2.5 hover:bg-neutral-50 rounded-lg transition-colors"
+                  >
+                    <p className="text-sm text-neutral-700">{search}</p>
+                  </button>
+                ))}
               </div>
             )}
           </motion.div>

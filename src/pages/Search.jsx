@@ -1,278 +1,357 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Search as SearchIcon, 
-  X, 
-  Filter, 
-  Zap,
-  ArrowUpDown,
-  History,
-  AlertCircle
-} from 'lucide-react';
+// src/pages/Search.jsx
 
-// Layout & UI Components
-import Header from '../components/layout/Header';
-import Footer from '../components/layout/Footer';
-import ProductCard from '../components/customer/ProductCard';
-import EmptyState from '../components/shared/EmptyState';
-import LoadingScreen from '../components/shared/LoadingScreen';
-import Button from '../components/ui/Button';
+import { useState, useEffect, useRef } from 'react'
+import { useSearchParams, useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Search as SearchIcon, X, SlidersHorizontal, ArrowLeft, TrendingUp, Clock } from 'lucide-react'
+import Header from '@components/layout/Header'
+import Footer from '@components/layout/Footer'
+import ProductCard from '@components/customer/ProductCard'
+import EmptyState from '@components/shared/EmptyState'
+import Button from '@components/ui/Button'
+import { useSearch } from '@hooks/useSearch'
+import { CATEGORIES } from '@utils/constants'
 
-// Hooks & Constants
-import { useSearch } from '../hooks/useSearch';
-import { CATEGORIES } from '../utils/constants';
-
-/**
- * ZALLDI - High-Performance Search & Discovery
- * FIXED: Resolved "b is not a function" by ensuring stable hook dependencies.
- */
-
-const Search = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const query = searchParams.get('q') || '';
-  const categoryParam = searchParams.get('category') || '';
+export default function Search() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const searchInputRef = useRef(null)
   
-  const [searchInput, setSearchInput] = useState(query);
-  const [selectedCategory, setSelectedCategory] = useState(categoryParam);
-  const [sortBy, setSortBy] = useState('relevance');
+  const query = searchParams.get('q') || ''
+  const categoryParam = searchParams.get('category') || ''
+  const sortParam = searchParams.get('sort') || 'relevance'
   
-  // Destructuring search hook
-  const { results, isLoading, error, searchProducts } = useSearch();
+  const [searchInput, setSearchInput] = useState(query)
+  const [selectedCategory, setSelectedCategory] = useState(categoryParam)
+  const [sortBy, setSortBy] = useState(sortParam)
+  const [showFilters, setShowFilters] = useState(false)
+  const [showSuggestions, setShowSuggestions] = useState(false)
   
-  // Sync input with URL when navigating
+  const { results, isLoading, recentSearches, searchProducts, getSuggestions } = useSearch()
+  const [suggestions, setSuggestions] = useState([])
+
   useEffect(() => {
-    setSearchInput(query);
-    setSelectedCategory(categoryParam);
-  }, [query, categoryParam]);
-
-  // Handle Search Logic - Wrapped in try/catch for safety
-  useEffect(() => {
-    const performSearch = async () => {
-      if (query && typeof searchProducts === 'function') {
-        try {
-          await searchProducts(query, { category: categoryParam });
-        } catch (err) {
-          console.error("Search execution failed:", err);
-        }
-      }
-    };
-    performSearch();
-  }, [query, categoryParam, searchProducts]);
-
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    const trimmedQuery = searchInput.trim();
-    if (trimmedQuery) {
-      const params = new URLSearchParams();
-      params.set('q', trimmedQuery);
-      if (selectedCategory) params.set('category', selectedCategory);
-      setSearchParams(params);
+    if (query) {
+      searchProducts(query, { category: categoryParam })
     }
-  };
+  }, [query, categoryParam])
 
-  const handleCategoryToggle = (catId) => {
-    const newCat = selectedCategory === catId ? '' : catId;
-    const params = new URLSearchParams(searchParams);
-    if (newCat) params.set('category', newCat);
-    else params.delete('category');
-    setSearchParams(params);
-  };
+  useEffect(() => {
+    if (searchInputRef.current) {
+      searchInputRef.current.focus()
+    }
+  }, [])
 
-  const clearAllFilters = () => {
-    setSearchInput('');
-    setSearchParams({});
-  };
-
-  // Safe sorting logic
-  const sortedResults = useMemo(() => {
-    if (!results || !Array.isArray(results)) return [];
-    
-    return [...results].sort((a, b) => {
-      const priceA = a.price || 0;
-      const priceB = b.price || 0;
-      const ratingA = a.rating || 0;
-      const ratingB = b.rating || 0;
-
-      switch (sortBy) {
-        case 'price-low': return priceA - priceB;
-        case 'price-high': return priceB - priceA;
-        case 'rating': return ratingB - ratingA;
-        case 'newest': 
-          return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
-        default: return 0;
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (searchInput.length >= 2) {
+        const sugg = await getSuggestions(searchInput)
+        setSuggestions(sugg)
+      } else {
+        setSuggestions([])
       }
-    });
-  }, [results, sortBy]);
+    }
+    
+    const timer = setTimeout(fetchSuggestions, 300)
+    return () => clearTimeout(timer)
+  }, [searchInput])
+
+  const handleSearch = (searchTerm = searchInput) => {
+    if (searchTerm.trim()) {
+      const params = new URLSearchParams()
+      params.set('q', searchTerm.trim())
+      if (selectedCategory) params.set('category', selectedCategory)
+      if (sortBy !== 'relevance') params.set('sort', sortBy)
+      setSearchParams(params)
+      setShowSuggestions(false)
+    }
+  }
+
+  const handleCategoryChange = (category) => {
+    setSelectedCategory(category)
+    const params = new URLSearchParams(searchParams)
+    if (category) {
+      params.set('category', category)
+    } else {
+      params.delete('category')
+    }
+    setSearchParams(params)
+  }
+
+  const handleSortChange = (sort) => {
+    setSortBy(sort)
+    const params = new URLSearchParams(searchParams)
+    if (sort !== 'relevance') {
+      params.set('sort', sort)
+    } else {
+      params.delete('sort')
+    }
+    setSearchParams(params)
+  }
+
+  const clearSearch = () => {
+    setSearchInput('')
+    setSelectedCategory('')
+    setSortBy('relevance')
+    setSearchParams({})
+  }
+
+  const sortedResults = [...(results || [])].sort((a, b) => {
+    switch (sortBy) {
+      case 'price-low':
+        return a.price - b.price
+      case 'price-high':
+        return b.price - a.price
+      case 'rating':
+        return b.rating - a.rating
+      case 'newest':
+        return new Date(b.createdAt) - new Date(a.createdAt)
+      default:
+        return 0
+    }
+  })
+
+  const activeFiltersCount = (selectedCategory ? 1 : 0) + (sortBy !== 'relevance' ? 1 : 0)
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA]">
+    <div className="min-h-screen bg-neutral-50">
       <Header />
       
-      <main className="pt-24 pb-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
-          <div className="mb-10">
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-[2.5rem] shadow-xl shadow-gray-200/40 p-6 md:p-8"
+      <div className="sticky top-16 z-40 bg-white shadow-sm border-b border-neutral-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate(-1)}
+              className="lg:hidden p-2 hover:bg-neutral-100 rounded-full transition-colors"
             >
-              <form onSubmit={handleSearchSubmit} className="space-y-6">
-                <div className="flex flex-col md:flex-row gap-4">
-                  <div className="flex-1 relative group">
-                    <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors">
-                      <SearchIcon size={22} />
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="Search fresh groceries in Butwal..."
-                      value={searchInput}
-                      onChange={(e) => setSearchInput(e.target.value)}
-                      className="w-full pl-14 pr-14 py-5 bg-gray-50 border-none rounded-3xl text-gray-900 font-bold placeholder:text-gray-400 focus:ring-4 focus:ring-orange-500/10 focus:bg-white transition-all outline-none text-lg"
-                    />
-                    {searchInput && (
-                      <button
-                        type="button"
-                        onClick={() => setSearchInput('')}
-                        className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-orange-600 transition-colors"
-                      >
-                        <X size={22} />
-                      </button>
-                    )}
-                  </div>
-                  <Button 
-                    type="submit" 
-                    className="bg-orange-600 hover:bg-orange-700 text-white px-10 rounded-3xl font-black py-5 shadow-lg shadow-orange-200"
-                  >
-                    SEARCH
-                  </Button>
-                </div>
+              <ArrowLeft className="w-5 h-5 text-neutral-700" />
+            </button>
 
-                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2">
-                  <div className="flex-shrink-0 flex items-center gap-2 text-gray-400 mr-2 border-r border-gray-100 pr-4">
-                    <Filter size={16} />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Filter</span>
-                  </div>
-                  
-                  <CategoryPill 
-                    label="All" 
-                    isActive={!selectedCategory} 
-                    onClick={() => handleCategoryToggle('')} 
-                  />
-                  {CATEGORIES.map((cat) => (
-                    <CategoryPill 
-                      key={cat.id}
-                      label={cat.name}
-                      isActive={selectedCategory === cat.id}
-                      onClick={() => handleCategoryToggle(cat.id)}
-                    />
-                  ))}
-                </div>
-              </form>
-            </motion.div>
-          </div>
-
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 px-2">
-            <div>
-              {query ? (
-                <div className="flex items-center gap-3">
-                  <h1 className="text-2xl font-black text-gray-900">
-                    Results for "<span className="text-orange-600">{query}</span>"
-                  </h1>
-                  <span className="bg-gray-100 text-gray-500 text-xs font-black px-3 py-1 rounded-full uppercase tracking-tighter">
-                    {sortedResults.length} FOUND
-                  </span>
-                </div>
-              ) : (
-                <h1 className="text-2xl font-black text-gray-900">Start Discovering</h1>
-              )}
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-orange-500 pointer-events-none">
-                  <ArrowUpDown size={14} />
-                </div>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="pl-9 pr-8 py-2 bg-white border border-gray-100 rounded-xl text-xs font-black text-gray-900 appearance-none focus:ring-4 focus:ring-orange-500/5 outline-none cursor-pointer uppercase tracking-tight"
-                >
-                  <option value="relevance">Popularity</option>
-                  <option value="price-low">Price: Low</option>
-                  <option value="price-high">Price: High</option>
-                  <option value="rating">Top Rated</option>
-                  <option value="newest">New Arrivals</option>
-                </select>
-              </div>
-              
-              {query && (
+            <div className="flex-1 relative">
+              <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400 pointer-events-none" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                placeholder="Search for products..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                onFocus={() => setShowSuggestions(true)}
+                className="w-full pl-12 pr-12 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+              />
+              {searchInput && (
                 <button
-                  onClick={clearAllFilters}
-                  className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                  onClick={() => {
+                    setSearchInput('')
+                    setShowSuggestions(false)
+                  }}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors"
                 >
-                  <History size={20} />
+                  <X className="w-5 h-5" />
                 </button>
               )}
+
+              <AnimatePresence>
+                {showSuggestions && (searchInput.length >= 2 || recentSearches.length > 0) && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-lg border border-neutral-200 overflow-hidden z-50"
+                  >
+                    {suggestions.length > 0 && (
+                      <div className="p-2 border-b border-neutral-100">
+                        <p className="text-xs font-medium text-neutral-500 px-3 py-2 flex items-center gap-2">
+                          <TrendingUp className="w-4 h-4" />
+                          Suggestions
+                        </p>
+                        {suggestions.map((item) => (
+                          <button
+                            key={item.id}
+                            onClick={() => {
+                              setSearchInput(item.name)
+                              handleSearch(item.name)
+                            }}
+                            className="w-full text-left px-4 py-2 hover:bg-neutral-50 rounded-lg transition-colors"
+                          >
+                            <p className="text-sm text-neutral-900">{item.name}</p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {recentSearches.length > 0 && (
+                      <div className="p-2">
+                        <p className="text-xs font-medium text-neutral-500 px-3 py-2 flex items-center gap-2">
+                          <Clock className="w-4 h-4" />
+                          Recent Searches
+                        </p>
+                        {recentSearches.slice(0, 5).map((search, index) => (
+                          <button
+                            key={index}
+                            onClick={() => {
+                              setSearchInput(search)
+                              handleSearch(search)
+                            }}
+                            className="w-full text-left px-4 py-2 hover:bg-neutral-50 rounded-lg transition-colors"
+                          >
+                            <p className="text-sm text-neutral-700">{search}</p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
+
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="relative p-3 bg-neutral-50 hover:bg-neutral-100 rounded-xl transition-colors"
+            >
+              <SlidersHorizontal className="w-5 h-5 text-neutral-700" />
+              {activeFiltersCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary-500 text-white text-xs font-semibold rounded-full flex items-center justify-center">
+                  {activeFiltersCount}
+                </span>
+              )}
+            </button>
           </div>
 
-          <div className="min-h-[400px]">
-            {isLoading ? (
-              <LoadingScreen />
-            ) : error ? (
-              <div className="bg-red-50 border border-red-100 rounded-3xl p-10 text-center max-w-lg mx-auto">
-                <AlertCircle className="text-red-400 mx-auto mb-4" size={40} />
-                <h3 className="text-red-900 font-black">Search Error</h3>
-                <p className="text-red-600 text-sm mt-1">{error}</p>
-                <Button onClick={handleSearchSubmit} className="mt-6 bg-red-600">Try Again</Button>
-              </div>
-            ) : !query ? (
-              <EmptyState
-                icon={SearchIcon}
-                title="Find what you need"
-                description="Search for fresh produce or daily essentials in Butwal."
-              />
-            ) : sortedResults.length === 0 ? (
-              <EmptyState
-                icon={SearchIcon}
-                title="No results found"
-                description={`No matches for "${query}" in our local inventory.`}
-                actionLabel="View All Shop"
-                onAction={() => navigate('/shop')}
-              />
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                {sortedResults.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
+          <AnimatePresence>
+            {showFilters && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="pt-4 pb-2 space-y-3">
+                  <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                    <button
+                      onClick={() => handleCategoryChange('')}
+                      className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                        !selectedCategory
+                          ? 'bg-primary-500 text-white'
+                          : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                      }`}
+                    >
+                      All
+                    </button>
+                    {CATEGORIES.map((cat) => (
+                      <button
+                        key={cat.id}
+                        onClick={() => handleCategoryChange(cat.id)}
+                        className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                          selectedCategory === cat.id
+                            ? 'bg-primary-500 text-white'
+                            : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                        }`}
+                      >
+                        {cat.name}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                    {[
+                      { value: 'relevance', label: 'Most Relevant' },
+                      { value: 'price-low', label: 'Price: Low to High' },
+                      { value: 'price-high', label: 'Price: High to Low' },
+                      { value: 'rating', label: 'Top Rated' },
+                      { value: 'newest', label: 'Newest' }
+                    ].map((sort) => (
+                      <button
+                        key={sort.value}
+                        onClick={() => handleSortChange(sort.value)}
+                        className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                          sortBy === sort.value
+                            ? 'bg-primary-500 text-white'
+                            : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                        }`}
+                      >
+                        {sort.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {activeFiltersCount > 0 && (
+                    <button
+                      onClick={clearSearch}
+                      className="text-sm text-primary-500 hover:text-primary-600 font-medium"
+                    >
+                      Clear all filters
+                    </button>
+                  )}
+                </div>
+              </motion.div>
             )}
-          </div>
+          </AnimatePresence>
+        </div>
+      </div>
+
+      <main className="pb-24 lg:pb-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          {query && (
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold text-neutral-800">
+                  Results for "{query}"
+                </h1>
+                {selectedCategory && (
+                  <p className="text-sm text-neutral-500 mt-1">
+                    in {CATEGORIES.find(c => c.id === selectedCategory)?.name}
+                  </p>
+                )}
+              </div>
+              <p className="text-sm text-neutral-600">
+                {sortedResults.length} {sortedResults.length === 1 ? 'item' : 'items'}
+              </p>
+            </div>
+          )}
+
+          {isLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : !query ? (
+            <EmptyState
+              icon={SearchIcon}
+              title="Start searching"
+              description="Enter a product name to find what you need"
+            />
+          ) : sortedResults.length === 0 ? (
+            <EmptyState
+              icon={SearchIcon}
+              title="No results found"
+              description={`Try different keywords or browse all products`}
+              action={{
+                label: 'Browse All Products',
+                onClick: () => navigate('/shop')
+              }}
+            />
+          ) : (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4"
+            >
+              {sortedResults.map((product, index) => (
+                <motion.div
+                  key={product.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <ProductCard product={product} />
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
         </div>
       </main>
 
       <Footer />
     </div>
-  );
-};
-
-const CategoryPill = ({ label, isActive, onClick }) => (
-  <button
-    onClick={onClick}
-    className={`
-      flex-shrink-0 px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all duration-300
-      ${isActive 
-        ? 'bg-orange-600 text-white shadow-lg shadow-orange-200 translate-y-[-2px]' 
-        : 'bg-white text-gray-500 border border-gray-100 hover:border-orange-200 hover:text-orange-600 hover:bg-orange-50'
-      }
-    `}
-  >
-    {label}
-  </button>
-);
-
-export default Search;
-
+  )
+}
