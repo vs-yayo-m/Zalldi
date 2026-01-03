@@ -1,247 +1,381 @@
-import { useState, useEffect, useRef } from 'react'
-import { ChevronLeft, ChevronRight, Flame, Sparkles, Leaf, Snowflake, ArrowRight } from 'lucide-react'
-import { motion, useScroll, useSpring } from 'framer-motion'
-import ProductCard from '@components/customer/ProductCard'
-import { productService } from '@services/product.service'
-import { ShimmerProductCard } from '@components/animations/Shimmer'
+// /src/components/layout/ProductDiscoverySection.jsx
 
-const sections = [
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { 
+  ChevronLeft, 
+  ChevronRight, 
+  Flame, 
+  Sparkles, 
+  Leaf, 
+  Snowflake, 
+  ArrowRight,
+  TrendingUp,
+  Zap,
+  Clock
+} from 'lucide-react'
+import { motion, AnimatePresence, useInView } from 'framer-motion'
+import ProductCard from '../customer/ProductCard'
+import { productService } from '../../services/product.service'
+import { ShimmerProductCard } from '../animations/Shimmer'
+
+// ==========================================
+// Section Configurations
+// ==========================================
+
+const DISCOVERY_SECTIONS = [
   { 
     id: 'best-selling', 
-    title: '🔥 Best Selling', 
-    subtitle: 'Top picks of the week',
+    title: 'Bestsellers', 
+    subtitle: 'Loved by everyone',
     icon: Flame,
     filter: 'bestSelling',
-    gradient: 'from-orange-500 to-red-600',
-    accent: 'bg-orange-50'
-  },
-  { 
-    id: 'new-arrivals', 
-    title: 'New Arrivals', 
-    subtitle: 'Just landed in store',
-    icon: Sparkles,
-    filter: 'new',
-    gradient: 'from-purple-500 to-indigo-600',
-    accent: 'bg-purple-50'
+    gradient: 'from-[#FF4D00] to-[#FF8C00]',
+    accentColor: 'orange',
+    badge: 'Trending'
   },
   { 
     id: 'fresh-today', 
-    title: 'Fresh Today', 
-    subtitle: 'Farm to table daily',
+    title: 'Fresh Arrivals', 
+    subtitle: 'Farm to table in mins',
     icon: Leaf,
     filter: 'fresh',
-    gradient: 'from-emerald-500 to-green-600',
-    accent: 'bg-emerald-50'
+    gradient: 'from-[#00B894] to-[#55EFC4]',
+    accentColor: 'emerald',
+    badge: 'New'
   },
   { 
     id: 'cold-frozen', 
-    title: 'Cold & Frozen', 
-    subtitle: 'Keep it chilled',
+    title: 'Chilled Items', 
+    subtitle: 'Stay cool, stay fresh',
     icon: Snowflake,
     filter: 'frozen',
-    gradient: 'from-blue-500 to-cyan-600',
-    accent: 'bg-blue-50'
+    gradient: 'from-[#0984E3] to-[#74B9FF]',
+    accentColor: 'blue',
+    badge: 'Chilled'
   }
 ]
 
-function ProductSection({ section }) {
+// ==========================================
+// Sub-Component: ProductSection
+// ==========================================
+
+const ProductSection = ({ section, index }) => {
+  const navigate = useNavigate()
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const scrollRef = useRef(null)
-  const [canScrollLeft, setCanScrollLeft] = useState(false)
-  const [canScrollRight, setCanScrollRight] = useState(true)
+  const sectionRef = useRef(null)
+  
+  // States for scroll controls
+  const [showLeftArrow, setShowLeftArrow] = useState(false)
+  const [showRightArrow, setShowRightArrow] = useState(true)
 
-  useEffect(() => {
-    fetchProducts()
-  }, [section.filter])
+  // Intersection Observer for scroll animations
+  const isInView = useInView(sectionRef, { once: true, margin: "-100px" })
 
-  const fetchProducts = async () => {
+  /**
+   * Data Fetching Logic
+   */
+  const loadData = useCallback(async () => {
     try {
       setLoading(true)
-      const results = await productService.getProducts({ 
-        limit: 10,
-        featured: section.filter === 'bestSelling' ? true : undefined,
-        sortBy: section.filter === 'new' ? 'createdAt' : section.filter === 'bestSelling' ? 'soldCount' : undefined
-      })
-      setProducts(results)
+      // Simulating enterprise-grade params: limit, sorting, and availability filtering
+      const params = {
+        limit: 12,
+        featured: section.filter === 'bestSelling',
+        sortBy: section.filter === 'fresh' ? 'createdAt' : 'soldCount',
+        status: 'active'
+      }
+      const results = await productService.getProducts(params)
+      setProducts(results || [])
     } catch (error) {
-      console.error('Error fetching products:', error)
+      console.error(`[DiscoverySection] Failed to load ${section.id}:`, error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [section])
 
-  const checkScroll = () => {
+  useEffect(() => {
+    loadData()
+  }, [loadData])
+
+  /**
+   * Scroll Progress & Controls
+   */
+  const handleScroll = useCallback(() => {
     if (scrollRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current
-      setCanScrollLeft(scrollLeft > 10)
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10)
+      setShowLeftArrow(scrollLeft > 20)
+      setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 20)
     }
-  }
+  }, [])
 
   const scroll = (direction) => {
     if (scrollRef.current) {
-      const scrollAmount = direction === 'left' ? -scrollRef.current.clientWidth * 0.8 : scrollRef.current.clientWidth * 0.8
-      scrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' })
+      const amount = scrollRef.current.clientWidth * 0.75
+      scrollRef.current.scrollBy({ 
+        left: direction === 'left' ? -amount : amount, 
+        behavior: 'smooth' 
+      })
+      // Haptic feedback for interaction
+      if (navigator.vibrate) navigator.vibrate(5)
     }
   }
 
   const Icon = section.icon
 
   return (
-    <div className="mb-16 group/section">
+    <div 
+      ref={sectionRef}
+      className="relative mb-12 md:mb-20 last:mb-0"
+    >
       {/* Section Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4 px-2">
-        <div className="flex items-center gap-4">
+      <div className="flex items-center justify-between mb-6 px-1">
+        <div className="flex items-center gap-3 md:gap-5">
+          {/* Icon Badge */}
           <motion.div 
-            whileHover={{ scale: 1.1, rotate: 5 }}
-            className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${section.gradient} flex items-center justify-center shadow-lg shadow-black/10`}
+            initial={{ rotate: -15, scale: 0.8 }}
+            animate={isInView ? { rotate: 0, scale: 1 } : {}}
+            transition={{ type: 'spring', damping: 12 }}
+            className={`w-12 h-12 md:w-16 md:h-16 rounded-2xl bg-gradient-to-br ${section.gradient} flex items-center justify-center shadow-xl shadow-orange-500/10 shrink-0`}
           >
-            <Icon className="w-7 h-7 text-white" />
+            <Icon className="w-6 h-6 md:w-8 md:h-8 text-white stroke-[2.5]" />
           </motion.div>
-          <div>
-            <h3 className="text-2xl md:text-3xl font-black text-neutral-900 tracking-tight">
-              {section.title}
-            </h3>
-            <div className="flex items-center gap-2 mt-0.5">
-              {section.id === 'fresh-today' && (
-                <span className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="text-xl md:text-3xl font-black text-neutral-900 tracking-tight truncate">
+                {section.title}
+              </h3>
+              {section.badge && (
+                <span className="hidden sm:inline-flex px-2 py-0.5 rounded-md bg-orange-100 text-orange-600 text-[10px] font-bold uppercase tracking-wider">
+                  {section.badge}
+                </span>
               )}
-              <p className="text-sm font-bold text-neutral-400 uppercase tracking-widest">
-                {section.subtitle}
-              </p>
             </div>
+            <p className="text-sm font-semibold text-neutral-400 mt-0.5 flex items-center gap-1.5">
+              {section.id === 'fresh-today' && (
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                </span>
+              )}
+              {section.subtitle}
+            </p>
           </div>
         </div>
 
-        {/* Navigation Controls */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => scroll('left')}
-            disabled={!canScrollLeft}
-            className={`w-12 h-12 rounded-xl border border-neutral-100 flex items-center justify-center transition-all shadow-sm ${
-              canScrollLeft 
-                ? 'bg-white hover:bg-orange-500 hover:text-white hover:border-orange-500 cursor-pointer' 
-                : 'bg-neutral-50 text-neutral-300 cursor-not-allowed'
-            }`}
+        {/* Desktop Controls & View All */}
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => navigate(`/shop?filter=${section.filter}`)}
+            className="text-sm font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1 group/btn transition-all"
           >
-            <ChevronLeft className="w-6 h-6" />
+            View all 
+            <ChevronRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
           </button>
-          <button
-            onClick={() => scroll('right')}
-            disabled={!canScrollRight}
-            className={`w-12 h-12 rounded-xl border border-neutral-100 flex items-center justify-center transition-all shadow-sm ${
-              canScrollRight 
-                ? 'bg-white hover:bg-orange-500 hover:text-white hover:border-orange-500 cursor-pointer' 
-                : 'bg-neutral-50 text-neutral-300 cursor-not-allowed'
-            }`}
-          >
-            <ChevronRight className="w-6 h-6" />
-          </button>
+          
+          <div className="hidden md:flex items-center gap-2">
+            <button
+              onClick={() => scroll('left')}
+              disabled={!showLeftArrow}
+              className={`p-2.5 rounded-full border transition-all ${
+                showLeftArrow 
+                  ? 'bg-white border-neutral-200 text-neutral-800 hover:border-orange-500 hover:text-orange-600 shadow-md active:scale-90' 
+                  : 'bg-neutral-50 border-neutral-100 text-neutral-300 opacity-50'
+              }`}
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => scroll('right')}
+              disabled={!showRightArrow}
+              className={`p-2.5 rounded-full border transition-all ${
+                showRightArrow 
+                  ? 'bg-white border-neutral-200 text-neutral-800 hover:border-orange-500 hover:text-orange-600 shadow-md active:scale-90' 
+                  : 'bg-neutral-50 border-neutral-100 text-neutral-300 opacity-50'
+              }`}
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Horizontal Carousel */}
-      <div className="relative">
-        <div
+      {/* Horizontal List Wrapper */}
+      <div className="relative -mx-4 px-4 sm:mx-0 sm:px-0">
+        <motion.div
           ref={scrollRef}
-          onScroll={checkScroll}
-          className="flex gap-5 overflow-x-auto scrollbar-hide scroll-smooth px-2 py-4"
+          onScroll={handleScroll}
+          initial={{ opacity: 0, x: 20 }}
+          animate={isInView ? { opacity: 1, x: 0 } : {}}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="flex gap-4 md:gap-6 overflow-x-auto scrollbar-hide scroll-smooth pb-6 pt-2 snap-x snap-mandatory"
         >
           {loading ? (
-            Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="flex-shrink-0 w-[200px] md:w-[240px]">
+            // Enterprise Skeleton State
+            Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="shrink-0 w-[180px] md:w-[260px]">
                 <ShimmerProductCard />
               </div>
             ))
           ) : (
             <>
               {products.map((product) => (
-                <motion.div 
+                <div 
                   key={product.id} 
-                  className="flex-shrink-0 w-[200px] md:w-[240px]"
-                  whileHover={{ y: -5 }}
-                  transition={{ type: 'spring', stiffness: 300 }}
+                  className="shrink-0 w-[180px] md:w-[260px] snap-start"
                 >
+                  {/* The ProductCard itself handles its own hover/active states */}
                   <ProductCard product={product} />
-                </motion.div>
+                </div>
               ))}
-              {/* "View More" End Card */}
+
+              {/* Enhanced End-Cap Card */}
               <motion.button
-                whileHover={{ scale: 1.02 }}
-                className="flex-shrink-0 w-[200px] md:w-[240px] aspect-[4/5] rounded-[2rem] border-2 border-dashed border-neutral-200 flex flex-col items-center justify-center gap-3 text-neutral-400 hover:text-orange-500 hover:border-orange-500 hover:bg-orange-50 transition-all group/more"
+                whileHover={{ scale: 0.98 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => navigate('/shop')}
+                className="shrink-0 w-[160px] md:w-[220px] aspect-[3/4] rounded-3xl border-2 border-dashed border-neutral-200 bg-neutral-50/50 flex flex-col items-center justify-center gap-4 text-neutral-400 group/end hover:border-orange-400 hover:bg-orange-50 transition-all snap-start"
               >
-                <div className="w-12 h-12 rounded-full bg-neutral-100 flex items-center justify-center group-hover/more:bg-orange-500 group-hover/more:text-white transition-all">
+                <div className="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center group-hover/end:bg-orange-500 group-hover/end:text-white transition-all duration-300">
                   <ArrowRight className="w-6 h-6" />
                 </div>
-                <span className="font-black uppercase text-xs tracking-widest">View All</span>
+                <div className="text-center px-4">
+                  <span className="block font-black text-neutral-800 text-sm uppercase tracking-wider mb-1">
+                    See All
+                  </span>
+                  <span className="text-xs font-medium text-neutral-500">
+                    {products.length}+ More Items
+                  </span>
+                </div>
               </motion.button>
             </>
           )}
-        </div>
-        
-        {/* Subtle Side Fade Overlays */}
-        <div className="absolute top-0 right-0 h-full w-12 bg-gradient-to-l from-white to-transparent pointer-events-none z-10" />
+        </motion.div>
+
+        {/* Subtle Fade for better scroll visualization on desktop */}
+        <div className="hidden md:block absolute top-0 right-0 bottom-6 w-20 bg-gradient-to-l from-white to-transparent pointer-events-none z-10" />
       </div>
     </div>
   )
 }
 
+// ==========================================
+// Main Discovery Section Component
+// ==========================================
+
 export default function ProductDiscoverySection() {
   return (
-    <section className="py-20 px-4 bg-white overflow-hidden">
-      <div className="max-w-7xl mx-auto">
-        {/* Main Section Header */}
-        <div className="flex flex-col items-center text-center mb-16">
+    <section className="relative py-12 md:py-24 bg-white overflow-hidden">
+      {/* Decorative Background Elements */}
+      <div className="absolute top-0 right-0 w-96 h-96 bg-orange-50/50 rounded-full blur-[100px] -z-10 translate-x-1/2 -translate-y-1/2" />
+      <div className="absolute bottom-0 left-0 w-96 h-96 bg-emerald-50/50 rounded-full blur-[100px] -z-10 -translate-x-1/2 translate-y-1/2" />
+
+      <div className="max-w-7xl mx-auto px-4">
+        
+        {/* Main Branding Header */}
+        <header className="mb-12 md:mb-20">
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="px-4 py-1.5 rounded-full bg-orange-100 text-orange-600 text-xs font-black uppercase tracking-[0.2em] mb-4"
+            className="flex items-center gap-2 mb-4"
           >
-            Curated For You
+             <span className="px-3 py-1 bg-orange-600 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-full">
+               Exclusive
+             </span>
+             <div className="h-px flex-1 bg-neutral-100" />
           </motion.div>
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-3xl md:text-6xl font-black text-neutral-900 mb-4 tracking-tight"
-          >
-            Discover Amazing <span className="text-orange-500">Products</span>
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.1 }}
-            className="text-lg md:text-xl text-neutral-500 font-medium max-w-2xl"
-          >
-            Handpicked collections featuring our best sellers and freshest arrivals delivered instantly.
-          </motion.p>
+
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="max-w-2xl">
+              <motion.h2 
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="text-4xl md:text-7xl font-black text-neutral-900 leading-[0.95] tracking-tighter"
+              >
+                Groceries & Essentials <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-orange-400">
+                  Delivered in Mins.
+                </span>
+              </motion.h2>
+              <motion.p 
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2 }}
+                className="text-lg md:text-xl text-neutral-500 font-medium mt-6 max-w-lg leading-relaxed"
+              >
+                Skip the queue. We bring the store to your doorstep with our curated premium selections.
+              </motion.p>
+            </div>
+
+            {/* Quick Stats / Trust Badges for Enterprise look */}
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              className="flex flex-wrap gap-4"
+            >
+              {[
+                { icon: Zap, text: 'Fast Delivery', sub: 'Under 15 mins' },
+                { icon: Clock, text: '24/7 Support', sub: 'Always here' }
+              ].map((stat, i) => (
+                <div key={i} className="flex items-center gap-3 bg-neutral-50 border border-neutral-100 p-4 rounded-2xl">
+                  <div className="p-2 bg-white rounded-xl shadow-sm">
+                    <stat.icon className="w-5 h-5 text-orange-600" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-neutral-900 leading-none">{stat.text}</div>
+                    <div className="text-[10px] font-semibold text-neutral-400 uppercase mt-1">{stat.sub}</div>
+                  </div>
+                </div>
+              ))}
+            </motion.div>
+          </div>
+        </header>
+
+        {/* Discovery Sections Grid */}
+        <div className="space-y-4">
+          {DISCOVERY_SECTIONS.map((section, index) => (
+            <ProductSection 
+              key={section.id} 
+              section={section} 
+              index={index}
+            />
+          ))}
         </div>
 
-        {/* Individual Category Sections */}
-        {sections.map((section, index) => (
-          <motion.div
-            key={section.id}
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-50px' }}
-            transition={{ delay: index * 0.1, duration: 0.6 }}
-          >
-            <ProductSection section={section} />
-          </motion.div>
-        ))}
+        {/* Bottom Banner Hook (Enterprise Pattern) */}
+        <motion.div 
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mt-16 p-8 md:p-12 rounded-[2.5rem] bg-neutral-900 relative overflow-hidden group"
+        >
+          {/* Animated Background Gradient */}
+          <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_top_right,rgba(249,115,22,0.2),transparent)] opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+          
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="text-center md:text-left">
+              <h4 className="text-3xl md:text-5xl font-black text-white mb-2">Can't find what you need?</h4>
+              <p className="text-neutral-400 font-medium text-lg">Browse our full catalog with 5000+ items across all categories.</p>
+            </div>
+            <motion.button 
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate('/shop')}
+              className="px-10 py-5 bg-orange-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-orange-900/40 hover:bg-orange-500 transition-colors"
+            >
+              Explore Full Shop
+            </motion.button>
+          </div>
+        </motion.div>
       </div>
     </section>
   )
 }
 
-/**
- * UX IMPROVEMENTS:
- * 1. Scroll State: Navigation buttons now dynamically disable when you reach the start or end of a carousel.
- * 2. Visual Feedback: Added a pulsing dot for 'Fresh Today' and spring-based "lifts" on cards.
- * 3. Navigation: Buttons now have a satisfying hover color change and scaling effect.
- * 4. Progressive Loading: Maintained Shimmer cards but added a 'View All' end-cap card for better flow.
- * 5. Modern Layout: Increased spacing and added typography hierarchies (Badge -> Title -> Subtitle).
- */
