@@ -1,246 +1,241 @@
-// src/pages/customer/Orders.jsx
-
-import { useState, useMemo } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import {
-  Package,
-  Clock,
-  MapPin,
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Package, 
+  ArrowLeft, 
+  Search, 
+  Filter, 
+  ShoppingBag, 
+  Clock, 
+  CheckCircle2, 
+  XCircle,
+  Truck,
   ChevronRight,
-  Filter,
-  Search,
-  X
-} from 'lucide-react'
-import { useOrders } from '@/hooks/useOrders'
-import Header from '@/components/layout/Header'
-import Footer from '@/components/layout/Footer'
-import LoadingScreen from '@/components/shared/LoadingScreen'
-import EmptyState from '@/components/shared/EmptyState'
-import Input from '@/components/ui/Input'
-import Badge from '@/components/ui/Badge'
-import { formatCurrency, formatRelativeTime } from '@/utils/formatters'
-import { ORDER_STATUS_LABELS } from '@/utils/constants'
+  ArrowRight
+} from 'lucide-react';
 
-export default function CustomerOrders() {
-  const [searchParams, setSearchParams] = useSearchParams()
-  const statusFilter = searchParams.get('status')
+// Existing project architecture imports
+import { useAuth } from '../../hooks/useAuth';
+import { useOrders } from '../../hooks/useOrders';
+import OrderCard from '../../components/customer/OrderCard';
+import Tabs from '../../components/ui/Tabs';
+import LoadingScreen from '../../components/shared/LoadingScreen';
+import EmptyState from '../../components/shared/EmptyState';
+import Button from '../../components/ui/Button';
+
+/**
+ * ZALLDI - Enterprise Order Management Hub
+ * Enhanced with dynamic filtering, micro-animations, and production-grade UX patterns.
+ */
+
+const Orders = () => {
+  const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
+  const { orders, loading: ordersLoading, getActiveOrders, getCompletedOrders, getCancelledOrders } = useOrders();
   
-  const { orders, loading } = useOrders()
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedStatus, setSelectedStatus] = useState(statusFilter || 'all')
+  // Local UI State
+  const [activeTab, setActiveTab] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const statusOptions = [
-    { value: 'all', label: 'All Orders', count: orders?.length || 0 },
-    { value: 'active', label: 'Active', count: orders?.filter(o => ['confirmed', 'picking', 'packing', 'out_for_delivery'].includes(o.status)).length || 0 },
-    { value: 'delivered', label: 'Delivered', count: orders?.filter(o => o.status === 'delivered').length || 0 },
-    { value: 'cancelled', label: 'Cancelled', count: orders?.filter(o => o.status === 'cancelled').length || 0 }
-  ]
+  // Auth Guard: Redirect unauthenticated users
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/login?redirect=/customer/orders', { replace: true });
+    }
+  }, [user, authLoading, navigate]);
 
+  // Performance Optimization: Memoize filtered results to prevent re-renders
   const filteredOrders = useMemo(() => {
-    if (!orders) return []
+    let baseOrders = [];
+    switch (activeTab) {
+      case 'active': baseOrders = getActiveOrders(); break;
+      case 'completed': baseOrders = getCompletedOrders(); break;
+      case 'cancelled': baseOrders = getCancelledOrders(); break;
+      default: baseOrders = orders || [];
+    }
+
+    if (!searchQuery) return baseOrders;
     
-    let filtered = orders
+    return baseOrders.filter(order => 
+      order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.items?.some(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+  }, [activeTab, orders, searchQuery, getActiveOrders, getCompletedOrders, getCancelledOrders]);
 
-    if (selectedStatus !== 'all') {
-      if (selectedStatus === 'active') {
-        filtered = filtered.filter(order => 
-          ['confirmed', 'picking', 'packing', 'out_for_delivery'].includes(order.status)
-        )
-      } else {
-        filtered = filtered.filter(order => order.status === selectedStatus)
-      }
-    }
+  // Tab configuration with live counts
+  const tabs = [
+    { id: 'all', label: 'All', icon: <Package size={16} />, count: orders?.length || 0 },
+    { id: 'active', label: 'Active', icon: <Truck size={16} />, count: getActiveOrders().length },
+    { id: 'completed', label: 'Completed', icon: <CheckCircle2 size={16} />, count: getCompletedOrders().length },
+    { id: 'cancelled', label: 'Cancelled', icon: <XCircle size={16} />, count: getCancelledOrders().length }
+  ];
 
-    if (searchQuery) {
-      filtered = filtered.filter(order =>
-        order.orderNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        order.items?.some(item => 
-          item.name?.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-      )
-    }
-
-    return filtered
-  }, [orders, selectedStatus, searchQuery])
-
-  const handleStatusChange = (status) => {
-    setSelectedStatus(status)
-    if (status === 'all') {
-      setSearchParams({})
-    } else {
-      setSearchParams({ status })
-    }
-  }
-
-  const getStatusColor = (status) => {
-    const colors = {
-      pending: 'bg-yellow-100 text-yellow-700',
-      confirmed: 'bg-blue-100 text-blue-700',
-      picking: 'bg-purple-100 text-purple-700',
-      packing: 'bg-indigo-100 text-indigo-700',
-      out_for_delivery: 'bg-orange-100 text-orange-700',
-      delivered: 'bg-green-100 text-green-700',
-      cancelled: 'bg-red-100 text-red-700'
-    }
-    return colors[status] || 'bg-neutral-100 text-neutral-700'
-  }
-
-  if (loading) {
-    return <LoadingScreen />
-  }
+  if (authLoading || ordersLoading) return <LoadingScreen />;
+  if (!user) return null;
 
   return (
-    <>
-      <Header />
-      <div className="min-h-screen bg-neutral-50 pb-20">
-        <div className="container mx-auto px-4 py-8">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="min-h-screen bg-[#F8F9FA] pb-20 pt-24"
+    >
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-8"
+            initial={{ x: -20, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
           >
-            <h1 className="text-3xl md:text-4xl font-black text-neutral-900 mb-2">
-              My Orders
+            <button
+              onClick={() => navigate('/customer/dashboard')}
+              className="flex items-center gap-2 text-gray-500 hover:text-orange-600 transition-colors font-bold text-sm mb-4 group"
+            >
+              <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" /> 
+              Back to Dashboard
+            </button>
+            <h1 className="text-4xl font-black text-gray-900 tracking-tight">
+              Order <span className="text-orange-500">History</span>
             </h1>
-            <p className="text-neutral-600 font-medium">
-              Track and manage all your orders
-            </p>
+            <p className="text-gray-500 mt-1 font-medium">Track, manage and reorder your essentials</p>
           </motion.div>
 
-          <div className="mb-6">
-            <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
-              <Input
-                type="text"
-                placeholder="Search by order number or product name..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                icon={<Search className="w-5 h-5" />}
-                className="bg-neutral-50"
-              />
-            </div>
-
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              {statusOptions.map((option) => (
-                <button
-                  key={option.value}
-                  onClick={() => handleStatusChange(option.value)}
-                  className={`px-4 py-2 rounded-xl font-bold text-sm whitespace-nowrap transition-all ${
-                    selectedStatus === option.value
-                      ? 'bg-orange-500 text-white shadow-md'
-                      : 'bg-white text-neutral-700 hover:bg-neutral-100'
-                  }`}
-                >
-                  {option.label}
-                  {option.count > 0 && (
-                    <span className={`ml-2 ${
-                      selectedStatus === option.value
-                        ? 'text-orange-200'
-                        : 'text-neutral-400'
-                    }`}>
-                      ({option.count})
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
+          {/* Inline Stats Summary */}
+          <div className="hidden lg:flex gap-4">
+            <QuickStat icon={<Clock className="text-blue-500" />} label="Ongoing" value={getActiveOrders().length} />
+            <QuickStat icon={<ShoppingBag className="text-orange-500" />} label="Total Spend" value={`₹${user?.totalSpend || 0}`} />
           </div>
+        </div>
 
-          {filteredOrders.length === 0 ? (
-            <div className="bg-white rounded-2xl p-12">
-              <EmptyState
-                icon={Package}
-                title={searchQuery ? 'No orders found' : 'No orders yet'}
-                description={
-                  searchQuery
-                    ? 'Try adjusting your search criteria'
-                    : 'Start shopping to see your orders here'
-                }
-                action={
-                  !searchQuery && {
-                    label: 'Start Shopping',
-                    link: '/shop'
+        {/* Search and Filter Bar */}
+        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-2 mb-8 flex flex-col md:flex-row items-center gap-2">
+          <div className="relative flex-grow w-full">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+            <input 
+              type="text"
+              placeholder="Search by Order ID or Product Name..."
+              className="w-full pl-12 pr-4 py-3 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-orange-500/20 transition-all text-sm font-medium"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <div className="flex w-full md:w-auto gap-2">
+            <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-gray-50 rounded-2xl text-sm font-bold text-gray-700 hover:bg-gray-100 transition-colors">
+              <Filter size={18} /> Filters
+            </button>
+          </div>
+        </div>
+
+        {/* Interactive Tabs */}
+        <div className="mb-8 overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-2 p-1 bg-gray-100 rounded-2xl w-fit">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`relative flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${
+                  activeTab === tab.id 
+                    ? 'bg-white text-orange-600 shadow-sm' 
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                {tab.icon}
+                {tab.label}
+                <span className={`ml-1 px-1.5 py-0.5 rounded-md text-[10px] ${
+                  activeTab === tab.id ? 'bg-orange-100 text-orange-600' : 'bg-gray-200 text-gray-500'
+                }`}>
+                  {tab.count}
+                </span>
+                {activeTab === tab.id && (
+                  <motion.div layoutId="tab-pill" className="absolute inset-0 border-2 border-orange-500/10 rounded-xl" />
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Orders Feed */}
+        <div className="space-y-6">
+          <AnimatePresence mode="popLayout">
+            {filteredOrders.length === 0 ? (
+              <motion.div
+                key="empty-state"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-white rounded-[2rem] border-2 border-dashed border-gray-100 p-12"
+              >
+                <EmptyState
+                  icon={Package}
+                  title={searchQuery ? "No matching orders found" : `No ${activeTab === 'all' ? '' : activeTab} orders yet`}
+                  description={
+                    searchQuery 
+                    ? "Try checking the order ID or search for a different product."
+                    : "Your kitchen is waiting! Explore our fresh collection and start your first order."
                   }
-                }
-              />
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {filteredOrders.map((order, index) => (
+                  actionLabel="Start Shopping"
+                  onAction={() => navigate('/shop')}
+                />
+              </motion.div>
+            ) : (
+              filteredOrders.map((order, index) => (
                 <motion.div
                   key={order.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
+                  className="group"
                 >
-                  <Link
-                    to={`/customer/orders/${order.id}`}
-                    className="block bg-white rounded-2xl p-6 hover:shadow-md transition-all group"
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <p className="text-sm font-bold text-neutral-500 mb-1">
-                          Order #{order.orderNumber}
-                        </p>
-                        <p className="text-xs text-neutral-400 flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {formatRelativeTime(order.createdAt?.toDate ? order.createdAt.toDate() : order.createdAt)}
-                        </p>
-                      </div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(order.status)}`}>
-                        {ORDER_STATUS_LABELS[order.status]}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-3 mb-4">
-                      {order.items?.slice(0, 3).map((item, idx) => (
-                        <div key={idx} className="w-12 h-12 rounded-lg bg-neutral-100 overflow-hidden">
-                          {item.image && (
-                            <img
-                              src={item.image}
-                              alt={item.name}
-                              className="w-full h-full object-cover"
-                            />
-                          )}
-                        </div>
-                      ))}
-                      {order.items?.length > 3 && (
-                        <div className="w-12 h-12 rounded-lg bg-neutral-100 flex items-center justify-center text-xs font-bold text-neutral-500">
-                          +{order.items.length - 3}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <p className="text-sm text-neutral-600 font-medium">
-                          {order.items?.length || 0} item{order.items?.length !== 1 ? 's' : ''}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-black text-neutral-900">
-                          {formatCurrency(order.total)}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="pt-4 border-t border-neutral-100 flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-neutral-600">
-                        <MapPin className="w-4 h-4" />
-                        <span className="text-sm font-medium">
-                          {order.deliveryAddress?.area}, Ward {order.deliveryAddress?.ward}
-                        </span>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-neutral-400 group-hover:text-orange-500 transition-colors" />
-                    </div>
-                  </Link>
+                  <OrderCard order={order} />
                 </motion.div>
-              ))}
-            </div>
-          )}
+              ))
+            )}
+          </AnimatePresence>
         </div>
+
+        {/* Support CTA */}
+        {filteredOrders.length > 0 && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            className="mt-16 p-8 bg-white rounded-3xl border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-6"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-orange-100 rounded-2xl flex items-center justify-center text-orange-600">
+                <Package size={28} />
+              </div>
+              <div>
+                <h4 className="font-bold text-gray-900">Having trouble with an order?</h4>
+                <p className="text-sm text-gray-500">Our 24/7 support team is here to help you.</p>
+              </div>
+            </div>
+            <Button 
+              variant="outline" 
+              className="w-full md:w-auto rounded-2xl font-bold border-gray-200 hover:bg-orange-50 hover:border-orange-200"
+              onClick={() => navigate('/static/support')}
+            >
+              Contact Support
+            </Button>
+          </motion.div>
+        )}
       </div>
-      <Footer />
-    </>
-  )
-}
+    </motion.div>
+  );
+};
+
+/**
+ * Enterprise Stat Component for Header
+ */
+const QuickStat = ({ icon, label, value }) => (
+  <div className="bg-white px-5 py-3 rounded-2xl border border-gray-100 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
+    <div className="p-2 bg-gray-50 rounded-xl">{icon}</div>
+    <div>
+      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">{label}</p>
+      <p className="text-lg font-black text-gray-900 leading-none">{value}</p>
+    </div>
+  </div>
+);
+
+export default Orders;
+
