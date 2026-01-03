@@ -1,32 +1,17 @@
 // src/hooks/useOrders.js
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
+import { collection, query, where, orderBy, onSnapshot, getDocs } from 'firebase/firestore'
+import { db } from '@/config/firebase'
 import { useAuth } from './useAuth'
-import {
-  getOrdersByCustomer,
-  getOrdersBySupplier,
-  getAllOrders,
-  getOrderById,
-  updateOrderStatus,
-  cancelOrder as cancelOrderService
-} from '@services/order.service'
-import { USER_ROLES } from '@utils/constants'
 
-export const useOrders = (options = {}) => {
+export function useOrders(filterStatus = null) {
   const { user } = useAuth()
-  const {
-    orderId = null,
-    autoFetch = true,
-    limitCount = 50
-  } = options
-
   const [orders, setOrders] = useState([])
-  const [order, setOrder] = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [refreshTrigger, setRefreshTrigger] = useState(0)
 
-  const fetchOrders = useCallback(async () => {
+  useEffect(() => {
     if (!user) {
       setOrders([])
       setLoading(false)
@@ -34,135 +19,128 @@ export const useOrders = (options = {}) => {
     }
 
     setLoading(true)
-    setError(null)
+    
+    let ordersQuery
 
-    try {
-      let fetchedOrders = []
-
-      if (user.role === USER_ROLES.ADMIN) {
-        fetchedOrders = await getAllOrders(limitCount)
-      } else if (user.role === USER_ROLES.SUPPLIER) {
-        fetchedOrders = await getOrdersBySupplier(user.uid, limitCount)
-      } else {
-        fetchedOrders = await getOrdersByCustomer(user.uid, limitCount)
-      }
-
-      setOrders(fetchedOrders)
-    } catch (err) {
-      console.error('Error fetching orders:', err)
-      setError(err.message || 'Failed to fetch orders')
-    } finally {
+    if (user.role === 'customer') {
+      ordersQuery = query(
+        collection(db, 'orders'),
+        where('customerId', '==', user.uid),
+        orderBy('createdAt', 'desc')
+      )
+    } else if (user.role === 'supplier') {
+      ordersQuery = query(
+        collection(db, 'orders'),
+        where('supplierId', '==', user.uid),
+        orderBy('createdAt', 'desc')
+      )
+    } else if (user.role === 'admin') {
+      ordersQuery = query(
+        collection(db, 'orders'),
+        orderBy('createdAt', 'desc')
+      )
+    } else {
       setLoading(false)
+      return
     }
-  }, [user, limitCount])
 
-  const fetchOrder = useCallback(async (id) => {
-    setLoading(true)
-    setError(null)
+    const unsubscribe = onSnapshot(
+      ordersQuery,
+      (snapshot) => {
+        const ordersData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
 
+        let filteredOrders = ordersData
+        if (filterStatus) {
+          if (filterStatus === 'active') {
+            filteredOrders = ordersData.filter(order => 
+              ['confirmed', 'picking', 'packing', 'out_for_delivery'].includes(order.status)
+            )
+          } else {
+            filteredOrders = ordersData.filter(order => order.status === filterStatus)
+          }
+        }
+
+        setOrders(filteredOrders)
+        setLoading(false)
+        setError(null)
+      },
+      (err) => {
+        console.error('Error fetching orders:', err)
+        setError(err.message)
+        setLoading(false)
+      }
+    )
+
+    return () => unsubscribe()
+  }, [user, filterStatus])
+
+  const getOrderById = async (orderId) => {
+    if (!user) return null
+    
     try {
-      const fetchedOrder = await getOrderById(id)
-      setOrder(fetchedOrder)
-      return fetchedOrder
+      const orderDoc = await getDocs(
+        query(collection(db, 'orders'), where('__name__', '==', orderId))
+      )
+      
+      if (!orderDoc.empty) {
+        return {
+          id: orderDoc.docs[0].id,
+          ...orderDoc.docs[0].data()
+        }
+      }
+      return null
     } catch (err) {
       console.error('Error fetching order:', err)
-      setError(err.message || 'Failed to fetch order')
       return null
-    } finally {
-      setLoading(false)
     }
-  }, [])
+  }
 
-  const updateStatus = useCallback(async (id, newStatus, note = null) => {
-    try {
-      const updatedOrder = await updateOrderStatus(id, newStatus, note)
-      
-      setOrders(prev =>
-        prev.map(o => (o.id === id ? updatedOrder : o))
+  const getOrdersByStatus = (status) => {
+    if (status === 'active') {
+      return orders.filter(order => 
+        ['confirmed', 'picking', 'packing', 'out_for_delivery'].includes(order.status)
       )
-      
-      if (order?.id === id) {
-        setOrder(updatedOrder)
-      }
-      
-      return updatedOrder
-    } catch (err) {
-      console.error('Error updating order status:', err)
-      throw err
     }
-  }, [order])
+    return orders.filter(order => order.status === status)
+  }
 
-  const cancelOrder = useCallback(async (id, reason) => {
-    try {
-      const cancelledOrder = await cancelOrderService(id, reason)
-      
-      setOrders(prev =>
-        prev.map(o => (o.id === id ? cancelledOrder : o))
-      )
-      
-      if (order?.id === id) {
-        setOrder(cancelledOrder)
-      }
-      
-      return cancelledOrder
-    } catch (err) {
-      console.error('Error cancelling order:', err)
-      throw err
-    }
-  }, [order])
+  const getPendingOrders = () => {
+    return orders.filter(order => order.status === 'pending')
+  }
 
-  const refresh = useCallback(() => {
-    setRefreshTrigger(prev => prev + 1)
-  }, [])
+  const getDeliveredOrders = () => {
+    return orders.filter(order => order.status === 'delivered')
+  }
 
-  useEffect(() => {
-    if (autoFetch && !orderId) {
-      fetchOrders()
-    }
-  }, [autoFetch, orderId, fetchOrders, refreshTrigger])
-
-  useEffect(() => {
-    if (orderId) {
-      fetchOrder(orderId)
-    }
-  }, [orderId, fetchOrder])
-
-  const getOrdersByStatus = useCallback((status) => {
-    return orders.filter(o => o.status === status)
-  }, [orders])
-
-  const getPendingOrders = useCallback(() => {
-    return getOrdersByStatus('pending')
-  }, [getOrdersByStatus])
-
-  const getActiveOrders = useCallback(() => {
-    return orders.filter(o =>
-      ['pending', 'confirmed', 'picking', 'packing', 'out_for_delivery'].includes(o.status)
+  const getActiveOrders = () => {
+    return orders.filter(order => 
+      ['confirmed', 'picking', 'packing', 'out_for_delivery'].includes(order.status)
     )
-  }, [orders])
+  }
 
-  const getCompletedOrders = useCallback(() => {
-    return getOrdersByStatus('delivered')
-  }, [getOrdersByStatus])
+  const getTotalRevenue = () => {
+    return orders
+      .filter(order => order.status === 'delivered')
+      .reduce((sum, order) => sum + (order.total || 0), 0)
+  }
 
-  const getCancelledOrders = useCallback(() => {
-    return getOrdersByStatus('cancelled')
-  }, [getOrdersByStatus])
+  const getOrdersCount = () => {
+    return orders.length
+  }
 
   return {
     orders,
-    order,
     loading,
     error,
-    fetchOrders,
-    fetchOrder,
-    updateStatus,
-    cancelOrder,
-    refresh,
+    getOrderById,
     getOrdersByStatus,
     getPendingOrders,
+    getDeliveredOrders,
     getActiveOrders,
-    getCompletedOrders,
-    getCancelledOrders
+    getTotalRevenue,
+    getOrdersCount
   }
 }
