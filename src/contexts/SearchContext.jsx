@@ -1,130 +1,145 @@
-// src/contexts/SearchContext.jsx
+import React, { createContext, useState, useCallback, useEffect } from 'react';
+import { 
+  collection, 
+  query, 
+  where, 
+  getDocs, 
+  limit, 
+  getFirestore 
+} from 'firebase/firestore';
+import { initializeApp } from 'firebase/app';
 
-import { createContext, useState, useCallback } from 'react'
-import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore'
-import { db } from '@config/firebase'
+export const SearchContext = createContext();
 
-export const SearchContext = createContext()
+/**
+ * ZALLDI - High-Performance Search Engine Context
+ * Implements: Memory-first searching, cross-field filtering, and enterprise pathing.
+ */
+
+// Firebase initialization using environment globals
+const firebaseConfig = JSON.parse(__firebase_config);
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'zalldi-official';
 
 export function SearchProvider({ children }) {
-  const [results, setResults] = useState([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState(null)
-  const [recentSearches, setRecentSearches] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('recentSearches') || '[]')
-    } catch {
-      return []
-    }
-  })
+  const [results, setResults] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
   
+  // In-memory recent searches for the session
+  const [recentSearches, setRecentSearches] = useState([]);
+
+  // Utility: Retry with Exponential Backoff
+  const fetchWithRetry = async (queryFn, retries = 5) => {
+    for (let i = 0; i < retries; i++) {
+      try {
+        return await queryFn();
+      } catch (err) {
+        if (i === retries - 1) throw err;
+        const delay = Math.pow(2, i) * 1000;
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  };
+
+  /**
+   * Performs a client-side filter search on Firestore data.
+   * Optimized for: /artifacts/{appId}/public/data/products
+   */
   const searchProducts = useCallback(async (searchQuery, filters = {}) => {
     if (!searchQuery || !searchQuery.trim()) {
-      setResults([])
-      return
+      setResults([]);
+      return;
     }
     
-    setIsLoading(true)
-    setError(null)
+    setIsLoading(true);
+    setError(null);
     
     try {
-      const searchTerm = searchQuery.toLowerCase().trim()
+      const searchTerm = searchQuery.toLowerCase().trim();
       
-      let q = query(
-        collection(db, 'products'),
-        where('active', '==', true)
-      )
+      // RULE 1 & 2: Use simple queries and filter in memory
+      // Path: /artifacts/{appId}/public/data/products
+      const productsRef = collection(db, 'artifacts', appId, 'public', 'data', 'products');
       
+      let q = query(productsRef);
+      
+      // Simple filtering allowed by rule
       if (filters.category) {
-        q = query(q, where('category', '==', filters.category))
+        q = query(productsRef, where('category', '==', filters.category));
       }
-      
-      const snapshot = await getDocs(q)
+
+      const snapshot = await fetchWithRetry(() => getDocs(q));
       
       const allProducts = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
-      }))
+      }));
       
+      // Advanced text matching in JavaScript memory (Rule 2)
       const filtered = allProducts.filter(product => {
-        const name = (product.name || '').toLowerCase()
-        const description = (product.description || '').toLowerCase()
-        const category = (product.category || '').toLowerCase()
-        const tags = (product.tags || []).map(t => t.toLowerCase())
+        const isActive = product.active !== false; // Default to true if undefined
+        const name = (product.name || '').toLowerCase();
+        const description = (product.description || '').toLowerCase();
+        const category = (product.category || '').toLowerCase();
+        const tags = Array.isArray(product.tags) ? product.tags.map(t => t.toLowerCase()) : [];
         
-        return (
-          name.includes(searchTerm) ||
-          description.includes(searchTerm) ||
-          category.includes(searchTerm) ||
-          tags.some(tag => tag.includes(searchTerm))
-        )
-      })
+        const matchesText = name.includes(searchTerm) ||
+                           description.includes(searchTerm) ||
+                           category.includes(searchTerm) ||
+                           tags.some(tag => tag.includes(searchTerm));
+                           
+        return isActive && matchesText;
+      });
       
-      setResults(filtered)
-      addRecentSearch(searchQuery)
+      setResults(filtered);
+      addRecentSearch(searchQuery);
     } catch (err) {
-      console.error('Search error:', err)
-      setError('Failed to search products. Please try again.')
-      setResults([])
+      // Friendly error for UI (Rule 4: No alerts)
+      setError('Connection slow. Please check your internet and try again.');
+      setResults([]);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }, [])
+  }, []);
   
   const addRecentSearch = useCallback((searchQuery) => {
-    const updated = [
-      searchQuery,
-      ...recentSearches.filter(s => s !== searchQuery)
-    ].slice(0, 10)
-    
-    setRecentSearches(updated)
-    try {
-      localStorage.setItem('recentSearches', JSON.stringify(updated))
-    } catch {
-      // Ignore storage errors
-    }
-  }, [recentSearches])
+    setRecentSearches(prev => {
+      const updated = [
+        searchQuery,
+        ...prev.filter(s => s !== searchQuery)
+      ].slice(0, 8);
+      return updated;
+    });
+  }, []);
   
   const clearRecentSearches = useCallback(() => {
-    setRecentSearches([])
-    try {
-      localStorage.removeItem('recentSearches')
-    } catch {
-      // Ignore storage errors
-    }
-  }, [])
+    setRecentSearches([]);
+  }, []);
   
+  /**
+   * Quick suggestions for search-as-you-type UI
+   */
   const getSuggestions = useCallback(async (searchQuery) => {
-    if (!searchQuery || searchQuery.length < 2) {
-      return []
-    }
+    if (!searchQuery || searchQuery.length < 2) return [];
     
     try {
-      const searchTerm = searchQuery.toLowerCase().trim()
+      const searchTerm = searchQuery.toLowerCase().trim();
+      const productsRef = collection(db, 'artifacts', appId, 'public', 'data', 'products');
       
-      const q = query(
-        collection(db, 'products'),
-        where('active', '==', true),
-        limit(5)
-      )
+      // Fetch limited sample to suggest from
+      const q = query(productsRef, limit(20));
+      const snapshot = await getDocs(q);
       
-      const snapshot = await getDocs(q)
-      
-      const allProducts = snapshot.docs.map(doc => ({
-        id: doc.id,
-        name: doc.data().name
-      }))
-      
-      return allProducts
-        .filter(product =>
-          product.name.toLowerCase().includes(searchTerm)
-        )
-        .slice(0, 5)
+      return snapshot.docs
+        .map(doc => ({ id: doc.id, name: doc.data().name }))
+        .filter(p => p.name.toLowerCase().includes(searchTerm))
+        .slice(0, 5);
     } catch (err) {
-      console.error('Suggestions error:', err)
-      return []
+      return [];
     }
-  }, [])
+  }, []);
   
   const value = {
     results,
@@ -134,11 +149,12 @@ export function SearchProvider({ children }) {
     searchProducts,
     clearRecentSearches,
     getSuggestions
-  }
+  };
   
   return (
     <SearchContext.Provider value={value}>
       {children}
     </SearchContext.Provider>
-  )
+  );
 }
+
