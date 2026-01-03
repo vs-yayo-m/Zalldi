@@ -1,97 +1,139 @@
 // src/contexts/SearchContext.jsx
 
-import React, { createContext, useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import productService from '@/services/product.service'
-import { useDebounce } from '@/hooks/useDebounce'
+import { createContext, useState, useCallback } from 'react'
+import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore'
+import { db } from '@config/firebase'
 
 export const SearchContext = createContext()
 
 export function SearchProvider({ children }) {
-  const navigate = useNavigate()
-  const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [recentSearches, setRecentSearches] = useState([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const [recentSearches, setRecentSearches] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('recentSearches') || '[]')
+    } catch {
+      return []
+    }
+  })
   
-  const debouncedQuery = useDebounce(query, 300)
-  
-  useEffect(() => {
-    const saved = localStorage.getItem('zalldi_recent_searches')
-    if (saved) {
-      try {
-        setRecentSearches(JSON.parse(saved))
-      } catch (error) {
-        console.error('Error loading recent searches:', error)
+  const searchProducts = useCallback(async (searchQuery, filters = {}) => {
+    if (!searchQuery || !searchQuery.trim()) {
+      setResults([])
+      return
+    }
+    
+    setIsLoading(true)
+    setError(null)
+    
+    try {
+      const searchTerm = searchQuery.toLowerCase().trim()
+      
+      let q = query(
+        collection(db, 'products'),
+        where('active', '==', true)
+      )
+      
+      if (filters.category) {
+        q = query(q, where('category', '==', filters.category))
       }
+      
+      const snapshot = await getDocs(q)
+      
+      const allProducts = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }))
+      
+      const filtered = allProducts.filter(product => {
+        const name = (product.name || '').toLowerCase()
+        const description = (product.description || '').toLowerCase()
+        const category = (product.category || '').toLowerCase()
+        const tags = (product.tags || []).map(t => t.toLowerCase())
+        
+        return (
+          name.includes(searchTerm) ||
+          description.includes(searchTerm) ||
+          category.includes(searchTerm) ||
+          tags.some(tag => tag.includes(searchTerm))
+        )
+      })
+      
+      setResults(filtered)
+      addRecentSearch(searchQuery)
+    } catch (err) {
+      console.error('Search error:', err)
+      setError('Failed to search products. Please try again.')
+      setResults([])
+    } finally {
+      setIsLoading(false)
     }
   }, [])
   
-  useEffect(() => {
-    if (debouncedQuery.trim().length >= 2) {
-      performSearch(debouncedQuery)
-    } else {
-      setResults([])
-    }
-  }, [debouncedQuery])
-  
-  const performSearch = async (searchQuery) => {
-    try {
-      setLoading(true)
-      const data = await productService.search(searchQuery, { active: true })
-      setResults(data)
-    } catch (error) {
-      console.error('Search error:', error)
-      setResults([])
-    } finally {
-      setLoading(false)
-    }
-  }
-  
-  const search = (searchQuery) => {
-    setQuery(searchQuery)
-    addToRecentSearches(searchQuery)
-    navigate(`/search?q=${encodeURIComponent(searchQuery)}`)
-  }
-  
-  const addToRecentSearches = (searchQuery) => {
-    if (!searchQuery.trim()) return
-    
+  const addRecentSearch = useCallback((searchQuery) => {
     const updated = [
       searchQuery,
-      ...recentSearches.filter(s => s.toLowerCase() !== searchQuery.toLowerCase())
+      ...recentSearches.filter(s => s !== searchQuery)
     ].slice(0, 10)
     
     setRecentSearches(updated)
-    localStorage.setItem('zalldi_recent_searches', JSON.stringify(updated))
-  }
+    try {
+      localStorage.setItem('recentSearches', JSON.stringify(updated))
+    } catch {
+      // Ignore storage errors
+    }
+  }, [recentSearches])
   
-  const clearRecentSearches = () => {
+  const clearRecentSearches = useCallback(() => {
     setRecentSearches([])
-    localStorage.removeItem('zalldi_recent_searches')
-  }
+    try {
+      localStorage.removeItem('recentSearches')
+    } catch {
+      // Ignore storage errors
+    }
+  }, [])
   
-  const removeRecentSearch = (searchQuery) => {
-    const updated = recentSearches.filter(s => s !== searchQuery)
-    setRecentSearches(updated)
-    localStorage.setItem('zalldi_recent_searches', JSON.stringify(updated))
-  }
-  
-  const clearQuery = () => {
-    setQuery('')
-    setResults([])
-  }
+  const getSuggestions = useCallback(async (searchQuery) => {
+    if (!searchQuery || searchQuery.length < 2) {
+      return []
+    }
+    
+    try {
+      const searchTerm = searchQuery.toLowerCase().trim()
+      
+      const q = query(
+        collection(db, 'products'),
+        where('active', '==', true),
+        limit(5)
+      )
+      
+      const snapshot = await getDocs(q)
+      
+      const allProducts = snapshot.docs.map(doc => ({
+        id: doc.id,
+        name: doc.data().name
+      }))
+      
+      return allProducts
+        .filter(product =>
+          product.name.toLowerCase().includes(searchTerm)
+        )
+        .slice(0, 5)
+    } catch (err) {
+      console.error('Suggestions error:', err)
+      return []
+    }
+  }, [])
   
   const value = {
-    query,
-    setQuery,
     results,
-    loading,
-    search,
-    clearQuery,
+    isLoading,
+    error,
     recentSearches,
+    searchProducts,
     clearRecentSearches,
-    removeRecentSearch
+    getSuggestions
   }
   
   return (
