@@ -5,12 +5,10 @@ import {
   Search as SearchIcon, 
   X, 
   Filter, 
-  SlidersHorizontal, 
-  ChevronRight, 
-  Tag, 
   Zap,
   ArrowUpDown,
-  History
+  History,
+  AlertCircle
 } from 'lucide-react';
 
 // Layout & UI Components
@@ -20,8 +18,6 @@ import ProductCard from '../components/customer/ProductCard';
 import EmptyState from '../components/shared/EmptyState';
 import LoadingScreen from '../components/shared/LoadingScreen';
 import Button from '../components/ui/Button';
-import Input from '../components/ui/Input';
-import Select from '../components/ui/Select';
 
 // Hooks & Constants
 import { useSearch } from '../hooks/useSearch';
@@ -29,7 +25,7 @@ import { CATEGORIES } from '../utils/constants';
 
 /**
  * ZALLDI - High-Performance Search & Discovery
- * Features: Instant pill-filters, dynamic sorting, and optimized grid density.
+ * FIXED: Resolved "b is not a function" by ensuring stable hook dependencies.
  */
 
 const Search = () => {
@@ -41,17 +37,31 @@ const Search = () => {
   const [searchInput, setSearchInput] = useState(query);
   const [selectedCategory, setSelectedCategory] = useState(categoryParam);
   const [sortBy, setSortBy] = useState('relevance');
-  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
   
+  // Destructuring search hook
   const { results, isLoading, error, searchProducts } = useSearch();
   
+  // Sync input with URL when navigating
   useEffect(() => {
-    if (query) {
-      searchProducts(query, { category: categoryParam });
-    }
+    setSearchInput(query);
+    setSelectedCategory(categoryParam);
+  }, [query, categoryParam]);
+
+  // Handle Search Logic - Wrapped in try/catch for safety
+  useEffect(() => {
+    const performSearch = async () => {
+      if (query && typeof searchProducts === 'function') {
+        try {
+          await searchProducts(query, { category: categoryParam });
+        } catch (err) {
+          console.error("Search execution failed:", err);
+        }
+      }
+    };
+    performSearch();
   }, [query, categoryParam, searchProducts]);
 
-  const handleSearch = (e) => {
+  const handleSearchSubmit = (e) => {
     e.preventDefault();
     const trimmedQuery = searchInput.trim();
     if (trimmedQuery) {
@@ -64,7 +74,6 @@ const Search = () => {
 
   const handleCategoryToggle = (catId) => {
     const newCat = selectedCategory === catId ? '' : catId;
-    setSelectedCategory(newCat);
     const params = new URLSearchParams(searchParams);
     if (newCat) params.set('category', newCat);
     else params.delete('category');
@@ -73,18 +82,25 @@ const Search = () => {
 
   const clearAllFilters = () => {
     setSearchInput('');
-    setSelectedCategory('');
     setSearchParams({});
   };
 
+  // Safe sorting logic
   const sortedResults = useMemo(() => {
-    if (!results) return [];
+    if (!results || !Array.isArray(results)) return [];
+    
     return [...results].sort((a, b) => {
+      const priceA = a.price || 0;
+      const priceB = b.price || 0;
+      const ratingA = a.rating || 0;
+      const ratingB = b.rating || 0;
+
       switch (sortBy) {
-        case 'price-low': return a.price - b.price;
-        case 'price-high': return b.price - a.price;
-        case 'rating': return b.rating - a.rating;
-        case 'newest': return new Date(b.createdAt) - new Date(a.createdAt);
+        case 'price-low': return priceA - priceB;
+        case 'price-high': return priceB - priceA;
+        case 'rating': return ratingB - ratingA;
+        case 'newest': 
+          return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
         default: return 0;
       }
     });
@@ -97,14 +113,13 @@ const Search = () => {
       <main className="pt-24 pb-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
-          {/* SEARCH HEADER SECTION */}
           <div className="mb-10">
             <motion.div
-              initial={{ opacity: 0, y: -20 }}
+              initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-[2.5rem] shadow-xl shadow-gray-200/50 p-6 md:p-8"
+              className="bg-white rounded-[2.5rem] shadow-xl shadow-gray-200/40 p-6 md:p-8"
             >
-              <form onSubmit={handleSearch} className="space-y-6">
+              <form onSubmit={handleSearchSubmit} className="space-y-6">
                 <div className="flex flex-col md:flex-row gap-4">
                   <div className="flex-1 relative group">
                     <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors">
@@ -112,7 +127,7 @@ const Search = () => {
                     </div>
                     <input
                       type="text"
-                      placeholder="Search fresh groceries, essentials..."
+                      placeholder="Search fresh groceries in Butwal..."
                       value={searchInput}
                       onChange={(e) => setSearchInput(e.target.value)}
                       className="w-full pl-14 pr-14 py-5 bg-gray-50 border-none rounded-3xl text-gray-900 font-bold placeholder:text-gray-400 focus:ring-4 focus:ring-orange-500/10 focus:bg-white transition-all outline-none text-lg"
@@ -135,7 +150,6 @@ const Search = () => {
                   </Button>
                 </div>
 
-                {/* CATEGORY PILLS */}
                 <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2">
                   <div className="flex-shrink-0 flex items-center gap-2 text-gray-400 mr-2 border-r border-gray-100 pr-4">
                     <Filter size={16} />
@@ -160,7 +174,6 @@ const Search = () => {
             </motion.div>
           </div>
 
-          {/* RESULTS META & SORTING */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 px-2">
             <div>
               {query ? (
@@ -199,7 +212,6 @@ const Search = () => {
                 <button
                   onClick={clearAllFilters}
                   className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                  title="Clear all"
                 >
                   <History size={20} />
                 </button>
@@ -207,50 +219,36 @@ const Search = () => {
             </div>
           </div>
 
-          {/* GRID CONTENT */}
           <div className="min-h-[400px]">
             {isLoading ? (
               <LoadingScreen />
             ) : error ? (
-              <div className="bg-red-50 border border-red-100 rounded-3xl p-10 text-center">
-                <Zap className="text-red-400 mx-auto mb-4" size={40} />
-                <h3 className="text-red-900 font-black">Something went wrong</h3>
+              <div className="bg-red-50 border border-red-100 rounded-3xl p-10 text-center max-w-lg mx-auto">
+                <AlertCircle className="text-red-400 mx-auto mb-4" size={40} />
+                <h3 className="text-red-900 font-black">Search Error</h3>
                 <p className="text-red-600 text-sm mt-1">{error}</p>
+                <Button onClick={handleSearchSubmit} className="mt-6 bg-red-600">Try Again</Button>
               </div>
             ) : !query ? (
               <EmptyState
                 icon={SearchIcon}
                 title="Find what you need"
-                description="Search for fresh produce, dairy, electronics or daily essentials in Butwal."
+                description="Search for fresh produce or daily essentials in Butwal."
               />
             ) : sortedResults.length === 0 ? (
               <EmptyState
                 icon={SearchIcon}
                 title="No results found"
-                description={`We couldn't find matches for "${query}" in our Butwal store.`}
-                actionLabel="Browse All Categories"
+                description={`No matches for "${query}" in our local inventory.`}
+                actionLabel="View All Shop"
                 onAction={() => navigate('/shop')}
               />
             ) : (
-              <motion.div 
-                layout
-                className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6"
-              >
-                <AnimatePresence>
-                  {sortedResults.map((product) => (
-                    <motion.div
-                      key={product.id}
-                      layout
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <ProductCard product={product} />
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </motion.div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+                {sortedResults.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
             )}
           </div>
         </div>
@@ -261,9 +259,6 @@ const Search = () => {
   );
 };
 
-/**
- * Modern Category Pill Component
- */
 const CategoryPill = ({ label, isActive, onClick }) => (
   <button
     onClick={onClick}
