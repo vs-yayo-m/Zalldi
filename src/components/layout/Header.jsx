@@ -16,34 +16,24 @@ import {
   LogOut,
   Package,
   Settings,
-  Bell
+  Bell,
+  LayoutDashboard
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Contexts & Hooks - Maintaining existing architecture dependencies
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
 import { useSearch } from '@/hooks/useSearch';
 import { useClickOutside } from '@/hooks/useClickOutside';
 
-// Components - Maintaining existing architecture dependencies
 import Navigation from './Navigation';
 import MobileMenu from './MobileMenu';
 import Badge from '@/components/ui/Badge';
 import Dropdown from '@/components/ui/Dropdown';
 
-/**
- * ZALLDI ENTERPRISE HEADER
- * Inspired by Blinkit's hyper-fast UX.
- * Features:
- * 1. Sticky Glassmorphism with scroll-triggered shadow.
- * 2. Intelligent Search Dropdown (History + Trending).
- * 3. Dynamic Cart Animation (Blinkit-style pop).
- * 4. Geolocation/Address Selector mock integration.
- * 5. Advanced User Profile Menu.
- */
+import { getDashboardRoute, getNavigationItems } from '@/utils/roleNavigation';
+
 export default function Header() {
-  // --- State & Hooks ---
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -55,27 +45,33 @@ export default function Header() {
   const location = useLocation();
   const searchRef = useRef(null);
 
-  // Close search on click outside
   useClickOutside(searchRef, () => setIsSearchFocused(false));
 
-  // --- Calculations ---
   const cartItemsCount = useMemo(() => 
     items.reduce((total, item) => total + item.quantity, 0), 
   [items]);
 
-  // --- Effects ---
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close search when route changes
   useEffect(() => {
     setIsSearchFocused(false);
   }, [location.pathname]);
 
-  // --- Animation Variants ---
+  const handleAccountClick = () => {
+    if (user) {
+      const dashboardRoute = getDashboardRoute(user.role);
+      navigate(dashboardRoute);
+    } else {
+      navigate('/login');
+    }
+  };
+
+  const navItems = user ? getNavigationItems(user.role) : [];
+
   const searchDropdownVariants = {
     hidden: { opacity: 0, y: 10, scale: 0.98 },
     visible: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', damping: 25, stiffness: 300 } },
@@ -94,7 +90,6 @@ export default function Header() {
         <div className="container mx-auto px-4 lg:px-6">
           <div className="flex items-center justify-between gap-4 lg:gap-8">
             
-            {/* LEFT SECTION: Logo & Delivery */}
             <div className="flex items-center gap-4 lg:gap-10 shrink-0">
               <div className="flex items-center gap-3">
                 <button
@@ -122,7 +117,6 @@ export default function Header() {
                 </Link>
               </div>
 
-              {/* Delivery Selector - Blinkit Inspired */}
               <div className="hidden xl:flex items-center gap-2 cursor-pointer group border-l border-neutral-200 pl-8">
                 <div className="p-2 bg-orange-100 rounded-full text-orange-600 group-hover:bg-orange-500 group-hover:text-white transition-all duration-300">
                   <MapPin className="w-5 h-5" />
@@ -138,7 +132,6 @@ export default function Header() {
               </div>
             </div>
 
-            {/* CENTER SECTION: Smart Search */}
             <div ref={searchRef} className="hidden lg:block relative flex-1 max-w-2xl group">
               <div className={`relative flex items-center transition-all duration-300 rounded-xl overflow-hidden border-2 ${
                 isSearchFocused 
@@ -166,7 +159,6 @@ export default function Header() {
                 )}
               </div>
 
-              {/* Search Suggestions Dropdown */}
               <AnimatePresence>
                 {isSearchFocused && (
                   <motion.div
@@ -212,52 +204,53 @@ export default function Header() {
               </AnimatePresence>
             </div>
 
-            {/* RIGHT SECTION: Actions */}
             <div className="flex items-center gap-2 lg:gap-5">
               <Link to="/search" className="lg:hidden p-2 text-neutral-700 hover:bg-orange-50 rounded-full">
                 <Search className="w-6 h-6" />
               </Link>
 
-              {/* Wishlist Link - Only Desktop */}
-              <Link
-                to="/customer/wishlist"
-                className="hidden md:flex relative p-2.5 text-neutral-700 hover:text-orange-500 hover:bg-orange-50 rounded-full transition-all group"
-              >
-                <Heart className="w-6 h-6 group-hover:fill-orange-500" />
-                <span className="absolute top-0 right-0 w-2 h-2 bg-orange-500 rounded-full border-2 border-white"></span>
-              </Link>
+              {user?.role === 'customer' && (
+                <Link
+                  to="/customer/wishlist"
+                  className="hidden md:flex relative p-2.5 text-neutral-700 hover:text-orange-500 hover:bg-orange-50 rounded-full transition-all group"
+                >
+                  <Heart className="w-6 h-6 group-hover:fill-orange-500" />
+                  <span className="absolute top-0 right-0 w-2 h-2 bg-orange-500 rounded-full border-2 border-white"></span>
+                </Link>
+              )}
 
-              {/* Cart Button - Modern Enterprise Style */}
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => navigate('/cart')}
-                className="relative flex items-center gap-2 lg:gap-3 bg-orange-500 hover:bg-orange-600 text-white px-3 lg:px-5 py-2.5 rounded-xl shadow-lg shadow-orange-200 transition-all group"
-              >
-                <div className="relative">
-                  <ShoppingCart className="w-5 h-5 lg:w-6 lg:h-6" />
-                  <AnimatePresence>
-                    {cartItemsCount > 0 && (
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="absolute -top-3 -right-3 bg-white text-orange-600 text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-orange-500 shadow-sm"
-                      >
-                        {cartItemsCount}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-                <div className="hidden sm:flex flex-col items-start leading-none">
-                  <span className="text-[10px] font-bold opacity-80 uppercase">My Cart</span>
-                  <span className="text-sm font-black">₹{cartTotal?.toLocaleString() || '0'}</span>
-                </div>
-              </motion.button>
+              {user?.role === 'customer' && (
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => navigate('/cart')}
+                  className="relative flex items-center gap-2 lg:gap-3 bg-orange-500 hover:bg-orange-600 text-white px-3 lg:px-5 py-2.5 rounded-xl shadow-lg shadow-orange-200 transition-all group"
+                >
+                  <div className="relative">
+                    <ShoppingCart className="w-5 h-5 lg:w-6 lg:h-6" />
+                    <AnimatePresence>
+                      {cartItemsCount > 0 && (
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="absolute -top-3 -right-3 bg-white text-orange-600 text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-orange-500 shadow-sm"
+                        >
+                          {cartItemsCount}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                  <div className="hidden sm:flex flex-col items-start leading-none">
+                    <span className="text-[10px] font-bold opacity-80 uppercase">My Cart</span>
+                    <span className="text-sm font-black">₹{cartTotal?.toLocaleString() || '0'}</span>
+                  </div>
+                </motion.button>
+              )}
 
-              {/* Profile / Login */}
               {user ? (
                 <div className="relative group">
-                  <motion.div 
+                  <motion.button
+                    onClick={handleAccountClick}
                     whileHover={{ y: -2 }}
                     className="flex items-center gap-2 cursor-pointer p-1 pr-2 hover:bg-neutral-50 rounded-full border border-transparent hover:border-neutral-100 transition-all"
                   >
@@ -273,34 +266,46 @@ export default function Header() {
                       </div>
                     )}
                     <div className="hidden lg:flex flex-col">
-                      <span className="text-xs font-bold text-neutral-400">Account</span>
+                      <span className="text-xs font-bold text-neutral-400">
+                        {user.role === 'customer' ? 'Account' : 'Dashboard'}
+                      </span>
                       <span className="text-sm font-black text-neutral-800 truncate max-w-[80px]">
                         {user.displayName?.split(' ')[0]}
                       </span>
                     </div>
-                  </motion.div>
+                  </motion.button>
                   
-                  {/* Dropdown Menu - Enterprise Design */}
                   <div className="absolute top-full right-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-neutral-100 py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible translate-y-2 group-hover:translate-y-0 transition-all duration-300">
                     <div className="px-4 py-3 border-b border-neutral-50 mb-2">
                       <p className="text-xs font-bold text-neutral-400 uppercase tracking-tighter">Welcome back!</p>
                       <p className="text-sm font-black text-neutral-800 truncate">{user.email}</p>
                     </div>
-                    {[
-                      { icon: Package, label: 'My Orders', link: '/customer/orders' },
-                      { icon: Heart, label: 'Wishlist', link: '/customer/wishlist' },
-                      { icon: MapPin, label: 'Saved Addresses', link: '/customer/addresses' },
-                      { icon: Bell, label: 'Notifications', link: '/customer/notifications' },
-                      { icon: Settings, label: 'Settings', link: '/customer/settings' },
-                    ].map((item) => (
-                      <Link 
-                        key={item.label} 
-                        to={item.link} 
+                    {user.role === 'customer' ? (
+                      <>
+                        {[
+                          { icon: Package, label: 'My Orders', link: '/customer/orders' },
+                          { icon: Heart, label: 'Wishlist', link: '/customer/wishlist' },
+                          { icon: MapPin, label: 'Saved Addresses', link: '/customer/addresses' },
+                          { icon: Bell, label: 'Notifications', link: '/customer/notifications' },
+                          { icon: Settings, label: 'Settings', link: '/customer/settings' },
+                        ].map((item) => (
+                          <Link 
+                            key={item.label} 
+                            to={item.link} 
+                            className="flex items-center gap-3 px-4 py-2.5 text-neutral-600 hover:text-orange-600 hover:bg-orange-50 transition-colors font-semibold text-sm"
+                          >
+                            <item.icon className="w-4 h-4" /> {item.label}
+                          </Link>
+                        ))}
+                      </>
+                    ) : (
+                      <Link
+                        to={getDashboardRoute(user.role)}
                         className="flex items-center gap-3 px-4 py-2.5 text-neutral-600 hover:text-orange-600 hover:bg-orange-50 transition-colors font-semibold text-sm"
                       >
-                        <item.icon className="w-4 h-4" /> {item.label}
+                        <LayoutDashboard className="w-4 h-4" /> Go to Dashboard
                       </Link>
-                    ))}
+                    )}
                     <button 
                       onClick={logout}
                       className="w-full flex items-center gap-3 px-4 py-3 mt-2 text-red-500 hover:bg-red-50 transition-colors font-bold text-sm border-t border-neutral-50"
@@ -320,14 +325,12 @@ export default function Header() {
             </div>
           </div>
 
-          {/* SECONDARY NAVIGATION: Sticky Below Header */}
           <div className="hidden lg:block mt-2 border-t border-neutral-50 pt-2">
             <Navigation />
           </div>
         </div>
       </header>
 
-      {/* MOBILE INTERFACE OVERLAYS */}
       <MobileMenu
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
@@ -335,12 +338,3 @@ export default function Header() {
     </>
   );
 }
-
-/**
- * PRODUCTION NOTES:
- * 1. Accessibility: Added aria-labels and semantic HTML structure.
- * 2. Performance: Used useMemo for cart counting and useCallback (can be added) for event handlers.
- * 3. UX: Integrated a search backdrop/dropdown logic that mirrors high-converting apps like Blinkit.
- * 4. Micro-animations: Leveraged Framer Motion for spring-based transitions on hover and tap.
- */
-

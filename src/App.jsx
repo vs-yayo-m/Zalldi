@@ -14,6 +14,7 @@ import LoadingScreen from '@components/shared/LoadingScreen'
 import ProtectedRoute from '@components/shared/ProtectedRoute'
 import ScrollToTop from '@components/layout/ScrollToTop'
 import MobileBottomNav from '@components/layout/MobileBottomNav'
+import DashboardLayout from '@components/layout/DashboardLayout'
 import { ROUTES } from '@utils/constants'
 
 const Home = lazy(() => import('@pages/Home'))
@@ -138,97 +139,101 @@ export default function App() {
                           </ProtectedRoute>
                         } />
 
-                        <Route path={ROUTES.SUPPLIER_DASHBOARD} element={
-                          <ProtectedRoute allowedRoles={['supplier']}>
-                            <SupplierDashboard />
-                          </ProtectedRoute>
-                        } />
-                        <Route path={ROUTES.SUPPLIER_PRODUCTS} element={
-                          <ProtectedRoute allowedRoles={['supplier']}>
-                            <SupplierProducts />
-                          </ProtectedRoute>
-                        } />
-                        <Route path={ROUTES.SUPPLIER_ADD_PRODUCT} element={
-                          <ProtectedRoute allowedRoles={['supplier']}>
-                            <SupplierAddProduct />
-                          </ProtectedRoute>
-                        } />
-                        <Route path="/supplier/products/edit/:productId" element={
-                          <ProtectedRoute allowedRoles={['supplier']}>
-                            <SupplierEditProduct />
-                          </ProtectedRoute>
-                        } />
-                        <Route path={ROUTES.SUPPLIER_ORDERS} element={
-                          <ProtectedRoute allowedRoles={['supplier']}>
-                            <SupplierOrders />
-                          </ProtectedRoute>
-                        } />
-                        <Route path="/supplier/orders/:orderId" element={
-                          <ProtectedRoute allowedRoles={['supplier']}>
-                            <SupplierOrderDetail />
-                          </ProtectedRoute>
-                        } />
-                        <Route path={ROUTES.SUPPLIER_INVENTORY} element={
-                          <ProtectedRoute allowedRoles={['supplier']}>
-                            <SupplierInventory />
-                          </ProtectedRoute>
-                        } />
-                        <Route path={ROUTES.SUPPLIER_ANALYTICS} element={
-                          <ProtectedRoute allowedRoles={['supplier']}>
-                            <SupplierAnalytics />
-                          </ProtectedRoute>
-                        } />
+                        <Route element={<DashboardLayout />}>
+                          <Route path={ROUTES.SUPPLIER_DASHBOARD} element={
+                            <ProtectedRoute allowedRoles={['supplier']}>
+                              <SupplierDashboard />
+                            </ProtectedRoute>
+                          } />
+                          <Route path={ROUTES.SUPPLIER_PRODUCTS} element={
+                            <ProtectedRoute allowedRoles={['supplier']}>
+                              <SupplierProducts />
+                            </ProtectedRoute>
+                          } />
+                          <Route path={ROUTES.SUPPLIER_ADD_PRODUCT} element={
+                            <ProtectedRoute allowedRoles={['supplier']}>
+                              <SupplierAddProduct />
+                            </ProtectedRoute>
+                          } />
+                          <Route path="/supplier/products/edit/:productId" element={
+                            <ProtectedRoute allowedRoles={['supplier']}>
+                              <SupplierEditProduct />
+                            </ProtectedRoute>
+                          } />
+                          <Route path={ROUTES.SUPPLIER_ORDERS} element={
+                            <ProtectedRoute allowedRoles={['supplier']}>
+                              <SupplierOrders />
+                            </ProtectedRoute>
+                          } />
+                          <Route path="/supplier/orders/:orderId" element={
+                            <ProtectedRoute allowedRoles={['supplier']}>
+                              <SupplierOrderDetail />
+                            </ProtectedRoute>
+                          } />
+                          <Route path={ROUTES.SUPPLIER_INVENTORY} element={
+                            <ProtectedRoute allowedRoles={['supplier']}>
+                              <SupplierInventory />
+                            </ProtectedRoute>
+                          } />
+                          <Route path={ROUTES.SUPPLIER_ANALYTICS} element={
+                            <ProtectedRoute allowedRoles={['supplier']}>
+                              <SupplierAnalytics />
+                            </ProtectedRoute>
+                          } />
+                        </Route>
 
-                        <Route path={ROUTES.ADMIN_DASHBOARD} element={
-                          <ProtectedRoute allowedRoles={['admin']}>
-                            <AdminDashboard />
-                          </ProtectedRoute>
-                        } />
-                        <Route path={ROUTES.ADMIN_ORDERS} element={
-                          <ProtectedRoute allowedRoles={['admin']}>
-                            <AdminOrders />
-                          </ProtectedRoute>
-                        } />
-                        <Route path="/admin/orders/:orderId" element={
-                          <ProtectedRoute allowedRoles={['admin']}>
-                            <AdminOrderDetail />
-                          </ProtectedRoute>
-                        } />
-                        <Route path={ROUTES.ADMIN_PRODUCTS} element={
-                          <ProtectedRoute allowedRoles={['admin']}>
-                            <AdminProducts />
-                          </ProtectedRoute>
-                        } />
-                        <Route path={ROUTES.ADMIN_CUSTOMERS} element={
-                          <ProtectedRoute allowedRoles={['admin']}>
-                            <AdminCustomers />
-                          </ProtectedRoute>
-                        } />
-                        <Route path={ROUTES.ADMIN_SUPPLIERS} element={
-                          <ProtectedRoute allowedRoles={['admin']}>
-                            <AdminSuppliers />
-                          </ProtectedRoute>
-                        } />
-                        <Route path={ROUTES.ADMIN_FINANCIAL} element={
-                          <ProtectedRoute allowedRoles={['admin']}>
-                            <AdminFinancial />
-                          </ProtectedRoute>
-                        } />
-                        <Route path={ROUTES.ADMIN_ANALYTICS} element={
-                          <ProtectedRoute allowedRoles={['admin']}>
-                            <AdminAnalytics />
-                          </ProtectedRoute>
-                        } />
-                        <Route path={ROUTES.ADMIN_MARKETING} element={
-                          <ProtectedRoute allowedRoles={['admin']}>
-                            <AdminMarketing />
-                          </ProtectedRoute>
-                        } />
-                        <Route path={ROUTES.ADMIN_SETTINGS} element={
-                          <ProtectedRoute allowedRoles={['admin']}>
-                            <AdminSettings />
-                          </ProtectedRoute>
-                        } />
+                        <Route element={<DashboardLayout />}>
+                          <Route path={ROUTES.ADMIN_DASHBOARD} element={
+                            <ProtectedRoute allowedRoles={['admin']}>
+                              <AdminDashboard />
+                            </ProtectedRoute>
+                          } />
+                          <Route path={ROUTES.ADMIN_ORDERS} element={
+                            <ProtectedRoute allowedRoles={['admin']}>
+                              <AdminOrders />
+                            </ProtectedRoute>
+                          } />
+                          <Route path="/admin/orders/:orderId" element={
+                            <ProtectedRoute allowedRoles={['admin']}>
+                              <AdminOrderDetail />
+                            </ProtectedRoute>
+                          } />
+                          <Route path={ROUTES.ADMIN_PRODUCTS} element={
+                            <ProtectedRoute allowedRoles={['admin']}>
+                              <AdminProducts />
+                            </ProtectedRoute>
+                          } />
+                          <Route path={ROUTES.ADMIN_CUSTOMERS} element={
+                            <ProtectedRoute allowedRoles={['admin']}>
+                              <AdminCustomers />
+                            </ProtectedRoute>
+                          } />
+                          <Route path={ROUTES.ADMIN_SUPPLIERS} element={
+                            <ProtectedRoute allowedRoles={['admin']}>
+                              <AdminSuppliers />
+                            </ProtectedRoute>
+                          } />
+                          <Route path={ROUTES.ADMIN_FINANCIAL} element={
+                            <ProtectedRoute allowedRoles={['admin']}>
+                              <AdminFinancial />
+                            </ProtectedRoute>
+                          } />
+                          <Route path={ROUTES.ADMIN_ANALYTICS} element={
+                            <ProtectedRoute allowedRoles={['admin']}>
+                              <AdminAnalytics />
+                            </ProtectedRoute>
+                          } />
+                          <Route path={ROUTES.ADMIN_MARKETING} element={
+                            <ProtectedRoute allowedRoles={['admin']}>
+                              <AdminMarketing />
+                            </ProtectedRoute>
+                          } />
+                          <Route path={ROUTES.ADMIN_SETTINGS} element={
+                            <ProtectedRoute allowedRoles={['admin']}>
+                              <AdminSettings />
+                            </ProtectedRoute>
+                          } />
+                        </Route>
 
                         <Route path={ROUTES.ABOUT} element={<About />} />
                         <Route path={ROUTES.CONTACT} element={<Contact />} />

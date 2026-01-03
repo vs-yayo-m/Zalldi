@@ -1,14 +1,16 @@
+// src/pages/auth/Login.jsx
+
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Mail, 
-  Lock, 
-  Eye, 
-  EyeOff, 
-  LogIn, 
-  ArrowLeft, 
-  Zap, 
+import {
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  LogIn,
+  ArrowLeft,
+  Zap,
   CheckCircle2,
   AlertCircle
 } from 'lucide-react';
@@ -17,12 +19,9 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Alert from '@/components/ui/Alert';
 import { validateEmail, validatePassword } from '@/utils/validators';
-import { APP_NAME } from '@/utils/constants'; // Added missing import
-
-/**
- * ZALLDI PREMIUM AUTHENTICATION
- * A high-performance login gateway with immersive brand storytelling.
- */
+import { APP_NAME } from '@/utils/constants';
+import { getDefaultRoute } from '@/utils/roleNavigation';
+import toast from 'react-hot-toast';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -67,20 +66,23 @@ export default function Login() {
     
     setLoading(true);
     try {
-      await login(formData.email, formData.password);
-      navigate(from, { replace: true });
+      const user = await login(formData.email, formData.password);
+      
+      const redirectTo = getDefaultRoute(user.role);
+      navigate(redirectTo, { replace: true });
+      
+      toast.success(`Welcome back, ${user.displayName || 'User'}!`);
     } catch (err) {
       setError(err.message || "Invalid credentials. Please try again.");
+      toast.error('Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
   };
-
+  
   return (
     <div className="min-h-screen flex bg-white font-sans selection:bg-orange-100">
-      {/* 1. Left Side: Brand Storytelling (Visible on MD+) */}
       <div className="hidden lg:flex lg:w-1/2 relative bg-neutral-900 items-center justify-center p-12 overflow-hidden">
-        {/* Background Gradients */}
         <div className="absolute top-0 left-0 w-full h-full">
           <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-orange-600 rounded-full blur-[120px] opacity-20" />
           <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-orange-400 rounded-full blur-[100px] opacity-10" />
@@ -113,18 +115,15 @@ export default function Login() {
           </div>
         </motion.div>
         
-        {/* Abstract Pattern Overlay */}
         <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
       </div>
 
-      {/* 2. Right Side: Login Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 bg-[#F9FAFB]">
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           className="w-full max-w-md"
         >
-          {/* Mobile Logo Only */}
           <div className="lg:hidden text-center mb-10">
             <Link to="/" className="inline-block">
               <div className="font-display font-black text-4xl tracking-tighter">
@@ -264,4 +263,3 @@ export default function Login() {
     </div>
   );
 }
-
