@@ -6,20 +6,40 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useProductBySlug } from '@/hooks/useProducts';
 import ProductDetail from '@/components/customer/ProductDetail';
 import ProductGrid from '@/components/customer/ProductGrid';
-import Breadcrumbs from '@/components/layout/Breadcrumbs';
 import LoadingScreen from '@/components/shared/LoadingScreen';
 import EmptyState from '@/components/shared/EmptyState';
 import { 
   Package, 
-  ArrowLeft, 
+  ChevronLeft, 
   Zap, 
   Sparkles, 
-  ShoppingBag, 
-  Truck, 
-  ShieldCheck,
-  ChevronRight
+  ShoppingBag,
+  ArrowRight
 } from 'lucide-react';
 import productService from '@/services/product.service';
+
+/**
+ * CLEAN HEADER COMPONENT
+ */
+const Header = () => (
+  <header className="sticky top-0 z-[100] w-full bg-white/80 backdrop-blur-md border-b border-neutral-100 px-4 py-4">
+    <div className="max-w-7xl mx-auto flex items-center justify-between">
+      <Link to="/" className="flex items-center gap-2">
+        <div className="bg-orange-500 p-1.5 rounded-lg">
+          <Zap size={18} className="text-white fill-current" />
+        </div>
+        <span className="text-xl font-black tracking-tighter uppercase italic">Zalldi</span>
+      </Link>
+      <div className="flex items-center gap-6">
+        <Link to="/shop" className="text-sm font-bold text-neutral-600 hover:text-orange-500 transition-colors">Shop</Link>
+        <button className="relative p-2 text-neutral-900 hover:bg-neutral-50 rounded-full transition-colors">
+          <ShoppingBag size={22} />
+          <span className="absolute top-0 right-0 w-4 h-4 bg-orange-500 text-white text-[10px] flex items-center justify-center rounded-full font-bold">0</span>
+        </button>
+      </div>
+    </div>
+  </header>
+);
 
 export default function ProductDetailPage() {
   const { slug } = useParams();
@@ -33,16 +53,14 @@ export default function ProductDetailPage() {
   }, [slug]);
   
   useEffect(() => {
-    if (product) {
-      loadRelatedProducts();
-    }
+    if (product) loadRelatedProducts();
   }, [product]);
   
   const loadRelatedProducts = async () => {
     if (!product) return;
     try {
       setRelatedLoading(true);
-      const related = await productService.getRelated(product.id, product.category, 4);
+      const related = await productService.getRelated(product.id, product.category, 8); // Increased to 8 for more suggestions
       setRelatedProducts(related);
     } catch (err) {
       console.error('Error loading related products:', err);
@@ -50,194 +68,104 @@ export default function ProductDetailPage() {
       setRelatedLoading(false);
     }
   };
-  
-  const breadcrumbItems = useMemo(() => {
-    if (!product) return [];
-    return [
-      { label: 'Shop', to: '/shop' },
-      { label: product.categoryName || product.category, to: `/category/${product.category}` },
-      { label: product.name, to: `/product/${product.slug}` }
-    ];
-  }, [product]);
-  
-  if (loading) {
-    return <LoadingScreen message="Unboxing your next favorite item..." />;
-  }
+
+  if (loading) return <LoadingScreen message="Order now, delivered before your tea cools down..." />;
   
   if (error || !product) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-        >
+      <div className="min-h-screen bg-white flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
           <EmptyState
-            icon={<Package className="w-20 h-20 text-neutral-100" />}
-            title="Product Not Found"
-            description="This item vanished! It might have sold out or teleported to another shelf."
-            action={{
-              label: "Back to Shop",
-              onClick: () => navigate('/shop')
-            }}
+            icon={<Package className="w-16 h-16 text-neutral-200" />}
+            title="Item Unavailable"
+            description="We can't find this product in our Butwal inventory right now."
+            action={{ label: "Continue Shopping", onClick: () => navigate('/shop') }}
           />
-        </motion.div>
+        </div>
       </div>
     );
   }
   
   return (
-    <div className="min-h-screen bg-[#FDFDFD] selection:bg-orange-100 pb-20 overflow-hidden">
-      {/* BACKGROUND AMBIANCE */}
-      <div className="fixed top-0 right-0 w-[60vw] h-[60vw] bg-orange-50/50 rounded-full blur-[140px] -z-10 pointer-events-none" />
-      <div className="fixed bottom-0 left-0 w-[40vw] h-[40vw] bg-blue-50/30 rounded-full blur-[100px] -z-10 pointer-events-none" />
+    <div className="min-h-screen bg-[#FDFDFD] flex flex-col selection:bg-orange-100">
+      <Header />
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
         
-        {/* TOP NAVIGATION BAR */}
-        <div className="flex items-center justify-between mb-8">
-          <Breadcrumbs items={breadcrumbItems} />
-          <motion.button 
-            whileHover={{ x: -5 }}
+        {/* BACK ACTION - Clean & Professional */}
+        <div className="mb-6">
+          <button 
             onClick={() => navigate(-1)}
-            className="flex items-center gap-3 text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em] hover:text-orange-500 transition-colors bg-white px-5 py-2.5 rounded-full border border-neutral-100 shadow-sm"
+            className="group flex items-center gap-2 text-sm font-bold text-neutral-500 hover:text-neutral-900 transition-all"
           >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            Go Back
-          </motion.button>
+            <div className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center group-hover:bg-neutral-200 transition-colors">
+              <ChevronLeft size={18} />
+            </div>
+            Back to Collection
+          </button>
         </div>
 
-        {/* MAIN PRODUCT HERO */}
-        <motion.div 
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: 'spring', damping: 20, stiffness: 100 }}
-          className="relative bg-white rounded-[3rem] shadow-[0_40px_100px_rgba(0,0,0,0.06)] border border-neutral-100 overflow-hidden mb-24"
-        >
-            {/* The "Zalldi Quality" Corner Badge */}
-            <div className="absolute top-0 right-0 p-10 z-20 pointer-events-none hidden lg:block">
-                <div className="flex items-center gap-3 bg-neutral-900 text-white px-6 py-3 rounded-2xl rotate-3 shadow-2xl">
-                    <ShieldCheck size={20} className="text-orange-500" />
-                    <span className="text-[10px] font-black uppercase tracking-widest italic">Zalldi Verified</span>
-                </div>
+        {/* MAIN FOCUS: THE PRODUCT */}
+        <div className="bg-white rounded-[2rem] border border-neutral-100 shadow-sm overflow-hidden mb-16">
+          <ProductDetail product={product} />
+        </div>
+
+        {/* SUGGESTIONS SECTION: KEEP THEM BUSY */}
+        <section className="mb-20">
+          <div className="flex items-center justify-between mb-8 border-b border-neutral-100 pb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center text-orange-600">
+                <Sparkles size={20} fill="currentColor" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-black tracking-tight text-neutral-900 italic">People Also Bought</h2>
+                <p className="text-sm text-neutral-500 font-medium">Top picks in {product.categoryName || product.category}</p>
+              </div>
             </div>
-
-            <ProductDetail product={product} />
-        </motion.div>
-
-        {/* DELIVERY PROMISE BANNER (High Energy) */}
-        <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            className="mb-24 p-1 bg-gradient-to-r from-orange-500 to-orange-600 rounded-[3rem] shadow-2xl shadow-orange-500/20"
-        >
-            <div className="bg-neutral-900 rounded-[2.8rem] p-8 md:p-12 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-10">
-                <div className="relative z-10 space-y-4 text-center md:text-left">
-                    <div className="inline-flex items-center gap-2 bg-orange-500 text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest italic">
-                        <Truck size={14} />
-                        Hyper-Velocity
-                    </div>
-                    <h3 className="text-3xl md:text-4xl font-black text-white tracking-tighter leading-none italic">
-                        Order now, delivered before <br className="hidden md:block" /> your tea even cools down.
-                    </h3>
-                    <p className="text-neutral-400 font-medium max-w-md">
-                        Our specialized couriers are already on standby in Butwal. Real-time GPS tracking starts the second you click buy.
-                    </p>
-                </div>
-                
-                <div className="relative z-10 flex flex-col gap-3 w-full md:w-auto">
-                    <div className="bg-white/5 border border-white/10 p-6 rounded-3xl backdrop-blur-md flex items-center gap-4">
-                        <div className="w-12 h-12 bg-orange-500 rounded-2xl flex items-center justify-center text-white shadow-lg">
-                            <Zap size={24} fill="currentColor" />
-                        </div>
-                        <div>
-                            <p className="text-white font-black text-lg leading-none italic">60 MINS</p>
-                            <p className="text-neutral-500 text-[10px] font-bold uppercase tracking-widest mt-1">Average Delivery</p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Background Decorative Zap */}
-                <Zap className="absolute -right-20 -bottom-20 w-80 h-80 text-white/5 rotate-12" />
-            </div>
-        </motion.div>
-
-        {/* RELATED PRODUCTS */}
-        <AnimatePresence>
-          {relatedProducts.length > 0 && (
-            <motion.section
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              className="space-y-12"
+            <Link 
+              to={`/category/${product.category}`}
+              className="hidden md:flex items-center gap-2 text-sm font-black text-orange-600 hover:text-orange-700 uppercase tracking-widest"
             >
-              <div className="flex flex-col md:flex-row items-center md:items-end justify-between gap-6 px-4">
-                <div className="text-center md:text-left">
-                  <div className="flex items-center justify-center md:justify-start gap-2 text-orange-500 font-black text-[11px] uppercase tracking-[0.3em] mb-4">
-                    <Sparkles className="w-4 h-4 fill-current" />
-                    The Collection
-                  </div>
-                  <h2 className="text-4xl md:text-6xl font-black text-neutral-900 tracking-tighter leading-none italic uppercase">
-                    More in <span className="text-orange-500">{product.categoryName || product.category}</span>
-                  </h2>
-                </div>
-                <Link 
-                  to={`/category/${product.category}`}
-                  className="group flex items-center gap-4 bg-white border border-neutral-100 pl-8 pr-4 py-4 rounded-[2rem] shadow-sm hover:border-orange-200 transition-all active:scale-95"
-                >
-                  <span className="text-xs font-black text-neutral-900 uppercase tracking-widest">Explore Full Category</span>
-                  <div className="w-10 h-10 bg-neutral-900 rounded-full flex items-center justify-center text-white group-hover:bg-orange-500 transition-colors">
-                    <ChevronRight size={20} />
-                  </div>
-                </Link>
-              </div>
+              See all
+              <ArrowRight size={16} />
+            </Link>
+          </div>
 
-              <div className="p-1">
-                <ProductGrid 
-                  products={relatedProducts} 
-                  loading={relatedLoading} 
-                  columns={4} 
-                />
-              </div>
-            </motion.section>
-          )}
-        </AnimatePresence>
+          <div className="bg-neutral-50/50 p-6 rounded-[2rem] border border-neutral-100">
+            <ProductGrid 
+              products={relatedProducts} 
+              loading={relatedLoading} 
+              columns={4} 
+            />
+          </div>
+        </section>
 
-        {/* TRUST SIGNALS */}
-        <div className="mt-32 grid grid-cols-1 md:grid-cols-3 gap-10">
-            <TrustFeature 
-                icon={<ShieldCheck size={32} />}
-                title="Secure Checkout"
-                desc="Encrypted payments and localized fraud protection."
-            />
-            <TrustFeature 
-                icon={<ShoppingBag size={32} />}
-                title="Easy Returns"
-                desc="Not satisfied? We pick it up from your door, no questions."
-            />
-            <TrustFeature 
-                icon={<Zap size={32} />}
-                title="Instant Support"
-                desc="Chat with a human expert in Butwal instantly."
-            />
+        {/* COMPACT SPEED PROMISE */}
+        <div className="bg-neutral-900 rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative">
+          <div className="relative z-10 flex items-center gap-5">
+            <div className="w-14 h-14 bg-orange-500 rounded-2xl flex items-center justify-center text-white shrink-0">
+              <Zap size={28} fill="currentColor" />
+            </div>
+            <div>
+              <p className="text-white font-black text-xl italic leading-none">Hyper-Fast Delivery</p>
+              <p className="text-neutral-400 text-sm mt-1 font-medium">Delivered to your door in Butwal within 60 minutes.</p>
+            </div>
+          </div>
+          <Link 
+            to="/shop" 
+            className="relative z-10 bg-white text-neutral-900 px-8 py-3.5 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-orange-500 hover:text-white transition-all active:scale-95"
+          >
+            Keep Exploring
+          </Link>
+          <Zap className="absolute -right-6 -bottom-6 w-32 h-32 text-white/5 rotate-12" />
         </div>
-      </div>
+      </main>
+
+      <footer className="py-10 text-center text-neutral-400 text-xs font-medium uppercase tracking-[0.2em]">
+        © {new Date().getFullYear()} Zalldi Delivery — Butwal's Fastest.
+      </footer>
     </div>
   );
 }
-
-/**
- * SUB-COMPONENT: TRUST FEATURE
- */
-const TrustFeature = ({ icon, title, desc }) => (
-    <div className="flex flex-col items-center text-center space-y-4 group p-8 rounded-[2.5rem] hover:bg-white hover:shadow-2xl hover:shadow-neutral-200/40 transition-all duration-500">
-        <div className="w-16 h-16 bg-neutral-50 rounded-2xl flex items-center justify-center text-neutral-400 group-hover:bg-orange-100 group-hover:text-orange-600 transition-all duration-500">
-            {icon}
-        </div>
-        <div className="space-y-2">
-            <h4 className="font-black text-neutral-900 uppercase tracking-tight italic">{title}</h4>
-            <p className="text-sm text-neutral-500 font-medium leading-relaxed">{desc}</p>
-        </div>
-    </div>
-);
 
