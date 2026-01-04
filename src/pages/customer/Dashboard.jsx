@@ -1,3 +1,5 @@
+// /src/pages/customer/Dashboard.jsx
+
 import React, { useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
