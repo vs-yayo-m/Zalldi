@@ -387,10 +387,10 @@ export default function CustomerDashboard() {
 }
 
 const StatCard = ({ label, value, icon, color, trend, pulse, trendUp, link }) => (
-  <Link to={link || '#'}>
+  <div onClick={() => link && window.location.href !== link && (window.location.href = link)} className="cursor-pointer">
     <motion.div
       whileHover={{ y: -5 }}
-      className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-orange-100/20 transition-all cursor-pointer"
+      className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-orange-100/20 transition-all"
     >
       <div className="flex items-center justify-between mb-4">
         <div className={`p-3 rounded-2xl ${color}`}>
@@ -412,7 +412,7 @@ const StatCard = ({ label, value, icon, color, trend, pulse, trendUp, link }) =>
         </p>
       )}
     </motion.div>
-  </Link>
+  </div>
 );
 
 const NavTile = ({ onClick, icon, label, sub, color }) => (
