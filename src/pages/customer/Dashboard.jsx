@@ -16,13 +16,12 @@ import {
   CreditCard,
   ShieldCheck,
   Truck,
+  Star,
   Gift,
   ArrowUpRight,
   Bell,
   Settings,
-  Sparkles,
-  MapPinned,
-  ChevronRightCircle
+  Sparkles
 } from 'lucide-react';
 
 import { useAuth } from '@/hooks/useAuth';
@@ -285,7 +284,7 @@ export default function CustomerDashboard() {
                                         )}
                                     </div>
                                     <div className="flex items-center gap-2 text-orange-600 font-black">
-                                        View Details <ChevronRightCircle size={18} />
+                                        View Details <ChevronRight size={18} />
                                     </div>
                                 </div>
                             </Link>
@@ -341,7 +340,7 @@ export default function CustomerDashboard() {
                 <h3 className="text-xs font-black text-neutral-400 uppercase tracking-[0.2em] px-2">Account Hub</h3>
                 <div className="grid grid-cols-2 gap-4">
                     <DashboardTile 
-                        icon={<MapPinned />} 
+                        icon={<MapPin />} 
                         label="Addresses" 
                         sub={`${user.addresses?.length || 0} Saved`}
                         color="text-blue-600"
