@@ -1,11 +1,12 @@
 // src/hooks/useOrders.js
 
 import { useState, useEffect } from 'react'
-import { collection, query, where, orderBy, onSnapshot, getDocs } from 'firebase/firestore'
+import { collection, query, where, orderBy, onSnapshot, getDocs, limit } from 'firebase/firestore'
 import { db } from '@/config/firebase'
 import { useAuth } from './useAuth'
 
-export function useOrders(filterStatus = null) {
+export function useOrders(options = {}) {
+  const { filterStatus = null, limitCount = null } = options
   const { user } = useAuth()
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
@@ -18,64 +19,80 @@ export function useOrders(filterStatus = null) {
       return
     }
 
+    console.log('useOrders - User:', user.uid, 'Role:', user.role);
     setLoading(true)
     
-    let ordersQuery
+    try {
+      let ordersQuery
 
-    if (user.role === 'customer') {
-      ordersQuery = query(
-        collection(db, 'orders'),
-        where('customerId', '==', user.uid),
-        orderBy('createdAt', 'desc')
-      )
-    } else if (user.role === 'supplier') {
-      ordersQuery = query(
-        collection(db, 'orders'),
-        where('supplierId', '==', user.uid),
-        orderBy('createdAt', 'desc')
-      )
-    } else if (user.role === 'admin') {
-      ordersQuery = query(
-        collection(db, 'orders'),
-        orderBy('createdAt', 'desc')
-      )
-    } else {
-      setLoading(false)
-      return
-    }
-
-    const unsubscribe = onSnapshot(
-      ordersQuery,
-      (snapshot) => {
-        const ordersData = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }))
-
-        let filteredOrders = ordersData
-        if (filterStatus) {
-          if (filterStatus === 'active') {
-            filteredOrders = ordersData.filter(order => 
-              ['confirmed', 'picking', 'packing', 'out_for_delivery'].includes(order.status)
-            )
-          } else {
-            filteredOrders = ordersData.filter(order => order.status === filterStatus)
-          }
-        }
-
-        setOrders(filteredOrders)
+      if (user.role === 'customer') {
+        ordersQuery = query(
+          collection(db, 'orders'),
+          where('customerId', '==', user.uid),
+          orderBy('createdAt', 'desc')
+        )
+      } else if (user.role === 'supplier') {
+        ordersQuery = query(
+          collection(db, 'orders'),
+          where('supplierId', '==', user.uid),
+          orderBy('createdAt', 'desc')
+        )
+      } else if (user.role === 'admin') {
+        ordersQuery = query(
+          collection(db, 'orders'),
+          orderBy('createdAt', 'desc')
+        )
+      } else {
         setLoading(false)
-        setError(null)
-      },
-      (err) => {
-        console.error('Error fetching orders:', err)
-        setError(err.message)
-        setLoading(false)
+        return
       }
-    )
 
-    return () => unsubscribe()
-  }, [user, filterStatus])
+      if (limitCount) {
+        ordersQuery = query(ordersQuery, limit(limitCount))
+      }
+
+      const unsubscribe = onSnapshot(
+        ordersQuery,
+        (snapshot) => {
+          console.log('useOrders - Snapshot size:', snapshot.size);
+          const ordersData = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }))
+
+          console.log('useOrders - Orders data:', ordersData);
+
+          let filteredOrders = ordersData
+          if (filterStatus) {
+            if (filterStatus === 'active') {
+              filteredOrders = ordersData.filter(order => 
+                ['confirmed', 'picking', 'packing', 'out_for_delivery'].includes(order.status)
+              )
+            } else {
+              filteredOrders = ordersData.filter(order => order.status === filterStatus)
+            }
+          }
+
+          setOrders(filteredOrders)
+          setLoading(false)
+          setError(null)
+        },
+        (err) => {
+          console.error('Error fetching orders:', err)
+          setError(err.message)
+          setLoading(false)
+          setOrders([])
+        }
+      )
+
+      return () => unsubscribe()
+    } catch (err) {
+      console.error('useOrders error:', err)
+      setError(err.message)
+      setLoading(false)
+      setOrders([])
+    }
+  }, [user, filterStatus, limitCount])
 
   const getOrderById = async (orderId) => {
     if (!user) return null
@@ -124,12 +141,14 @@ export function useOrders(filterStatus = null) {
   const getTotalRevenue = () => {
     return orders
       .filter(order => order.status === 'delivered')
-      .reduce((sum, order) => sum + (order.total || 0), 0)
+      .reduce((sum, order) => sum + (Number(order.total) || 0), 0)
   }
 
   const getOrdersCount = () => {
     return orders.length
   }
+
+  console.log('useOrders - Returning orders count:', orders.length);
 
   return {
     orders,

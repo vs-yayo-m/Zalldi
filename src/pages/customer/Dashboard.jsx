@@ -37,8 +37,11 @@ import { ORDER_STATUS_LABELS } from '@/utils/constants';
 export default function CustomerDashboard() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { orders, loading: ordersLoading, getActiveOrders } = useOrders();
+  const { orders, loading: ordersLoading } = useOrders();
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  console.log('Dashboard - Orders:', orders);
+  console.log('Dashboard - User:', user);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -96,8 +99,17 @@ export default function CustomerDashboard() {
     };
   }, [orders, user]);
 
-  const activeOrders = useMemo(() => getActiveOrders(), [getActiveOrders]);
-  const recentOrders = useMemo(() => orders?.slice(0, 3) || [], [orders]);
+  const activeOrders = React.useMemo(() => {
+    if (!orders || orders.length === 0) return [];
+    return orders.filter(order => 
+      ['confirmed', 'picking', 'packing', 'out_for_delivery'].includes(order.status)
+    );
+  }, [orders]);
+  
+  const recentOrders = React.useMemo(() => {
+    if (!orders || orders.length === 0) return [];
+    return orders.slice(0, 3);
+  }, [orders]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
