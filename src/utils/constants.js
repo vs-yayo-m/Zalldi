@@ -1,4 +1,4 @@
-// src/utils/constants.js
+// src/utils/constants.js  
 
 export const APP_NAME = 'Zalldi'
 export const APP_TAGLINE = 'Order now, delivered in 1 hour'
@@ -170,6 +170,8 @@ export const ROUTES = {
   ORDER_SUCCESS: '/order-success/:orderId',
   ORDER_TRACKING: '/track/:orderId',
   SEARCH: '/search',
+  
+  CATEGORIES: '/categories',
   CATEGORY: '/category/:categoryId',
   
   LOGIN: '/login',

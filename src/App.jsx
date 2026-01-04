@@ -20,6 +20,7 @@ import { ROUTES } from '@utils/constants'
 const Home = lazy(() => import('@pages/Home'))
 const Shop = lazy(() => import('@pages/Shop'))
 const ProductDetail = lazy(() => import('@pages/ProductDetail'))
+const Categories = lazy(() => import('@pages/Categories'))
 const Category = lazy(() => import('@pages/Category'))
 const Search = lazy(() => import('@pages/Search'))
 const Cart = lazy(() => import('@pages/Cart'))
@@ -81,8 +82,12 @@ export default function App() {
                     <Suspense fallback={<LoadingScreen />}>
                       <Routes>
                         <Route path={ROUTES.HOME} element={<Home />} />
+                        <Route path="/categories" element={<Categories />} />
+<Route path={ROUTES.CATEGORIES} element={<Categories />} />
+
                         <Route path={ROUTES.SHOP} element={<Shop />} />
                         <Route path="/product/:slug" element={<ProductDetail />} />
+                        
                         <Route path="/category/:categoryId" element={<Category />} />
                         <Route path={ROUTES.SEARCH} element={<Search />} />
                         <Route path={ROUTES.CART} element={<Cart />} />
