@@ -49,13 +49,20 @@ allow delete: if isAdmin() ||
 }
 
 match /orders/{orderId} {
-allow read: if isAuthenticated() &&
-(resource.data.customerId == request.auth.uid ||
-isSupplier() ||
-isAdmin());
+allow read: if isAuthenticated() && (
+isAdmin() ||
+(isCustomer() && resource.data.customerId == request.auth.uid) ||
+(isSupplier() && resource.data.items[0].supplierId == request.auth.uid)
+);
+
 allow create: if isAuthenticated() &&
 request.resource.data.customerId == request.auth.uid;
-allow update: if isSupplier() || isAdmin();
+
+allow update: if isAuthenticated() && (
+isAdmin() ||
+isSupplier()
+);
+
 allow delete: if isAdmin();
 }
 
@@ -81,8 +88,7 @@ allow read, write: if isOwner(wishlistId);
 }
 
 match /addresses/{addressId} {
-allow read, write: if isAuthenticated() &&
-resource.data.userId == request.auth.uid;
+allow read, write: if isAuthenticated();
 }
 
 match /notifications/{notificationId} {
