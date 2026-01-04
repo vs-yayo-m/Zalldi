@@ -1,25 +1,32 @@
-import React, { useState, useEffect, useMemo } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import { SlidersHorizontal, X, Zap, Sparkles, Filter, Trash2 } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { useProducts } from '@/hooks/useProducts'
-import ProductGrid from '@/components/customer/ProductGrid'
-import FilterSidebar from '@/components/customer/FilterSidebar'
-import SortDropdown from '@/components/customer/SortDropdown'
-import Button from '@/components/ui/Button'
-import Breadcrumbs from '@/components/layout/Breadcrumbs'
-import EmptyState from '@/components/shared/EmptyState'
-
-/**
- * ZALLDI PREMIUM SHOP ENGINE
- * A high-performance product listing page with real-time filtering and URL state sync.
- */
+// /src/pages/Shop.jsx
+import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { 
+  SlidersHorizontal, 
+  X, 
+  Zap, 
+  Sparkles, 
+  Filter, 
+  Trash2, 
+  ChevronDown,
+  LayoutGrid,
+  ShoppingBag
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useProducts } from '@/hooks/useProducts';
+import ProductGrid from '@/components/customer/ProductGrid';
+import FilterSidebar from '@/components/customer/FilterSidebar';
+import SortDropdown from '@/components/customer/SortDropdown';
+import Button from '@/components/ui/Button';
+import Header from '@/components/layout/Header';
+import Breadcrumbs from '@/components/layout/Breadcrumbs';
+import EmptyState from '@/components/shared/EmptyState';
 
 export default function Shop() {
-  const [searchParams, setSearchParams] = useSearchParams()
-  const [showFilters, setShowFilters] = useState(false)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [showFilters, setShowFilters] = useState(false);
   
-  // Initialize state from URL params for better SEO and shareability
+  // State Initialization
   const [filters, setFilters] = useState({
     categories: searchParams.getAll('category') || [],
     minPrice: searchParams.get('minPrice') || null,
@@ -27,174 +34,175 @@ export default function Shop() {
     minRating: searchParams.get('rating') || null,
     inStock: searchParams.get('stock') !== 'false',
     hasDiscount: searchParams.get('deals') === 'true'
-  })
+  });
   
-  const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'relevance')
-  const { products, loading } = useProducts({ active: true })
+  const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'relevance');
+  const { products, loading } = useProducts({ active: true });
 
-  // Sync state to URL whenever filters or sort change
+  // Sync state to URL
   useEffect(() => {
-    const params = new URLSearchParams()
-    if (filters.categories.length > 0) filters.categories.forEach(c => params.append('category', c))
-    if (filters.minPrice) params.set('minPrice', filters.minPrice)
-    if (filters.maxPrice) params.set('maxPrice', filters.maxPrice)
-    if (filters.minRating) params.set('rating', filters.minRating)
-    if (!filters.inStock) params.set('stock', 'false')
-    if (filters.hasDiscount) params.set('deals', 'true')
-    if (sortBy !== 'relevance') params.set('sort', sortBy)
-    
-    setSearchParams(params, { replace: true })
-  }, [filters, sortBy])
+    const params = new URLSearchParams();
+    if (filters.categories.length > 0) filters.categories.forEach(c => params.append('category', c));
+    if (filters.minPrice) params.set('minPrice', filters.minPrice);
+    if (filters.maxPrice) params.set('maxPrice', filters.maxPrice);
+    if (filters.minRating) params.set('rating', filters.minRating);
+    if (!filters.inStock) params.set('stock', 'false');
+    if (filters.hasDiscount) params.set('deals', 'true');
+    if (sortBy !== 'relevance') params.set('sort', sortBy);
+    setSearchParams(params, { replace: true });
+  }, [filters, sortBy, setSearchParams]);
 
-  // Compute filtered products with useMemo for performance
+  // Logic: Filtering & Sorting
   const filteredProducts = useMemo(() => {
-    if (!products) return []
-    
+    if (!products) return [];
     return products.filter(product => {
-      if (filters.categories.length > 0 && !filters.categories.includes(product.category)) return false
-      const currentPrice = product.discountPrice || product.price
-      if (filters.minPrice && currentPrice < filters.minPrice) return false
-      if (filters.maxPrice && currentPrice > filters.maxPrice) return false
-      if (filters.minRating && (product.rating || 0) < filters.minRating) return false
-      if (filters.inStock && product.stock === 0) return false
-      if (filters.hasDiscount && !product.discountPrice) return false
-      return true
-    })
-  }, [products, filters])
+      if (filters.categories.length > 0 && !filters.categories.includes(product.category)) return false;
+      const currentPrice = product.discountPrice || product.price;
+      if (filters.minPrice && currentPrice < filters.minPrice) return false;
+      if (filters.maxPrice && currentPrice > filters.maxPrice) return false;
+      if (filters.minRating && (product.rating || 0) < filters.minRating) return false;
+      if (filters.inStock && product.stock === 0) return false;
+      if (filters.hasDiscount && !product.discountPrice) return false;
+      return true;
+    });
+  }, [products, filters]);
 
-  // Compute sorted products
   const sortedProducts = useMemo(() => {
     return [...filteredProducts].sort((a, b) => {
-      const priceA = a.discountPrice || a.price
-      const priceB = b.discountPrice || b.price
-      
+      const priceA = a.discountPrice || a.price;
+      const priceB = b.discountPrice || b.price;
       switch (sortBy) {
-        case 'price-low': return priceA - priceB
-        case 'price-high': return priceB - priceA
-        case 'name-asc': return a.name.localeCompare(b.name)
-        case 'rating': return (b.rating || 0) - (a.rating || 0)
-        case 'newest': return new Date(b.createdAt) - new Date(a.createdAt)
-        case 'popular': return (b.soldCount || 0) - (a.soldCount || 0)
-        default: return 0
+        case 'price-low': return priceA - priceB;
+        case 'price-high': return priceB - priceA;
+        case 'rating': return (b.rating || 0) - (a.rating || 0);
+        case 'newest': return new Date(b.createdAt) - new Date(a.createdAt);
+        default: return 0;
       }
-    })
-  }, [filteredProducts, sortBy])
+    });
+  }, [filteredProducts, sortBy]);
 
   const activeFilterCount = useMemo(() => {
-    let count = filters.categories.length
-    if (filters.minPrice || filters.maxPrice) count++
-    if (filters.minRating) count++
+    let count = filters.categories.length;
+    if (filters.minPrice || filters.maxPrice) count++;
+    if (filters.minRating) count++;
     if (filters.hasDiscount) count++
-    if (!filters.inStock) count++
-    return count
-  }, [filters])
+    return count;
+  }, [filters]);
 
   const handleClearFilters = () => {
     setFilters({
-      categories: [],
-      minPrice: null,
-      maxPrice: null,
-      minRating: null,
-      inStock: true,
-      hasDiscount: false
-    })
-    setSortBy('relevance')
-  }
+      categories: [], minPrice: null, maxPrice: null,
+      minRating: null, inStock: true, hasDiscount: false
+    });
+    setSortBy('relevance');
+  };
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] pb-20">
-      {/* 1. Header & Breadcrumbs */}
-      <div className="bg-white border-b border-neutral-100 pt-6 pb-8">
+    <div className="min-h-screen bg-white">
+      <Header />
+      
+      {/* HERO SECTION: Clean & Focused */}
+      <section className="pt-32 pb-12 bg-neutral-50 border-b border-neutral-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Breadcrumbs items={[{ label: 'Shop', to: '/shop' }]} className="mb-6" />
+          <Breadcrumbs items={[{ label: 'Shop', to: '/shop' }]} className="mb-8" />
           
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-            <div>
-              <div className="flex items-center gap-2 text-orange-500 font-black text-[10px] uppercase tracking-[0.2em] mb-2">
-                <Sparkles className="w-3 h-3 fill-current" />
-                Explore the Collection
-              </div>
-              <h1 className="text-4xl md:text-5xl font-black text-neutral-900 tracking-tighter">
-                {filters.categories.length === 1 ? filters.categories[0] : 'The Marketplace'}
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
+            <div className="max-w-2xl">
+              <motion.div 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="flex items-center gap-2 text-orange-600 font-black text-[10px] uppercase tracking-[0.4em] mb-3"
+              >
+                <Sparkles size={14} className="fill-current" />
+                The Butwal Collection
+              </motion.div>
+              <h1 className="text-5xl md:text-7xl font-black text-neutral-900 tracking-tighter leading-none italic uppercase mb-4">
+                The <span className="text-orange-500">Market</span>
               </h1>
-              <p className="text-neutral-500 font-medium mt-1">
-                Discover {sortedProducts.length} curated products available for 60-min delivery.
+              <p className="text-neutral-500 font-medium text-lg italic">
+                {sortedProducts.length} premium items curated for instant 60-min delivery.
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
-                onClick={() => setShowFilters(true)}
-                className="lg:hidden rounded-xl border-neutral-200 font-bold text-xs px-5"
-                icon={<SlidersHorizontal className="w-4 h-4" />}
-              >
-                Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
-              </Button>
-              <SortDropdown value={sortBy} onChange={setSortBy} />
+            <div className="flex items-center gap-3 bg-white p-2 rounded-[2rem] shadow-sm border border-neutral-100">
+                <Button 
+                  variant="secondary" 
+                  size="sm" 
+                  onClick={() => setShowFilters(true)}
+                  className="lg:hidden !rounded-full"
+                  leftIcon={<SlidersHorizontal size={14} />}
+                >
+                  Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+                </Button>
+                <div className="hidden lg:flex items-center px-4 gap-2 text-neutral-400">
+                    <LayoutGrid size={16} />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Sort By</span>
+                </div>
+                <SortDropdown value={sortBy} onChange={setSortBy} className="!border-0 !bg-transparent !shadow-none" />
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* 2. Main Content Grid */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+      {/* MAIN EXPLORATION AREA */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           
-          {/* Sidebar (Desktop) */}
-          <aside className="hidden lg:block lg:col-span-3 space-y-8">
-            <div className="sticky top-24">
-              <div className="flex items-center justify-between mb-6 px-1">
-                <h3 className="text-sm font-black text-neutral-900 uppercase tracking-widest flex items-center gap-2">
-                  <Filter className="w-4 h-4" />
-                  Filter By
+          {/* DESKTOP SIDEBAR */}
+          <aside className="hidden lg:block lg:col-span-3">
+            <div className="sticky top-32 space-y-8">
+              <div className="flex items-center justify-between pb-4 border-b border-neutral-100">
+                <h3 className="text-xs font-black text-neutral-900 uppercase tracking-widest flex items-center gap-2">
+                  <Filter size={16} className="text-orange-500" />
+                  Control Panel
                 </h3>
                 {activeFilterCount > 0 && (
                   <button 
                     onClick={handleClearFilters}
-                    className="text-[10px] font-black text-orange-500 hover:text-orange-600 uppercase tracking-widest flex items-center gap-1 transition-colors"
+                    className="text-[10px] font-black text-rose-500 hover:scale-105 transition-transform uppercase tracking-widest flex items-center gap-1"
                   >
-                    <Trash2 className="w-3 h-3" />
+                    <Trash2 size={12} />
                     Reset
                   </button>
                 )}
               </div>
-              <FilterSidebar
-                filters={filters}
-                onChange={setFilters}
-                onClear={handleClearFilters}
-                className="bg-white rounded-3xl p-6 shadow-sm border border-neutral-100"
-              />
+              
+              <div className="bg-neutral-50/50 rounded-[2.5rem] p-8 border border-neutral-100">
+                <FilterSidebar
+                  filters={filters}
+                  onChange={setFilters}
+                  onClear={handleClearFilters}
+                />
+              </div>
+
+              {/* LIVE SLOGAN WIDGET */}
+              <div className="bg-orange-500 rounded-[2rem] p-6 text-white relative overflow-hidden group">
+                  <Zap className="absolute -right-4 -bottom-4 w-24 h-24 text-white/10 group-hover:rotate-12 transition-transform duration-500" />
+                  <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-2">Zall-Dash Promise</p>
+                  <p className="text-sm font-black italic leading-tight">Delivered before your tea even cools down.</p>
+              </div>
             </div>
           </aside>
 
-          {/* Product Grid Area */}
+          {/* PRODUCT LISTING */}
           <main className="lg:col-span-9">
             <AnimatePresence mode="wait">
               {sortedProducts.length === 0 && !loading ? (
                 <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0 }}
-                  className="py-20"
+                  className="py-32 flex flex-col items-center"
                 >
                   <EmptyState
-                    icon={<Zap className="w-16 h-16 text-neutral-200" />}
-                    title="No items found"
-                    description="We couldn't find any products matching your current filters. Try clearing some options to see more results."
-                    action={{
-                      label: "Clear All Filters",
-                      onClick: handleClearFilters
-                    }}
+                    icon={<ShoppingBag className="w-20 h-20 text-neutral-100 mb-6" />}
+                    title="No Match Found"
+                    description="The items you're looking for have outrun our filters. Try a broader search."
+                    action={{ label: "Show All Products", onClick: handleClearFilters }}
                   />
                 </motion.div>
               ) : (
-                <motion.div
-                  layout
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="space-y-8"
-                >
+                <motion.div layout className="space-y-12">
                   <ProductGrid 
                     products={sortedProducts} 
                     loading={loading} 
@@ -207,7 +215,7 @@ export default function Shop() {
         </div>
       </div>
 
-      {/* 3. Mobile Filter Drawer */}
+      {/* MOBILE DRAWER: Standardized & Clean */}
       <AnimatePresence>
         {showFilters && (
           <>
@@ -216,45 +224,36 @@ export default function Shop() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowFilters(false)}
-              className="fixed inset-0 bg-neutral-900/40 backdrop-blur-sm z-[60] lg:hidden"
+              className="fixed inset-0 bg-neutral-900/60 backdrop-blur-md z-[100]"
             />
-
             <motion.div
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed top-0 right-0 bottom-0 w-full max-w-[340px] bg-white z-[70] shadow-2xl lg:hidden flex flex-col"
+              className="fixed top-0 right-0 bottom-0 w-full max-w-[360px] bg-white z-[101] shadow-2xl flex flex-col"
             >
-              <div className="p-6 border-b border-neutral-100 flex items-center justify-between bg-white sticky top-0 z-10">
+              <div className="p-8 border-b border-neutral-100 flex items-center justify-between">
                 <div>
-                  <h3 className="font-black text-neutral-900 uppercase tracking-widest text-sm">Filters</h3>
-                  <p className="text-[10px] font-bold text-neutral-400">{activeFilterCount} active selections</p>
+                  <h3 className="font-black text-neutral-900 uppercase tracking-widest text-sm italic">Filters</h3>
+                  <p className="text-[10px] font-bold text-orange-500 uppercase">{activeFilterCount} active selections</p>
                 </div>
-                <button
-                  onClick={() => setShowFilters(false)}
-                  className="w-10 h-10 rounded-full bg-neutral-50 flex items-center justify-center text-neutral-400 hover:text-neutral-900 transition-colors"
-                >
-                  <X className="w-5 h-5" />
+                <button onClick={() => setShowFilters(false)} className="w-12 h-12 rounded-full bg-neutral-50 flex items-center justify-center">
+                  <X size={20} />
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6">
-                <FilterSidebar
-                  filters={filters}
-                  onChange={setFilters}
-                  onClear={handleClearFilters}
-                  className="border-0 rounded-none p-0"
-                />
+              <div className="flex-1 overflow-y-auto p-8">
+                <FilterSidebar filters={filters} onChange={setFilters} onClear={handleClearFilters} />
               </div>
 
-              <div className="p-6 border-t border-neutral-100 bg-neutral-50">
-                <Button
-                  variant="primary"
-                  className="w-full h-14 bg-orange-500 hover:bg-orange-600 font-black rounded-2xl shadow-lg shadow-orange-500/20"
-                  onClick={() => setShowFilters(false)}
+              <div className="p-8 bg-neutral-50">
+                <Button 
+                    fullWidth 
+                    variant="orange" 
+                    size="lg"
+                    onClick={() => setShowFilters(false)}
                 >
-                  APPLY SELECTION
+                    Apply Changes
                 </Button>
               </div>
             </motion.div>
@@ -262,6 +261,6 @@ export default function Shop() {
         )}
       </AnimatePresence>
     </div>
-  )
+  );
 }
 
