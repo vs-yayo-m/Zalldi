@@ -1,38 +1,55 @@
-// src/components/supplier/ProductForm.jsx
-import { useState, useMemo } from 'react'
-import { useAuth } from '@hooks/useAuth'
-import Button from '@components/ui/Button'
-import Input from '@components/ui/Input'
-import Select from '@components/ui/Select'
-import Switch from '@components/ui/Switch'
-import Alert from '@components/ui/Alert'
-import ImageUploader from '@components/shared/ImageUploader'
-import { CATEGORIES, PRODUCT_UNITS } from '@utils/constants'
-import { validateProductForm } from '@utils/validators'
-import { formatSlug, generateSKU } from '@utils/helpers'
-import { createProduct, updateProduct } from '@services/product.service'
-import toast from 'react-hot-toast'
+import React, { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Package, 
+  Tag, 
+  ShieldCheck, 
+  Truck, 
+  Globe, 
+  Plus, 
+  Calculator,
+  Image as ImageIcon,
+  Zap,
+  Trash2
+} from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
+import Select from '@/components/ui/Select';
+import Switch from '@/components/ui/Switch';
+import Alert from '@/components/ui/Alert';
+import ImageUploader from '@/components/shared/ImageUploader';
+import { CATEGORIES, PRODUCT_UNITS } from '@/utils/constants';
+import { validateProductForm } from '@/utils/validators';
+import { formatSlug, generateSKU } from '@/utils/helpers';
+import { createProduct, updateProduct } from '@/services/product.service';
+import toast from 'react-hot-toast';
 
-/* ================= CONSTANTS ================= */
-const STORAGE_TYPES = [
-  { label: 'Room Temperature', value: 'ambient' },
-  { label: 'Refrigerated (0°C to 4°C)', value: 'chilled' },
-  { label: 'Frozen (-18°C)', value: 'frozen' }
-]
+// Configurable Category Attributes
+const CATEGORY_ATTRIBUTES = {
+  'vegetables-fruits': [
+    { key: 'organic', label: 'Certified Organic', type: 'switch' },
+    { key: 'freshness', label: 'Freshness Grade', type: 'select', options: ['Premium (A+)', 'Standard (A)', 'Market (B)'] }
+  ],
+  'dairy-bread-eggs': [
+    { key: 'fatContent', label: 'Fat Content (%)', type: 'number' },
+    { key: 'lactoseFree', label: 'Lactose Free', type: 'switch' }
+  ],
+  'chicken-meat-fish': [
+    { key: 'halal', label: 'Halal Certified', type: 'switch' },
+    { key: 'cutType', label: 'Cut Type', type: 'text', placeholder: 'e.g. Skinless, Bone-in' }
+  ],
+  'kitchenware-appliances': [
+    { key: 'warranty', label: 'Warranty (Months)', type: 'number' },
+    { key: 'material', label: 'Primary Material', type: 'text' }
+  ]
+};
 
-const WEIGHT_UNITS = [
-  { label: 'Grams (g)', value: 'g' },
-  { label: 'Kilograms (kg)', value: 'kg' },
-  { label: 'Milliliters (ml)', value: 'ml' },
-  { label: 'Liters (L)', value: 'l' }
-]
-
-/* ================= CATEGORY GROUPING ================= */
 const groupedCategories = CATEGORIES.reduce((acc, cat) => {
-  if (!acc[cat.parent]) acc[cat.parent] = []
-  acc[cat.parent].push(cat)
-  return acc
-}, {})
+  if (!acc[cat.parent]) acc[cat.parent] = [];
+  acc[cat.parent].push(cat);
+  return acc;
+}, {});
 
 const parentLabels = {
   'grocery-kitchen': 'Grocery & Kitchen',
@@ -40,399 +57,249 @@ const parentLabels = {
   'beauty-personal-care': 'Beauty & Personal Care',
   'household-essentials': 'Household Essentials',
   'shop-by-store': 'Shop by Store'
-}
+};
 
-/* ================= CATEGORY ATTRIBUTES ================= */
-// Dynamic fields for each category
-const CATEGORY_ATTRIBUTES = {
-  'vegetables-fruits': [
-    { key: 'organic', label: 'Organic', type: 'switch' },
-    { key: 'freshness', label: 'Freshness Grade', type: 'select', options: ['A', 'B', 'C'] }
-  ],
-  'atta-rice-dal': [
-    { key: 'grainType', label: 'Grain Type', type: 'text' },
-    { key: 'proteinContent', label: 'Protein Content (%)', type: 'number' }
-  ],
-  'oil-ghee-masala': [
-    { key: 'flavor', label: 'Flavor / Spice Level', type: 'text' },
-    { key: 'coldPressed', label: 'Cold Pressed', type: 'switch' }
-  ],
-  'dairy-bread-eggs': [
-    { key: 'fatContent', label: 'Fat Content (%)', type: 'number' },
-    { key: 'lactoseFree', label: 'Lactose Free', type: 'switch' }
-  ],
-  'bakery-biscuits': [
-    { key: 'glutenFree', label: 'Gluten Free', type: 'switch' },
-    { key: 'weight', label: 'Weight (g)', type: 'number' }
-  ],
-  'dry-fruits-cereals': [
-    { key: 'origin', label: 'Origin', type: 'text' },
-    { key: 'packSize', label: 'Pack Size', type: 'text' }
-  ],
-  'chicken-meat-fish': [
-    { key: 'cutType', label: 'Cut Type', type: 'text' },
-    { key: 'freshness', label: 'Freshness Grade', type: 'select', options: ['A', 'B', 'C'] }
-  ],
-  'kitchenware-appliances': [
-    { key: 'material', label: 'Material', type: 'text' },
-    { key: 'warrantyMonths', label: 'Warranty (Months)', type: 'number' }
-  ],
-  'chips-namkeen': [
-    { key: 'flavor', label: 'Flavor', type: 'text' },
-    { key: 'saltLevel', label: 'Salt Level', type: 'text' }
-  ],
-  'sweets-chocolates': [
-    { key: 'cocoaContent', label: 'Cocoa Content (%)', type: 'number' },
-    { key: 'sugarFree', label: 'Sugar Free', type: 'switch' }
-  ],
-  'drinks-juices': [
-    { key: 'volume', label: 'Volume (ml)', type: 'number' },
-    { key: 'sugarContent', label: 'Sugar Content (%)', type: 'number' }
-  ],
-  'tea-coffee-milk': [
-    { key: 'caffeineContent', label: 'Caffeine Content (mg)', type: 'number' },
-    { key: 'organic', label: 'Organic', type: 'switch' }
-  ],
-  'instant-food': [
-    { key: 'preparationTime', label: 'Preparation Time (mins)', type: 'number' },
-    { key: 'spiceLevel', label: 'Spice Level', type: 'select', options: ['Mild','Medium','Hot'] }
-  ],
-  'sauces-spreads': [
-    { key: 'flavor', label: 'Flavor', type: 'text' },
-    { key: 'spiceLevel', label: 'Spice Level', type: 'select', options: ['Mild','Medium','Hot'] }
-  ],
-  // Other categories can have empty arrays if no dynamic attributes
-  'paan-corner': [],
-  'ice-creams-more': [],
-  'bath-body': [],
-  'hair-care': [],
-  'skin-face': [],
-  'beauty-cosmetics': [],
-  'feminine-hygiene': [],
-  'baby-care': [],
-  'health-pharma': [],
-  'sexual-wellness': [],
-  'home-lifestyle': [],
-  'cleaners-repellents': [],
-  'electronics': [],
-  'stationery-games': [],
-  'spiritual-store': [],
-  'pharma-store': [],
-  'egifts-store': [],
-  'pet-store': [],
-  'sports-store': [],
-  'fashion-basics': [],
-  'toy-store': [],
-  'book-store': []
-}
-
-/* ================= MAIN COMPONENT ================= */
 export default function ProductForm({ product = null, onSuccess, onCancel }) {
-  const { user } = useAuth()
-
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
-    // Basic Info
     name: product?.name || '',
     description: product?.description || '',
     category: product?.category || '',
     sku: product?.sku || '',
-    barcode: product?.barcode || '',
     brand: product?.brand || '',
-    manufacturer: product?.manufacturer || '',
-    modelNumber: product?.modelNumber || '',
-    countryOfOrigin: product?.countryOfOrigin || '',
-    // Pricing
     price: product?.price || '',
     comparePrice: product?.comparePrice || '',
     costPrice: product?.costPrice || '',
-    // Inventory
     stock: product?.stock || '',
     lowStockThreshold: product?.lowStockThreshold || 5,
-    allowBackorder: product?.allowBackorder ?? false,
     unit: product?.unit || 'pc',
     minOrder: product?.minOrder || 1,
     maxOrder: product?.maxOrder || 100,
-    // Logistics
     weight: product?.weight || '',
     weightUnit: product?.weightUnit || 'g',
-    storageType: product?.storageType || 'ambient',
     hasExpiry: product?.hasExpiry ?? false,
     shelfLifeDays: product?.shelfLifeDays || '',
-    // Media & Status
     images: product?.images || [],
-    imageURLs: product?.imageURLs || ['', '', '', '', '', ''], // 6 URL slots
+    imageURLs: product?.imageURLs || ['', ''],
     active: product?.active ?? true,
-    // Dynamic attributes
     attributes: product?.attributes || {}
-  })
+  });
 
-  const [errors, setErrors] = useState({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState(null)
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
 
-  /* ================= COMPUTED MARGIN ================= */
-  const margin = useMemo(() => {
-    if (!formData.price || !formData.costPrice) return 0
-    const profit = Number(formData.price) - Number(formData.costPrice)
-    return ((profit / Number(formData.price)) * 100).toFixed(1)
-  }, [formData.price, formData.costPrice])
-
-  /* ================= HANDLERS ================= */
-  const handleChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-    if (errors[field]) setErrors(prev => ({ ...prev, [field]: null }))
-    setError(null)
-  }
+  const marginData = useMemo(() => {
+    if (!formData.price || !formData.costPrice) return { profit: 0, percentage: 0 };
+    const profit = Number(formData.price) - Number(formData.costPrice);
+    const percentage = ((profit / Number(formData.price)) * 100).toFixed(1);
+    return { profit, percentage };
+  }, [formData.price, formData.costPrice]);
 
   const handleAttributeChange = (key, value) => {
-    setFormData(prev => ({ ...prev, attributes: { ...prev.attributes, [key]: value } }))
-  }
+    setFormData(prev => ({ ...prev, attributes: { ...prev.attributes, [key]: value } }));
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError(null)
+    e.preventDefault();
+    const validationErrors = validateProductForm(formData);
+    if (validationErrors) { setErrors(validationErrors); return; }
 
-    // Basic validations
-    if (formData.comparePrice && Number(formData.comparePrice) <= Number(formData.price)) {
-      toast.error('Compare price should be higher than selling price')
-      return
-    }
-    if (Number(formData.maxOrder) < Number(formData.minOrder)) {
-      toast.error('Max order cannot be less than min order')
-      return
-    }
-
-    const validationErrors = validateProductForm(formData)
-    if (validationErrors) {
-      setErrors(validationErrors)
-      return
-    }
-
-    setIsSubmitting(true)
+    setIsSubmitting(true);
     try {
-      // Merge uploaded images + URL inputs
-      const mergedImages = [
-        ...(formData.images || []),
-        ...formData.imageURLs.filter(url => url.trim() !== '')
-      ]
-
-      const productData = {
+      const mergedImages = [...(formData.images || []), ...formData.imageURLs.filter(u => u.trim())];
+      const payload = {
         ...formData,
         images: mergedImages,
         supplierId: user.uid,
         slug: product?.slug || formatSlug(formData.name),
         sku: formData.sku || generateSKU(formData.category, formData.name),
-        price: Number(formData.price),
-        comparePrice: formData.comparePrice ? Number(formData.comparePrice) : null,
-        costPrice: formData.costPrice ? Number(formData.costPrice) : null,
-        stock: Number(formData.stock),
-        lowStockThreshold: Number(formData.lowStockThreshold),
-        minOrder: Number(formData.minOrder),
-        maxOrder: Number(formData.maxOrder),
-        weight: Number(formData.weight),
-        shelfLifeDays: formData.hasExpiry ? Number(formData.shelfLifeDays) : null,
-        rating: product?.rating || 0,
-        reviewCount: product?.reviewCount || 0,
-        soldCount: product?.soldCount || 0,
-        views: product?.views || 0,
         updatedAt: new Date().toISOString()
-      }
+      };
 
-      if (product) {
-        await updateProduct(product.id, productData)
-      } else {
-        await createProduct(productData)
-      }
-      toast.success('Product synced successfully')
-      onSuccess?.()
+      if (product) await updateProduct(product.id, payload);
+      else await createProduct({ ...payload, createdAt: new Date().toISOString() });
+      
+      toast.success('Inventory Synchronized');
+      onSuccess?.();
     } catch (err) {
-      setError(err.message || 'Data sync failed')
-      toast.error('Failed to save product')
+      toast.error(err.message || 'Sync Failed');
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
-  const dynamicAttributes = CATEGORY_ATTRIBUTES[formData.category] || []
+  const dynamicAttrs = CATEGORY_ATTRIBUTES[formData.category] || [];
 
-  /* ================= JSX ================= */
   return (
-    <form onSubmit={handleSubmit} className="space-y-12 pb-10">
-      {error && <Alert variant="error" onClose={() => setError(null)}>{error}</Alert>}
-
-      {/* IMAGES */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-bold text-neutral-900 border-b pb-2">Product Images</h3>
-        <ImageUploader images={formData.images} onChange={(imgs) => handleChange('images', imgs)} maxImages={10} />
-        <div className="mt-4">
-          <p className="font-semibold text-neutral-700 mb-1">Or provide Image URLs (max 6)</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {formData.imageURLs.map((url, idx) => (
-              <Input
-                key={idx}
-                placeholder={`Image URL ${idx + 1}`}
-                value={url}
-                onChange={(e) => {
-                  const newURLs = [...formData.imageURLs]
-                  newURLs[idx] = e.target.value
-                  handleChange('imageURLs', newURLs)
-                }}
-              />
-            ))}
-          </div>
+    <form onSubmit={handleSubmit} className="max-w-5xl mx-auto space-y-10 pb-32">
+      
+      {/* HEADER & GLOBAL ACTIONS */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 sticky top-0 z-40 bg-white/80 backdrop-blur-md py-4 border-b border-neutral-100 mb-8">
+        <div>
+          <h2 className="text-2xl font-black tracking-tighter italic uppercase">{product ? 'Edit Asset' : 'New Listing'}</h2>
+          <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest">Global Product Registry</p>
         </div>
-        {errors.images && <p className="text-sm text-red-600">{errors.images}</p>}
+        <div className="flex gap-2">
+          {onCancel && <Button variant="ghost" onClick={onCancel} className="!rounded-xl text-neutral-400">Discard</Button>}
+          <Button type="submit" loading={isSubmitting} className="!rounded-xl bg-neutral-900 text-white shadow-xl shadow-neutral-200">
+            {product ? 'Update Inventory' : 'Publish Product'}
+          </Button>
+        </div>
       </div>
 
-      {/* BASIC INFO */}
-      <div className="space-y-6">
-        <h3 className="text-lg font-bold text-neutral-900 border-b pb-2">Basic Information</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Input label="Product Name" value={formData.name} onChange={(e) => handleChange('name', e.target.value)} error={errors.name} required />
-          <div>
-            <label className="block text-sm font-semibold text-neutral-900 mb-2">Category *</label>
-            <select
-              value={formData.category}
-              onChange={(e) => handleChange('category', e.target.value)}
-              className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:border-orange-500 outline-none transition-all"
-              required
-            >
-              <option value="">Select Category</option>
-              {Object.entries(groupedCategories).map(([parent, categories]) => (
-                <optgroup key={parent} label={parentLabels[parent] || parent}>
-                  {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
-                </optgroup>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Dynamic category attributes */}
-        {dynamicAttributes.length > 0 && (
-          <div className="mt-4 space-y-3">
-            <h4 className="font-semibold text-neutral-900">Category-Specific Attributes</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {dynamicAttributes.map(attr => {
-                if(attr.type === 'switch') return (
-                  <div key={attr.key} className="flex items-center justify-between px-3 py-2 bg-neutral-50 rounded-xl">
-                    <span>{attr.label}</span>
-                    <Switch checked={!!formData.attributes[attr.key]} onChange={(val) => handleAttributeChange(attr.key, val)} />
-                  </div>
-                )
-                if(attr.type === 'select') return (
-                  <Select
-                    key={attr.key}
-                    label={attr.label}
-                    value={formData.attributes[attr.key] || ''}
-                    onChange={(e) => handleAttributeChange(attr.key, e.target.value)}
-                    options={attr.options.map(opt => ({ label: opt, value: opt }))}
-                  />
-                )
-                return <Input key={attr.key} label={attr.label} value={formData.attributes[attr.key] || ''} onChange={(e) => handleAttributeChange(attr.key, e.target.value)} type={attr.type} />
-              })}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+        
+        {/* LEFT COLUMN: VISUALS & IDENTITY */}
+        <div className="lg:col-span-2 space-y-8">
+          
+          <section className="bg-white p-8 rounded-[2.5rem] border border-neutral-100">
+            <div className="flex items-center gap-3 mb-6">
+              <ImageIcon className="text-orange-500" size={20} />
+              <h3 className="font-black uppercase text-sm tracking-widest italic">Visual Media</h3>
             </div>
-          </div>
-        )}
+            <ImageUploader images={formData.images} onChange={(i) => setFormData(p => ({...p, images: i}))} maxImages={10} />
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-3">
+              {formData.imageURLs.map((url, i) => (
+                <Input 
+                  key={i} 
+                  placeholder={`CDN URL ${i+1}`} 
+                  value={url} 
+                  className="!h-10 text-xs"
+                  onChange={(e) => {
+                    const u = [...formData.imageURLs]; u[i] = e.target.value;
+                    setFormData(p => ({...p, imageURLs: u}));
+                  }}
+                />
+              ))}
+            </div>
+          </section>
 
-        <textarea
-          value={formData.description}
-          onChange={(e) => handleChange('description', e.target.value)}
-          placeholder="Describe product features, ingredients, or usage..."
-          rows={4}
-          className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:border-orange-500 outline-none resize-none"
-        />
+          <section className="bg-white p-8 rounded-[2.5rem] border border-neutral-100 space-y-6">
+             <div className="flex items-center gap-3 mb-2">
+              <Tag className="text-blue-500" size={20} />
+              <h3 className="font-black uppercase text-sm tracking-widest italic">Identity & Attributes</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Input label="Display Name" value={formData.name} onChange={(e) => setFormData(p=>({...p, name: e.target.value}))} error={errors.name} />
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400 ml-1">Category Registry</label>
+                <select 
+                  className="w-full h-14 bg-neutral-50 rounded-2xl px-5 font-bold text-sm focus:ring-2 focus:ring-orange-500/20 transition-all outline-none"
+                  value={formData.category} 
+                  onChange={(e) => setFormData(p=>({...p, category: e.target.value}))}
+                >
+                  <option value="">Select Path</option>
+                  {Object.entries(groupedCategories).map(([p, cats]) => (
+                    <optgroup key={p} label={parentLabels[p] || p}>
+                      {cats.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </optgroup>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* DYNAMIC ATTRIBUTE INJECTION */}
+            <AnimatePresence mode="wait">
+              {dynamicAttrs.length > 0 && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }} 
+                  animate={{ opacity: 1, y: 0 }}
+                  className="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 bg-neutral-50 rounded-3xl"
+                >
+                  {dynamicAttrs.map(attr => (
+                    <div key={attr.key}>
+                      {attr.type === 'switch' ? (
+                        <div className="flex items-center justify-between h-14 px-4 bg-white rounded-xl border border-neutral-100">
+                          <span className="text-xs font-bold uppercase tracking-tight">{attr.label}</span>
+                          <Switch checked={formData.attributes[attr.key]} onChange={(v) => handleAttributeChange(attr.key, v)} />
+                        </div>
+                      ) : attr.type === 'select' ? (
+                        <Select 
+                          label={attr.label} 
+                          value={formData.attributes[attr.key]} 
+                          options={attr.options.map(o => ({label: o, value: o}))}
+                          onChange={(e) => handleAttributeChange(attr.key, e.target.value)}
+                        />
+                      ) : (
+                        <Input label={attr.label} value={formData.attributes[attr.key]} onChange={(e) => handleAttributeChange(attr.key, e.target.value)} type={attr.type} />
+                      )}
+                    </div>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <textarea 
+              className="w-full p-6 bg-neutral-50 rounded-3xl min-h-[120px] outline-none focus:ring-2 focus:ring-orange-500/20 font-medium text-sm transition-all"
+              placeholder="Technical specifications and customer information..."
+              value={formData.description}
+              onChange={(e) => setFormData(p => ({...p, description: e.target.value}))}
+            />
+          </section>
+        </div>
+
+        {/* RIGHT COLUMN: COMMERCIALS & LOGISTICS */}
+        <div className="space-y-8">
+          
+          <section className="bg-neutral-900 text-white p-8 rounded-[2.5rem] shadow-2xl">
+            <div className="flex items-center gap-3 mb-8">
+              <Calculator className="text-orange-400" size={20} />
+              <h3 className="font-black uppercase text-sm tracking-widest italic">Pricing Engine</h3>
+            </div>
+            <div className="space-y-6">
+              <Input label="Selling Price" type="number" value={formData.price} onChange={(e) => setFormData(p=>({...p, price: e.target.value}))} dark />
+              <Input label="Cost Price (Internal)" type="number" value={formData.costPrice} onChange={(e) => setFormData(p=>({...p, costPrice: e.target.value}))} dark />
+              
+              <div className="pt-4 border-t border-white/10">
+                <div className="flex justify-between items-end">
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Gross Margin</span>
+                  <span className={`text-2xl font-black italic ${Number(marginData.percentage) > 20 ? 'text-emerald-400' : 'text-orange-400'}`}>
+                    {marginData.percentage}%
+                  </span>
+                </div>
+                <div className="w-full h-1 bg-white/5 mt-2 rounded-full overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }} 
+                    animate={{ width: `${Math.min(100, Math.max(0, marginData.percentage))}%` }}
+                    className={`h-full ${Number(marginData.percentage) > 20 ? 'bg-emerald-400' : 'bg-orange-400'}`} 
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="bg-white p-8 rounded-[2.5rem] border border-neutral-100 space-y-6">
+            <div className="flex items-center gap-3 mb-2">
+              <Truck className="text-indigo-500" size={20} />
+              <h3 className="font-black uppercase text-sm tracking-widest italic">Fulfillment</h3>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Input label="Stock" type="number" value={formData.stock} onChange={(e) => setFormData(p=>({...p, stock: e.target.value}))} />
+              <Select label="Unit" value={formData.unit} options={PRODUCT_UNITS} onChange={(e) => setFormData(p=>({...p, unit: e.target.value}))} />
+            </div>
+            <div className="flex items-center justify-between p-4 bg-neutral-50 rounded-2xl">
+              <span className="text-[10px] font-black uppercase tracking-widest">Market Visibility</span>
+              <Switch checked={formData.active} onChange={(v) => setFormData(p=>({...p, active: v}))} />
+            </div>
+          </section>
+
+          <section className="bg-white p-8 rounded-[2.5rem] border border-neutral-100 space-y-6">
+             <div className="flex items-center gap-3 mb-2">
+              <ShieldCheck className="text-emerald-500" size={20} />
+              <h3 className="font-black uppercase text-sm tracking-widest italic">Handling</h3>
+            </div>
+            <div className="flex items-center justify-between p-4 bg-neutral-50 rounded-2xl">
+              <span className="text-xs font-bold uppercase">Shelf Life Check</span>
+              <Switch checked={formData.hasExpiry} onChange={(v) => setFormData(p=>({...p, hasExpiry: v}))} />
+            </div>
+            {formData.hasExpiry && (
+              <Input label="Days Until Expired" type="number" value={formData.shelfLifeDays} onChange={(e) => setFormData(p=>({...p, shelfLifeDays: e.target.value}))} />
+            )}
+          </section>
+
+        </div>
       </div>
-
-      {/* PRICING & MARGIN */}
-      <div className="space-y-6 bg-neutral-50 p-6 rounded-2xl">
-        <div className="flex justify-between items-center border-b pb-2">
-          <h3 className="text-lg font-bold text-neutral-900">Pricing & Commercials</h3>
-          {Number(margin) !== 0 && (
-            <span className={`text-sm font-bold px-3 py-1 rounded-full ${Number(margin) > 20 ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
-              Margin: {margin}%
-            </span>
-          )}
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Input label="Selling Price (NPR)" type="number" value={formData.price} onChange={(e) => handleChange('price', e.target.value)} required min="0" step="0.01" />
-          <Input label="Compare Price (MRP)" type="number" value={formData.comparePrice} onChange={(e) => handleChange('comparePrice', e.target.value)} />
-          <Input label="Cost Price (Internal)" type="number" value={formData.costPrice} onChange={(e) => handleChange('costPrice', e.target.value)} helper="For margin calculation" />
-        </div>
-      </div>
-
-      {/* INVENTORY */}
-      <div className="space-y-6">
-        <h3 className="text-lg font-bold text-neutral-900 border-b pb-2">Inventory Control</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Input label="Current Stock" type="number" value={formData.stock} onChange={(e) => handleChange('stock', e.target.value)} required />
-          <Input label="Low Stock Alert" type="number" value={formData.lowStockThreshold} onChange={(e) => handleChange('lowStockThreshold', e.target.value)} />
-          <Select label="Base Unit" value={formData.unit} onChange={(e) => handleChange('unit', e.target.value)} options={PRODUCT_UNITS} />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Input label="Min Order Qty" type="number" value={formData.minOrder} onChange={(e) => handleChange('minOrder', e.target.value)} />
-          <Input label="Max Order Qty" type="number" value={formData.maxOrder} onChange={(e) => handleChange('maxOrder', e.target.value)} />
-          { /* Allow Backorder */ }
-<div className="flex flex-col justify-end pb-2">
-          <div className="flex items-center justify-between px-3 h-12 bg-neutral-50 rounded-xl">
-            <span className="text-sm font-medium">Allow Backorder</span>
-            <Switch checked={formData.allowBackorder} onChange={(val) => handleChange('allowBackorder', val)} />
-          </div>
-        </div> </div> </div>
-
-{ /* LOGISTICS & HANDLING */ }
-<div className="space-y-6">
-      <h3 className="text-lg font-bold text-neutral-900 border-b pb-2">Delivery & Handling</h3>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="flex gap-2 col-span-1">
-          <div className="flex-1">
-            <Input label="Weight" type="number" value={formData.weight} onChange={(e) => handleChange('weight', e.target.value)} />
-          </div>
-          <div className="w-24 mt-7">
-            <Select value={formData.weightUnit} onChange={(e) => handleChange('weightUnit', e.target.value)} options={WEIGHT_UNITS} />
-          </div>
-        </div>
-        <Select label="Storage Requirement" value={formData.storageType} onChange={(e) => handleChange('storageType', e.target.value)} options={STORAGE_TYPES} />
-        <div className="flex flex-col justify-end pb-2">
-          <div className="flex items-center justify-between px-3 h-12 bg-neutral-50 rounded-xl">
-            <span className="text-sm font-medium">Shelf Life Support</span>
-            <Switch checked={formData.hasExpiry} onChange={(val) => handleChange('hasExpiry', val)} />
-          </div>
-        </div>
-      </div>
-
-      {formData.hasExpiry && (
-        <div className="max-w-xs">
-          <Input
-            label="Avg Shelf Life (Days)"
-            type="number"
-            value={formData.shelfLifeDays}
-            onChange={(e) => handleChange('shelfLifeDays', e.target.value)}
-            placeholder="e.g. 7"
-          />
-        </div>
-      )}
-    </div>
-
-{ /* VISIBILITY */ }
-<div className="flex items-center justify-between p-5 bg-orange-50/50 border border-orange-100 rounded-2xl">
-      <div>
-        <p className="font-bold text-neutral-900">Publish to Marketplace</p>
-        <p className="text-sm text-neutral-600 italic">Inactive products are saved as drafts</p>
-      </div>
-      <Switch checked={formData.active} onChange={(val) => handleChange('active', val)} />
-    </div>
-
-{ /* ACTIONS */ }
-<div className="flex gap-4 pt-6 border-t">
-      {onCancel && (
-        <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting} className="flex-1">
-          Cancel
-        </Button>
-      )}
-      <Button type="submit" disabled={isSubmitting} loading={isSubmitting} className="flex-1">
-        {product ? 'Update Inventory' : 'List Product'}
-      </Button>
-    </div>
     </form>
-)
+  );
 }
+
