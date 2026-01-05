@@ -1,30 +1,23 @@
 // src/components/layout/MobileBottomNav.jsx
 
- import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { 
   Home, 
   ShoppingBag, 
   Search, 
   User, 
-  Heart, 
-  Zap // Added for a "Offers" or "Quick" action if needed, keeping it extensible
+  Grid,
+  Zap
 } from 'lucide-react'
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-motion'
-import { useCart } from '../../hooks/useCart' // Corrected path based on file structure
-import { useAuth } from '../../hooks/useAuth' // Corrected path based on file structure
+import { useCart } from '../../hooks/useCart'
+import { useAuth } from '../../hooks/useAuth'
 
-// ==========================================
-// Constants & Configuration
-// ==========================================
+const NAV_HEIGHT = 70
+const SCROLL_THRESHOLD = 50
+const HAPTIC_PATTERN = 10
 
-const NAV_HEIGHT = 70 // Height in px for layout calculations
-const SCROLL_THRESHOLD = 50 // Pixels to scroll before hiding/showing
-const HAPTIC_PATTERN = 10 // ms vibration
-
-/**
- * Variants for the navigation bar container (Hide/Show on scroll)
- */
 const navContainerVariants = {
   visible: { 
     y: 0,
@@ -37,7 +30,7 @@ const navContainerVariants = {
     }
   },
   hidden: { 
-    y: 100, // Move off-screen
+    y: 100,
     opacity: 0,
     transition: { 
       type: 'spring', 
@@ -47,9 +40,6 @@ const navContainerVariants = {
   }
 }
 
-/**
- * Variants for the icon animations (Pop effect)
- */
 const iconVariants = {
   initial: { scale: 1, rotate: 0 },
   active: { 
@@ -59,9 +49,6 @@ const iconVariants = {
   tap: { scale: 0.8, rotate: -5 }
 }
 
-/**
- * Variants for the notification badge (Bounce effect)
- */
 const badgeVariants = {
   initial: { scale: 0, opacity: 0 },
   animate: { 
@@ -75,10 +62,6 @@ const badgeVariants = {
   }
 }
 
-// ==========================================
-// Sub-Component: NavItem
-// ==========================================
-
 const NavItem = React.memo(({ item, isActive, onClick }) => {
   const Icon = item.icon
   
@@ -89,7 +72,6 @@ const NavItem = React.memo(({ item, isActive, onClick }) => {
       aria-label={item.label}
       aria-current={isActive ? 'page' : undefined}
     >
-      {/* Active Indicator Background (Glow) */}
       <AnimatePresence>
         {isActive && (
           <motion.div
@@ -104,7 +86,6 @@ const NavItem = React.memo(({ item, isActive, onClick }) => {
       </AnimatePresence>
 
       <div className="relative p-1">
-        {/* Icon Animation Wrapper */}
         <motion.div
           variants={iconVariants}
           initial="initial"
@@ -120,11 +101,10 @@ const NavItem = React.memo(({ item, isActive, onClick }) => {
           />
         </motion.div>
 
-        {/* Notification Badge */}
         <AnimatePresence>
           {item.badge > 0 && (
             <motion.div
-              key={`badge-${item.badge}`} // Key change triggers animation re-run
+              key={`badge-${item.badge}`}
               variants={badgeVariants}
               initial="initial"
               animate="animate"
@@ -139,7 +119,6 @@ const NavItem = React.memo(({ item, isActive, onClick }) => {
         </AnimatePresence>
       </div>
 
-      {/* Label */}
       <span
         className={`text-[10px] font-medium mt-1 transition-all duration-300 ${
           isActive 
@@ -150,7 +129,6 @@ const NavItem = React.memo(({ item, isActive, onClick }) => {
         {item.label}
       </span>
 
-      {/* Active Tab Top Indicator Bar */}
       {isActive && (
         <motion.div
           layoutId="activeNavBar"
@@ -164,43 +142,29 @@ const NavItem = React.memo(({ item, isActive, onClick }) => {
 
 NavItem.displayName = 'NavItem'
 
-// ==========================================
-// Main Component: MobileBottomNav
-// ==========================================
-
 export default function MobileBottomNav() {
   const navigate = useNavigate()
   const location = useLocation()
   const { cart } = useCart()
   const { user } = useAuth()
   
-  // State for scroll visibility
   const [isVisible, setIsVisible] = useState(true)
   const { scrollY } = useScroll()
   
-  // Calculate total items properly
   const cartItemCount = useMemo(() => {
     return cart?.items?.reduce((sum, item) => sum + item.quantity, 0) || 0
   }, [cart?.items])
 
-  /**
-   * Scroll Handler:
-   * Hides navbar when scrolling down to give more reading space.
-   * Shows navbar when scrolling up or at the top.
-   */
   useMotionValueEvent(scrollY, "change", (latest) => {
     const previous = scrollY.getPrevious()
-    // Show if scrolling up or near top
     if (latest < previous || latest < SCROLL_THRESHOLD) {
       setIsVisible(true)
     } 
-    // Hide if scrolling down and past threshold
     else if (latest > previous && latest > SCROLL_THRESHOLD) {
       setIsVisible(false)
     }
   })
 
-  // Navigation Items Configuration
   const navItems = useMemo(() => [
     {
       id: 'home',
@@ -210,10 +174,10 @@ export default function MobileBottomNav() {
       requiresAuth: false
     },
     {
-      id: 'search',
-      icon: Search,
-      label: 'Search',
-      path: '/search',
+      id: 'categories',
+      icon: Grid,
+      label: 'Categories',
+      path: '/categories',
       requiresAuth: false
     },
     {
@@ -225,69 +189,56 @@ export default function MobileBottomNav() {
       requiresAuth: false
     },
     {
-      id: 'wishlist',
-      icon: Heart,
-      label: 'Saved', // Shorter label for mobile
-      path: '/customer/wishlist',
-      requiresAuth: true
+      id: 'search',
+      icon: Search,
+      label: 'Search',
+      path: '/search',
+      requiresAuth: false
     },
     {
       id: 'account',
       icon: User,
       label: 'Account',
       path: '/customer/dashboard',
-      fallbackPath: '/login', // Where to go if not auth
-      requiresAuth: false // Logic handled inside click
+      fallbackPath: '/login',
+      requiresAuth: false
     }
   ], [cartItemCount])
 
-  // Helper to determine active state precisely
   const isActive = useCallback((path) => {
     if (path === '/') return location.pathname === '/'
     return location.pathname.startsWith(path)
   }, [location.pathname])
 
-  /**
-   * Handle Navigation Click
-   * Triggers haptic feedback and navigation
-   */
   const handleNavClick = useCallback((item) => {
-    // 1. Haptic Feedback (if supported)
     if (navigator.vibrate) {
       navigator.vibrate(HAPTIC_PATTERN)
     }
 
-    // 2. Auth Guard
     if (item.requiresAuth && !user) {
       navigate('/login', { state: { from: location.pathname } })
       return
     }
 
-    // 3. Conditional Pathing (e.g. Account vs Login)
     const targetPath = (item.id === 'account' && !user) 
       ? item.fallbackPath 
       : item.path
 
-    // 4. Navigate
     navigate(targetPath)
   }, [navigate, user, location.pathname])
 
   return (
     <>
-      {/* Spacer to prevent content from being hidden behind the nav */}
       <div className="h-[70px] md:hidden w-full shrink-0" aria-hidden="true" />
 
-      {/* Navigation Container */}
       <motion.nav
         variants={navContainerVariants}
         initial="visible"
         animate={isVisible ? "visible" : "hidden"}
         className="fixed bottom-0 left-0 right-0 z-[9999] md:hidden print:hidden"
       >
-        {/* Glassmorphism Background Layer */}
         <div className="absolute inset-0 bg-white/90 backdrop-blur-xl border-t border-neutral-200/60 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]" />
 
-        {/* Content Container (Safe Area Aware) */}
         <div 
           className="relative flex items-center justify-around w-full max-w-lg mx-auto px-1 pb-[env(safe-area-inset-bottom)]"
           style={{ height: NAV_HEIGHT }}
@@ -305,4 +256,3 @@ export default function MobileBottomNav() {
     </>
   )
 }
-
