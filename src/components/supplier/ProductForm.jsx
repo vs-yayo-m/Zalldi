@@ -313,6 +313,86 @@ export default function ProductForm({ product = null, onSuccess, onCancel }) {
 
       {/* Remaining sections: Pricing, Inventory, Logistics, Visibility, Actions */}
       {/* (unchanged from previous version, fully preserved) */}
+       { /* PRICING & MARGIN */ }
+ <div className="space-y-6 bg-neutral-50 p-6 rounded-2xl">  
+    <div className="flex justify-between items-center border-b pb-2">  
+      <h3 className="text-lg font-bold text-neutral-900">Pricing & Commercials</h3>  
+      {Number(margin) !== 0 && (  
+        <span className={`text-sm font-bold px-3 py-1 rounded-full ${Number(margin) > 20 ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>  
+          Margin: {margin}%  
+        </span>  
+      )}  
+    </div>  
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">  
+      <Input label="Selling Price (NPR)" type="number" value={formData.price} onChange={(e) => handleChange('price', e.target.value)} required min="0" step="0.01" />  
+      <Input label="Compare Price (MRP)" type="number" value={formData.comparePrice} onChange={(e) => handleChange('comparePrice', e.target.value)} />  
+      <Input label="Cost Price (Internal)" type="number" value={formData.costPrice} onChange={(e) => handleChange('costPrice', e.target.value)} helper="For margin calculation" />  
+    </div>  
+  </div>
+ 
+ { /* INVENTORY */ }
+ <div className="space-y-6">  
+    <h3 className="text-lg font-bold text-neutral-900 border-b pb-2">Inventory Control</h3>  
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">  
+      <Input label="Current Stock" type="number" value={formData.stock} onChange={(e) => handleChange('stock', e.target.value)} required />  
+      <Input label="Low Stock Alert" type="number" value={formData.lowStockThreshold} onChange={(e) => handleChange('lowStockThreshold', e.target.value)} />  
+      <Select label="Base Unit" value={formData.unit} onChange={(e) => handleChange('unit', e.target.value)} options={PRODUCT_UNITS} />  
+    </div>  
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">  
+      <Input label="Min Order Qty" type="number" value={formData.minOrder} onChange={(e) => handleChange('minOrder', e.target.value)} />  
+      <Input label="Max Order Qty" type="number" value={formData.maxOrder} onChange={(e) => handleChange('maxOrder', e.target.value)} />  
+      <div className="flex flex-col justify-end pb-2">  
+        <div className="flex items-center justify-between px-3 h-12 bg-neutral-50 rounded-xl">  
+          <span className="text-sm font-medium">Allow Backorder</span>  
+          <Switch checked={formData.allowBackorder} onChange={(val) => handleChange('allowBackorder', val)} />  
+        </div>  
+      </div>  
+    </div>  
+  </div>
+ 
+ { /* LOGISTICS & HANDLING */ }
+ <div className="space-y-6">  
+    <h3 className="text-lg font-bold text-neutral-900 border-b pb-2">Delivery & Handling</h3>  
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">  
+      <div className="flex gap-2 col-span-1">  
+        <div className="flex-1"><Input label="Weight" type="number" value={formData.weight} onChange={(e) => handleChange('weight', e.target.value)} /></div>  
+        <div className="w-24 mt-7"><Select value={formData.weightUnit} onChange={(e) => handleChange('weightUnit', e.target.value)} options={WEIGHT_UNITS} /></div>  
+      </div>  
+      <Select label="Storage Requirement" value={formData.storageType} onChange={(e) => handleChange('storageType', e.target.value)} options={STORAGE_TYPES} />  
+      <div className="flex flex-col justify-end pb-2">  
+        <div className="flex items-center justify-between px-3 h-12 bg-neutral-50 rounded-xl">  
+          <span className="text-sm font-medium">Shelf Life Support</span>  
+          <Switch checked={formData.hasExpiry} onChange={(val) => handleChange('hasExpiry', val)} />  
+        </div>  
+      </div>  
+    </div>  
+    {formData.hasExpiry && (  
+      <div className="max-w-xs">  
+        <Input label="Avg Shelf Life (Days)" type="number" value={formData.shelfLifeDays} onChange={(e) => handleChange('shelfLifeDays', e.target.value)} placeholder="e.g. 7" />  
+      </div>  
+    )}  
+  </div>
+ 
+ { /* VISIBILITY */ }
+ <div className="flex items-center justify-between p-5 bg-orange-50/50 border border-orange-100 rounded-2xl">  
+    <div>  
+      <p className="font-bold text-neutral-900">Publish to Marketplace</p>  
+      <p className="text-sm text-neutral-600 italic">Inactive products are saved as drafts</p>  
+    </div>  
+    <Switch checked={formData.active} onChange={(val) => handleChange('active', val)} />  
+  </div>
+ 
+ { /* ACTIONS */ }
+ <div className="flex gap-4 pt-6 border-t">  
+    {onCancel && (  
+      <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting} className="flex-1">  
+        Cancel  
+      </Button>  
+    )}  
+    <Button type="submit" disabled={isSubmitting} loading={isSubmitting} className="flex-1">  
+      {product ? 'Update Inventory' : 'List Product'}  
+    </Button>  
+  </div>
 
     </form>
   )
