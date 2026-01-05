@@ -1,238 +1,212 @@
+// src/components/layout/CategoriesSection.jsx
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, Sparkles, ChevronRight } from 'lucide-react';
-
-const categories = [
-  { 
-    id: 'groceries', 
-    name: 'Groceries', 
-    image: 'https://images.unsplash.com/photo-1588964895597-cfccd6e2dbf9?w=300&h=300&fit=crop',
-    count: '500+ items',
-    color: 'bg-emerald-50'
-  },
-  { 
-    id: 'vegetables', 
-    name: 'Vegetables', 
-    image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=300&h=300&fit=crop',
-    count: '200+ items',
-    color: 'bg-green-50'
-  },
-  { 
-    id: 'fruits', 
-    name: 'Fruits', 
-    image: 'https://images.unsplash.com/photo-1619566636858-adf3ef46400b?w=300&h=300&fit=crop',
-    count: '150+ items',
-    color: 'bg-red-50'
-  },
-  { 
-    id: 'dairy', 
-    name: 'Dairy & Eggs', 
-    image: 'https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=300&h=300&fit=crop',
-    count: '100+ items',
-    color: 'bg-blue-50'
-  },
-  { 
-    id: 'meat', 
-    name: 'Meat & Fish', 
-    image: 'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=300&h=300&fit=crop',
-    count: '80+ items',
-    color: 'bg-orange-50'
-  },
-  { 
-    id: 'bakery', 
-    name: 'Bakery', 
-    image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=300&h=300&fit=crop',
-    count: '120+ items',
-    color: 'bg-amber-50'
-  },
-  { 
-    id: 'beverages', 
-    name: 'Beverages', 
-    image: 'https://images.unsplash.com/photo-1556881286-fc6915169721?w=300&h=300&fit=crop',
-    count: '150+ items',
-    color: 'bg-cyan-50'
-  },
-  { 
-    id: 'snacks', 
-    name: 'Snacks', 
-    image: 'https://images.unsplash.com/photo-1621939514649-280e2ee25f60?w=300&h=300&fit=crop',
-    count: '200+ items',
-    color: 'bg-purple-50'
-  },
-  { 
-    id: 'household', 
-    name: 'Household', 
-    image: 'https://images.unsplash.com/photo-1585421514738-01798e348b17?w=300&h=300&fit=crop',
-    count: '300+ items',
-    color: 'bg-slate-50'
-  },
-  { 
-    id: 'personal-care', 
-    name: 'Personal Care', 
-    image: 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=300&h=300&fit=crop',
-    count: '250+ items',
-    color: 'bg-pink-50'
-  },
-  { 
-    id: 'baby', 
-    name: 'Baby Care', 
-    image: 'https://images.unsplash.com/photo-1555252333-9f8e92e65df9?w=300&h=300&fit=crop',
-    count: '100+ items',
-    color: 'bg-indigo-50'
-  },
-];
+import { ArrowRight, Sparkles, ChevronRight, Grid } from 'lucide-react';
+import { CATEGORIES_DATA } from '@/data/categoriesData';
 
 export default function CategoriesSection() {
   const navigate = useNavigate();
-
+  
+  const featuredCategories = CATEGORIES_DATA.flatMap(section =>
+    section.subcategories.slice(0, 2).map(sub => ({
+      ...sub,
+      parentColor: section.color,
+      parentIcon: section.icon
+    }))
+  ).slice(0, 11);
+  
   const handleCategoryClick = (categoryId) => {
     navigate(`/category/${categoryId}`);
   };
-
-  // Staggered Container Variants
+  
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.05,
+        staggerChildren: 0.04,
         delayChildren: 0.1
       }
     }
   };
-
-  // Item Animation Variants
+  
   const itemVariants = {
-    hidden: { y: 20, opacity: 0, scale: 0.95 },
-    visible: { 
-      y: 0, 
-      opacity: 1, 
+    hidden: { y: 30, opacity: 0, scale: 0.9 },
+    visible: {
+      y: 0,
+      opacity: 1,
       scale: 1,
-      transition: { type: 'spring', damping: 15, stiffness: 100 }
+      transition: { type: 'spring', damping: 20, stiffness: 120 }
     }
   };
-
+  
   return (
-    <section className="py-12 md:py-20 px-4 bg-white overflow-hidden">
+    <section className="py-16 md:py-24 px-4 bg-gradient-to-b from-white via-orange-50/30 to-white overflow-hidden">
       <div className="max-w-7xl mx-auto">
         
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
           <motion.div
-            initial={{ x: -20, opacity: 0 }}
+            initial={{ x: -30, opacity: 0 }}
             whileInView={{ x: 0, opacity: 1 }}
             viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
           >
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-[2px] bg-orange-500 rounded-full" />
-              <span className="text-orange-500 font-black text-xs uppercase tracking-widest">Wide Range</span>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/30">
+                <Grid className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-orange-600 font-black text-sm uppercase tracking-widest">
+                Shop Smart
+              </span>
             </div>
-            <h2 className="text-3xl md:text-5xl font-black text-neutral-900 leading-tight">
-              Shop by <span className="text-orange-500">Category</span>
+            <h2 className="text-4xl md:text-6xl font-black text-neutral-900 leading-tight tracking-tight">
+              Browse by <br className="hidden md:block" />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-orange-600">
+                Category
+              </span>
             </h2>
-            <p className="text-neutral-500 mt-2 font-medium">
-              Curated essentials, delivered to your doorstep in minutes.
+            <p className="text-neutral-600 mt-3 font-semibold text-lg max-w-xl">
+              Everything you need, organized perfectly. Shop faster, live better.
             </p>
           </motion.div>
 
           <motion.button
+            initial={{ x: 30, opacity: 0 }}
+            whileInView={{ x: 0, opacity: 1 }}
+            viewport={{ once: true }}
             whileHover={{ x: 5 }}
-            onClick={() => navigate('/shop')}
-            className="flex items-center gap-2 text-orange-600 font-bold text-sm md:text-base group"
+            whileTap={{ scale: 0.95 }}
+            onClick={() => navigate('/categories')}
+            className="flex items-center gap-3 px-6 py-4 bg-orange-500 hover:bg-orange-600 text-white font-black text-base rounded-2xl shadow-xl shadow-orange-500/30 transition-all group"
           >
-            View All Categories 
-            <div className="p-1.5 bg-orange-100 rounded-full group-hover:bg-orange-500 group-hover:text-white transition-all">
-              <ChevronRight className="w-4 h-4" />
+            View All
+            <div className="p-1 bg-white/20 rounded-lg group-hover:bg-white/30 transition-colors">
+              <ChevronRight className="w-5 h-5" />
             </div>
           </motion.button>
         </div>
 
-        {/* Categories Grid */}
         <motion.div 
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, margin: "-50px" }}
-          className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-5"
+          viewport={{ once: true, margin: "-100px" }}
+          className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 md:gap-6"
         >
-          {categories.map((category) => (
+          {featuredCategories.map((category, index) => (
             <motion.div
               key={category.id}
               variants={itemVariants}
-              whileHover={{ y: -8 }}
-              className="relative group cursor-pointer"
+              whileHover={{ y: -12, scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              className="group cursor-pointer"
               onClick={() => handleCategoryClick(category.id)}
             >
-              {/* Card Container */}
-              <div className={`relative aspect-[4/5] rounded-[2rem] overflow-hidden transition-all duration-500 shadow-sm border border-neutral-100 group-hover:shadow-xl group-hover:shadow-orange-500/10 ${category.color}`}>
+              <div className="relative aspect-[3/4] rounded-3xl overflow-hidden bg-white border-2 border-neutral-100 group-hover:border-orange-500 transition-all duration-500 shadow-md group-hover:shadow-2xl group-hover:shadow-orange-500/20">
                 
-                {/* Image Logic */}
-                <div className="absolute inset-0 p-3 pb-0">
-                  <div className="w-full h-full rounded-2xl overflow-hidden shadow-inner bg-white">
-                    <img
-                      src={category.image}
-                      alt={category.name}
-                      className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700 ease-out"
-                    />
+                <div className="absolute inset-0 bg-gradient-to-br from-orange-50/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                
+                <div className="relative h-full flex flex-col">
+                  <div className="flex-1 p-4 pb-2">
+                    <div className="w-full h-full rounded-2xl overflow-hidden bg-neutral-50">
+                      <img
+                        src={category.image}
+                        alt={category.name}
+                        className="w-full h-full object-cover transform group-hover:scale-125 group-hover:rotate-3 transition-all duration-700 ease-out"
+                        onError={(e) => {
+                          e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23f5f5f5" width="200" height="200"/%3E%3Ctext fill="%23a3a3a3" font-family="Arial" font-size="14" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3ENo Image%3C/text%3E%3C/svg%3E';
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="p-4 pt-2">
+                    <h3 className="font-black text-neutral-900 text-base md:text-lg leading-tight group-hover:text-orange-600 transition-colors mb-1 line-clamp-2">
+                      {category.name}
+                    </h3>
+                    <div className="flex items-center gap-2">
+                      <div className="flex -space-x-1">
+                        <div className="w-5 h-5 rounded-full bg-orange-500 border-2 border-white flex items-center justify-center">
+                          <Sparkles className="w-3 h-3 text-white" />
+                        </div>
+                        <div className="w-5 h-5 rounded-full bg-green-500 border-2 border-white" />
+                        <div className="w-5 h-5 rounded-full bg-blue-500 border-2 border-white" />
+                      </div>
+                      <span className="text-xs font-bold text-neutral-400 uppercase tracking-wide">
+                        In Stock
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Glass Overlay for Text */}
-                <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-white via-white/80 to-transparent pt-8">
-                  <h3 className="font-black text-neutral-800 text-sm md:text-base mb-0.5 group-hover:text-orange-600 transition-colors">
-                    {category.name}
-                  </h3>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                    <span className="text-[10px] md:text-xs font-bold text-neutral-400 uppercase tracking-tighter">
-                      {category.count}
-                    </span>
+                <div className="absolute top-4 right-4 opacity-0 scale-0 group-hover:opacity-100 group-hover:scale-100 transition-all duration-300">
+                  <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center shadow-xl">
+                    <ChevronRight className="w-5 h-5 text-white" />
                   </div>
                 </div>
 
-                {/* Hover Quick Action */}
-                <div className="absolute top-4 right-4 opacity-0 scale-50 group-hover:opacity-100 group-hover:scale-100 transition-all duration-300">
-                  <div className="p-2 bg-orange-500 text-white rounded-xl shadow-lg">
-                    <Sparkles className="w-4 h-4" />
+                <div className="absolute bottom-4 left-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                  <div className="px-3 py-1 bg-white/90 backdrop-blur-sm rounded-full">
+                    <span className="text-xs font-black text-orange-600">View Products</span>
                   </div>
                 </div>
               </div>
             </motion.div>
           ))}
 
-          {/* "See All" Special Card */}
           <motion.div
             variants={itemVariants}
-            whileHover={{ y: -8, scale: 1.02 }}
-            onClick={() => navigate('/shop')}
+            whileHover={{ y: -12, scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => navigate('/categories')}
             className="group cursor-pointer"
           >
-            <div className="relative aspect-[4/5] rounded-[2rem] bg-orange-500 p-6 flex flex-col items-center justify-center text-center overflow-hidden shadow-lg shadow-orange-200">
-              {/* Decorative Circle Background */}
-              <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
-              <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-black/10 rounded-full blur-2xl" />
+            <div className="relative aspect-[3/4] rounded-3xl bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 p-8 flex flex-col items-center justify-center text-center overflow-hidden shadow-xl shadow-orange-500/40 border-2 border-orange-400">
+              
+              <div className="absolute -top-20 -right-20 w-40 h-40 bg-white/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700" />
+              <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-black/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700" />
 
               <div className="relative z-10">
-                <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mb-4 mx-auto rotate-12 group-hover:rotate-0 transition-transform duration-500 shadow-lg">
-                  <ArrowRight className="w-7 h-7 text-orange-600" />
+                <motion.div 
+                  whileHover={{ rotate: 360 }}
+                  transition={{ duration: 0.6 }}
+                  className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center mb-6 mx-auto shadow-2xl group-hover:shadow-white/50"
+                >
+                  <Grid className="w-10 h-10 text-orange-600" />
+                </motion.div>
+                <span className="block text-white font-black text-2xl mb-2">See All</span>
+                <span className="text-orange-100 text-sm font-bold uppercase tracking-widest block">
+                  Categories
+                </span>
+                <div className="mt-4 flex items-center justify-center gap-2 text-white/80">
+                  <span className="text-xs font-bold">Explore</span>
+                  <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </div>
-                <span className="block text-white font-black text-lg">Explore More</span>
-                <span className="text-orange-100 text-xs font-bold uppercase tracking-widest mt-1 block">Categories</span>
               </div>
             </div>
           </motion.div>
+        </motion.div>
+
+        <motion.div
+          initial={{ y: 30, opacity: 0 }}
+          whileInView={{ y: 0, opacity: 1 }}
+          viewport={{ once: true }}
+          className="mt-12 text-center"
+        >
+          <p className="text-neutral-500 font-semibold text-sm mb-4">
+            Can't find what you're looking for?
+          </p>
+          <button
+            onClick={() => navigate('/search')}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-white border-2 border-neutral-200 hover:border-orange-500 rounded-2xl font-bold text-neutral-700 hover:text-orange-600 transition-all shadow-sm hover:shadow-lg"
+          >
+            <Sparkles className="w-5 h-5" />
+            Search Products
+          </button>
         </motion.div>
       </div>
     </section>
   );
 }
-
-/**
- * PRODUCTION ENHANCEMENTS:
- * 1. Layout: Shifted from simple squares to a 4:5 "Portrait Card" aspect ratio, which feels more modern for e-commerce.
- * 2. Visual Polish: Added dynamic background colors (e.g., bg-emerald-50) per category for subtle UI depth.
- * 3. Interactions: Integrated a spring-based "Lift" effect on hover to create a tactile sense of interaction.
- * 4. Micro-copy: Replaced simple titles with a structured hierarchy (Badge -> Title -> Subtitle).
- * 5. Responsiveness: Adjusted the grid from 2 columns on small mobiles to 6 columns on large desktops.
- */
