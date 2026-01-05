@@ -14,6 +14,26 @@ import { formatSlug, generateSKU } from '@utils/helpers'
 import { createProduct, updateProduct } from '@services/product.service'
 import toast from 'react-hot-toast'
 
+/* ================= CATEGORY GROUPING (ADDED) ================= */
+
+const groupedCategories = CATEGORIES.reduce((acc, cat) => {
+  if (!acc[cat.parent]) {
+    acc[cat.parent] = []
+  }
+  acc[cat.parent].push(cat)
+  return acc
+}, {})
+
+const parentLabels = {
+  'grocery-kitchen': 'Grocery & Kitchen',
+  'snacks-drinks': 'Snacks & Drinks',
+  'beauty-personal-care': 'Beauty & Personal Care',
+  'household-essentials': 'Household Essentials',
+  'shop-by-store': 'Shop by Store'
+}
+
+/* ============================================================= */
+
 export default function ProductForm({ product = null, onSuccess, onCancel }) {
   const { user } = useAuth()
   const [formData, setFormData] = useState({
@@ -122,20 +142,34 @@ export default function ProductForm({ product = null, onSuccess, onCancel }) {
           required
         />
 
-       <Select
-  label="Category"
-  value={formData.category}
-  onChange={(e) => handleChange('category', e.target.value)}
-  error={errors.category}
-  required
-  options={[
-    { value: '', label: 'Select category', disabled: true },
-    ...CATEGORIES.map(cat => ({
-      value: cat.id,
-      label: cat.name
-    }))
-  ]}
-/>
+        {/* ===== UPDATED CATEGORY SELECT (GROUPED) ===== */}
+        <div>
+          <label className="block text-sm font-semibold text-neutral-900 mb-2">
+            Category <span className="text-red-500">*</span>
+          </label>
+          <select
+            name="category"
+            value={formData.category}
+            onChange={(e) => handleChange('category', e.target.value)}
+            className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all"
+            required
+          >
+            <option value="">Select Category</option>
+            {Object.entries(groupedCategories).map(([parent, categories]) => (
+              <optgroup key={parent} label={parentLabels[parent] || parent}>
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+          {errors.category && (
+            <p className="mt-2 text-sm text-red-600">{errors.category}</p>
+          )}
+        </div>
+        {/* ============================================= */}
       </div>
 
       <div>
@@ -181,12 +215,12 @@ export default function ProductForm({ product = null, onSuccess, onCancel }) {
         />
 
         <Select
-  label="Unit"
-  value={formData.unit}
-  onChange={(e) => handleChange('unit', e.target.value)}
-  required
-  options={PRODUCT_UNITS}
-/>
+          label="Unit"
+          value={formData.unit}
+          onChange={(e) => handleChange('unit', e.target.value)}
+          required
+          options={PRODUCT_UNITS}
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
