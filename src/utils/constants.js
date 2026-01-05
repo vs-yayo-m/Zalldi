@@ -46,20 +46,57 @@ export const WARDS = Array.from({ length: 19 }, (_, i) => ({
   label: `Ward ${i + 1}`
 }))
 
+
+
+// New CATEGORIES 
+
 export const CATEGORIES = [
-  { id: 'groceries', name: 'Groceries', icon: 'ShoppingBasket', color: '#10B981' },
-  { id: 'vegetables', name: 'Vegetables', icon: 'Carrot', color: '#059669' },
-  { id: 'fruits', name: 'Fruits', icon: 'Apple', color: '#F59E0B' },
-  { id: 'dairy', name: 'Dairy & Eggs', icon: 'Milk', color: '#3B82F6' },
-  { id: 'meat', name: 'Meat & Fish', icon: 'Fish', color: '#EF4444' },
-  { id: 'bakery', name: 'Bakery', icon: 'Croissant', color: '#F97316' },
-  { id: 'beverages', name: 'Beverages', icon: 'Coffee', color: '#8B5CF6' },
-  { id: 'snacks', name: 'Snacks', icon: 'Cookie', color: '#EC4899' },
-  { id: 'household', name: 'Household', icon: 'Home', color: '#6366F1' },
-  { id: 'personal-care', name: 'Personal Care', icon: 'Sparkles', color: '#14B8A6' },
-  { id: 'baby', name: 'Baby Care', icon: 'Baby', color: '#F472B6' },
-  { id: 'electronics', name: 'Electronics', icon: 'Smartphone', color: '#6B7280' }
-]
+  // Grocery & Kitchen
+  { id: 'vegetables-fruits', name: 'Vegetables & Fruits', icon: 'Carrot', color: '#10B981', parent: 'grocery-kitchen' },
+  { id: 'atta-rice-dal', name: 'Atta, Rice & Dal', icon: 'Wheat', color: '#F59E0B', parent: 'grocery-kitchen' },
+  { id: 'oil-ghee-masala', name: 'Oil, Ghee & Masala', icon: 'Droplet', color: '#F97316', parent: 'grocery-kitchen' },
+  { id: 'dairy-bread-eggs', name: 'Dairy, Bread & Eggs', icon: 'Milk', color: '#3B82F6', parent: 'grocery-kitchen' },
+  { id: 'bakery-biscuits', name: 'Bakery & Biscuits', icon: 'Cookie', color: '#EC4899', parent: 'grocery-kitchen' },
+  { id: 'dry-fruits-cereals', name: 'Dry Fruits & Cereals', icon: 'Apple', color: '#8B5CF6', parent: 'grocery-kitchen' },
+  { id: 'chicken-meat-fish', name: 'Chicken, Meat & Fish', icon: 'Fish', color: '#EF4444', parent: 'grocery-kitchen' },
+  { id: 'kitchenware-appliances', name: 'Kitchenware & Appliances', icon: 'UtensilsCrossed', color: '#6B7280', parent: 'grocery-kitchen' },
+  
+  // Snacks & Drinks
+  { id: 'chips-namkeen', name: 'Chips & Namkeen', icon: 'Package', color: '#F59E0B', parent: 'snacks-drinks' },
+  { id: 'sweets-chocolates', name: 'Sweets & Chocolates', icon: 'Candy', color: '#EC4899', parent: 'snacks-drinks' },
+  { id: 'drinks-juices', name: 'Drinks & Juices', icon: 'GlassWater', color: '#3B82F6', parent: 'snacks-drinks' },
+  { id: 'tea-coffee-milk', name: 'Tea, Coffee & Milk Drinks', icon: 'Coffee', color: '#78350F', parent: 'snacks-drinks' },
+  { id: 'instant-food', name: 'Instant Food', icon: 'Utensils', color: '#F97316', parent: 'snacks-drinks' },
+  { id: 'sauces-spreads', name: 'Sauces & Spreads', icon: 'Cherry', color: '#DC2626', parent: 'snacks-drinks' },
+  { id: 'paan-corner', name: 'Paan Corner', icon: 'Leaf', color: '#059669', parent: 'snacks-drinks' },
+  { id: 'ice-creams-more', name: 'Ice Creams & More', icon: 'IceCream', color: '#06B6D4', parent: 'snacks-drinks' },
+  
+  // Beauty & Personal Care
+  { id: 'bath-body', name: 'Bath & Body', icon: 'Droplets', color: '#3B82F6', parent: 'beauty-personal-care' },
+  { id: 'hair-care', name: 'Hair', icon: 'Sparkles', color: '#8B5CF6', parent: 'beauty-personal-care' },
+  { id: 'skin-face', name: 'Skin & Face', icon: 'Heart', color: '#EC4899', parent: 'beauty-personal-care' },
+  { id: 'beauty-cosmetics', name: 'Beauty & Cosmetics', icon: 'Palette', color: '#F43F5E', parent: 'beauty-personal-care' },
+  { id: 'feminine-hygiene', name: 'Feminine Hygiene', icon: 'Shield', color: '#DB2777', parent: 'beauty-personal-care' },
+  { id: 'baby-care', name: 'Baby Care', icon: 'Baby', color: '#06B6D4', parent: 'beauty-personal-care' },
+  { id: 'health-pharma', name: 'Health & Pharma', icon: 'Plus', color: '#DC2626', parent: 'beauty-personal-care' },
+  { id: 'sexual-wellness', name: 'Sexual Wellness', icon: 'Heart', color: '#BE123C', parent: 'beauty-personal-care' },
+  
+  // Household Essentials
+  { id: 'home-lifestyle', name: 'Home & Lifestyle', icon: 'Home', color: '#6B7280', parent: 'household-essentials' },
+  { id: 'cleaners-repellents', name: 'Cleaners & Repellents', icon: 'Spray', color: '#10B981', parent: 'household-essentials' },
+  { id: 'electronics', name: 'Electronics', icon: 'Zap', color: '#3B82F6', parent: 'household-essentials' },
+  { id: 'stationery-games', name: 'Stationery & Games', icon: 'Pencil', color: '#F59E0B', parent: 'household-essentials' },
+  
+  // Shop by Store
+  { id: 'spiritual-store', name: 'Spiritual Store', icon: 'Flame', color: '#F97316', parent: 'shop-by-store' },
+  { id: 'pharma-store', name: 'Pharma Store', icon: 'Pill', color: '#DC2626', parent: 'shop-by-store' },
+  { id: 'egifts-store', name: 'E-Gifts', icon: 'Gift', color: '#EC4899', parent: 'shop-by-store' },
+  { id: 'pet-store', name: 'Pet Store', icon: 'Dog', color: '#F59E0B', parent: 'shop-by-store' },
+  { id: 'sports-store', name: 'Sports', icon: 'Dumbbell', color: '#10B981', parent: 'shop-by-store' },
+  { id: 'fashion-basics', name: 'Fashion Basics Store', icon: 'Shirt', color: '#8B5CF6', parent: 'shop-by-store' },
+  { id: 'toy-store', name: 'Toy Store', icon: 'Gamepad2', color: '#F43F5E', parent: 'shop-by-store' },
+  { id: 'book-store', name: 'Book Store', icon: 'BookOpen', color: '#6366F1', parent: 'shop-by-store' }
+];
 
 export const ORDER_STATUS = {
   PENDING: 'pending',
