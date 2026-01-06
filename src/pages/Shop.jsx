@@ -7,7 +7,6 @@ import { useProducts } from '@/hooks/useProducts';
 import { CATEGORIES_DATA } from '@/data/categoriesData';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
-import ProductCard from '@/components/customer/ProductCard';
 import FilterSidebar from '@/components/customer/FilterSidebar';
 
 export default function Shop() {
