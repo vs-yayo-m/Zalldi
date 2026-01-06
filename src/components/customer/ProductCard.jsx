@@ -70,7 +70,7 @@ export default function ProductCard({ product }) {
             <button
               onClick={handleAddToCart}
               className="p-3 bg-white rounded-full hover:bg-orange-500 hover:text-white transition-colors"
-              aria-label="Add to cart"
+              aria-label="Add"
             >
               <ShoppingCart className="w-5 h-5" />
             </button>
@@ -118,7 +118,7 @@ export default function ProductCard({ product }) {
             disabled={product.stock === 0}
             className="mt-3"
           >
-            {hasItem(product.id) ? 'Add More' : 'Add to Cart'}
+            {hasItem(product.id) ? 'Add More' : 'Add'}
           </Button>
         </div>
       </Link>
