@@ -1,48 +1,69 @@
 // src/pages/Shop.jsx
 
 import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { SlidersHorizontal, ArrowUpDown, ChevronDown, Search } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { SlidersHorizontal, ArrowUpDown, X } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { CATEGORIES_DATA } from '@/data/categoriesData';
-import ProductCard from '@/components/customer/ProductCard';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
+import FilterSidebar from '@/components/customer/FilterSidebar';
 
 export default function Shop() {
-  const navigate = useNavigate();
   const { products, loading } = useProducts({ active: true });
   
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [sortBy, setSortBy] = useState('relevance');
-  const [priceFilter, setPriceFilter] = useState('all');
+  const [showFilters, setShowFilters] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
+  
+  const [filters, setFilters] = useState({
+    categories: [],
+    minPrice: null,
+    maxPrice: null,
+    minRating: null,
+    inStock: true,
+    hasDiscount: false
+  });
 
   const allCategories = useMemo(() => {
-    const cats = [{ id: 'all', name: 'All', icon: '🛒' }];
+    const cats = [{ id: 'all', name: 'All', image: null }];
     CATEGORIES_DATA.forEach(section => {
-      section.subcategories.forEach(cat => {
-        cats.push({ ...cat, sectionColor: section.color });
-      });
+      section.subcategories.forEach(cat => cats.push(cat));
     });
     return cats;
   }, []);
 
   const filteredProducts = useMemo(() => {
     if (!products) return [];
-    let filtered = products;
+    let filtered = [...products];
 
     if (selectedCategory !== 'all') {
       filtered = filtered.filter(p => p.category === selectedCategory);
     }
 
-    if (priceFilter !== 'all') {
-      const [min, max] = priceFilter.split('-').map(Number);
-      filtered = filtered.filter(p => {
-        const price = p.discountPrice || p.price;
-        return price >= min && (max ? price <= max : true);
-      });
+    if (filters.categories.length > 0) {
+      filtered = filtered.filter(p => filters.categories.includes(p.category));
+    }
+
+    if (filters.minPrice) {
+      filtered = filtered.filter(p => (p.discountPrice || p.price) >= filters.minPrice);
+    }
+
+    if (filters.maxPrice) {
+      filtered = filtered.filter(p => (p.discountPrice || p.price) <= filters.maxPrice);
+    }
+
+    if (filters.minRating) {
+      filtered = filtered.filter(p => (p.rating || 0) >= filters.minRating);
+    }
+
+    if (filters.inStock) {
+      filtered = filtered.filter(p => p.stock > 0);
+    }
+
+    if (filters.hasDiscount) {
+      filtered = filtered.filter(p => p.discountPrice);
     }
 
     return filtered.sort((a, b) => {
@@ -56,155 +77,235 @@ export default function Shop() {
         default: return 0;
       }
     });
-  }, [products, selectedCategory, priceFilter, sortBy]);
+  }, [products, selectedCategory, filters, sortBy]);
 
-  const handleCategoryClick = (categoryId) => {
-    setSelectedCategory(categoryId);
-    if (categoryId !== 'all') {
-      navigate(`/category/${categoryId}`);
-    }
+  const handleClearFilters = () => {
+    setFilters({
+      categories: [],
+      minPrice: null,
+      maxPrice: null,
+      minRating: null,
+      inStock: true,
+      hasDiscount: false
+    });
   };
+
+  const activeFilterCount = useMemo(() => {
+    let count = filters.categories.length;
+    if (filters.minPrice || filters.maxPrice) count++;
+    if (filters.minRating) count++;
+    if (filters.hasDiscount) count++;
+    return count;
+  }, [filters]);
 
   return (
     <div className="min-h-screen bg-neutral-50">
       <Header />
       
-      <div className="pt-16 md:pt-20 pb-20 md:pb-8">
-        <div className="bg-white border-b border-neutral-100 sticky top-16 md:top-20 z-40">
-          <div className="container mx-auto px-4">
-            <div className="flex items-center justify-between py-3">
-              <h1 className="text-lg font-black text-neutral-900">
-                {selectedCategory === 'all' ? 'All Products' : allCategories.find(c => c.id === selectedCategory)?.name}
-              </h1>
-              <div className="flex items-center gap-2">
-                <button className="p-2 hover:bg-neutral-100 rounded-lg transition-colors">
-                  <Search className="w-5 h-5 text-neutral-600" />
-                </button>
-              </div>
-            </div>
+      <div className="pt-20 md:pt-24">
+        <div className="bg-white border-b border-neutral-100 sticky top-16 md:top-20 z-40 shadow-sm">
+          <div className="flex items-center justify-between px-4 py-3">
+            <h1 className="text-xl font-black text-neutral-900">
+              {selectedCategory === 'all' ? 'All Products' : allCategories.find(c => c.id === selectedCategory)?.name || 'Shop'}
+            </h1>
+            <p className="text-sm text-neutral-500 font-medium">{filteredProducts.length} items</p>
+          </div>
 
-            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-3 -mx-4 px-4">
-              <button
-                onClick={() => setShowSortMenu(!showSortMenu)}
-                className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-neutral-200 rounded-xl text-sm font-bold text-neutral-700 whitespace-nowrap hover:border-orange-500 transition-colors"
-              >
-                <SlidersHorizontal className="w-4 h-4" />
-                Filters
-              </button>
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide px-4 pb-3">
+            <button
+              onClick={() => setShowFilters(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-neutral-200 rounded-xl text-sm font-bold text-neutral-700 whitespace-nowrap hover:border-orange-500 transition-colors flex-shrink-0"
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+              Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+            </button>
 
-              <button
-                onClick={() => setShowSortMenu(!showSortMenu)}
-                className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-neutral-200 rounded-xl text-sm font-bold text-neutral-700 whitespace-nowrap hover:border-orange-500 transition-colors"
-              >
-                <ArrowUpDown className="w-4 h-4" />
-                Sort
-                <ChevronDown className="w-4 h-4" />
-              </button>
+            <button
+              onClick={() => setShowSortMenu(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-neutral-200 rounded-xl text-sm font-bold text-neutral-700 whitespace-nowrap hover:border-orange-500 transition-colors flex-shrink-0"
+            >
+              <ArrowUpDown className="w-4 h-4" />
+              Sort
+            </button>
 
-              <select
-                value={priceFilter}
-                onChange={(e) => setPriceFilter(e.target.value)}
-                className="px-4 py-2 bg-white border-2 border-neutral-200 rounded-xl text-sm font-bold text-neutral-700 outline-none hover:border-orange-500 transition-colors"
-              >
-                <option value="all">Price</option>
-                <option value="0-100">Under ₹100</option>
-                <option value="100-500">₹100 - ₹500</option>
-                <option value="500-1000">₹500 - ₹1000</option>
-                <option value="1000-99999">Above ₹1000</option>
-              </select>
-            </div>
+            <button className="px-4 py-2 bg-white border-2 border-neutral-200 rounded-xl text-sm font-bold text-neutral-700 whitespace-nowrap hover:border-orange-500 transition-colors flex-shrink-0">
+              Price
+            </button>
           </div>
         </div>
 
-        <div className="container mx-auto">
-          <div className="flex">
-            <aside className="w-24 md:w-28 flex-shrink-0 bg-neutral-900 min-h-screen sticky top-32 md:top-36 self-start overflow-y-auto scrollbar-hide">
-              <div className="py-4 space-y-2">
-                {allCategories.map((category) => (
-                  <button
-                    key={category.id}
-                    onClick={() => handleCategoryClick(category.id)}
-                    className={`w-full px-3 py-4 flex flex-col items-center justify-center gap-2 transition-all ${
-                      selectedCategory === category.id
-                        ? 'bg-orange-500 text-white'
-                        : 'text-neutral-400 hover:bg-neutral-800 hover:text-white'
-                    }`}
-                  >
-                    {category.icon && (
-                      <span className="text-2xl">{category.icon}</span>
-                    )}
-                    {category.image && (
-                      <div className="w-12 h-12 rounded-lg overflow-hidden">
-                        <img 
-                          src={category.image} 
-                          alt={category.name}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    )}
-                    <span className="text-[10px] font-bold text-center leading-tight line-clamp-2">
-                      {category.name}
-                    </span>
-                  </button>
+        <div className="flex">
+          <aside className="w-20 flex-shrink-0 bg-neutral-900 sticky top-36 h-[calc(100vh-144px)] overflow-y-auto scrollbar-hide">
+            {allCategories.map((category) => (
+              <button
+                key={category.id}
+                onClick={() => setSelectedCategory(category.id)}
+                className={`w-full px-2 py-4 flex flex-col items-center gap-2 transition-all ${
+                  selectedCategory === category.id
+                    ? 'bg-orange-500'
+                    : 'hover:bg-neutral-800'
+                }`}
+              >
+                {category.image ? (
+                  <div className={`w-12 h-12 rounded-full overflow-hidden border-2 ${
+                    selectedCategory === category.id ? 'border-white' : 'border-transparent'
+                  }`}>
+                    <img 
+                      src={category.image} 
+                      alt={category.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-orange-500 flex items-center justify-center text-white text-xl font-black">
+                    🛒
+                  </div>
+                )}
+                <span className={`text-[9px] font-bold text-center leading-tight line-clamp-2 ${
+                  selectedCategory === category.id ? 'text-white' : 'text-neutral-400'
+                }`}>
+                  {category.name}
+                </span>
+              </button>
+            ))}
+          </aside>
+
+          <main className="flex-1 p-4 overflow-y-auto">
+            <div className="mb-4 bg-gradient-to-r from-green-500 to-green-600 rounded-2xl p-4 text-white">
+              <h2 className="text-lg font-black mb-1">Healthy, juicy & seasonal</h2>
+              <p className="text-xs opacity-90">Picked fresh from India's orchards</p>
+            </div>
+
+            {loading ? (
+              <div className="grid grid-cols-2 gap-3">
+                {[...Array(8)].map((_, i) => (
+                  <div key={i} className="bg-white rounded-xl p-3 animate-pulse">
+                    <div className="aspect-square bg-neutral-200 rounded-lg mb-2" />
+                    <div className="h-3 bg-neutral-200 rounded mb-1" />
+                    <div className="h-2 bg-neutral-200 rounded w-2/3" />
+                  </div>
                 ))}
               </div>
-            </aside>
-
-            <main className="flex-1 px-4 py-6 bg-gradient-to-b from-white to-neutral-50">
-              <div className="mb-6 bg-gradient-to-r from-green-500 to-green-600 rounded-2xl p-6 text-white">
-                <h2 className="text-xl font-black mb-2">
-                  Healthy, juicy & seasonal
-                </h2>
-                <p className="text-sm opacity-90">
-                  Picked fresh from India's orchards
-                </p>
-              </div>
-
-              {loading ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {[...Array(8)].map((_, i) => (
-                    <div key={i} className="bg-white rounded-2xl p-4 animate-pulse">
-                      <div className="aspect-square bg-neutral-200 rounded-xl mb-3" />
-                      <div className="h-4 bg-neutral-200 rounded mb-2" />
-                      <div className="h-3 bg-neutral-200 rounded w-2/3" />
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {filteredProducts.map((product) => (
+                  <div key={product.id} className="bg-white rounded-xl border border-neutral-100 overflow-hidden hover:shadow-lg transition-shadow">
+                    <div className="relative aspect-square bg-neutral-50 p-2">
+                      <img 
+                        src={product.images?.[0]} 
+                        alt={product.name}
+                        className="w-full h-full object-contain"
+                      />
+                      <button className="absolute top-2 right-2 bg-neutral-900 text-white px-2 py-1 rounded-lg text-[10px] font-black">
+                        ADD
+                      </button>
+                      {product.discountPrice && (
+                        <div className="absolute top-2 left-2 bg-orange-500 text-white px-2 py-0.5 rounded text-[10px] font-black">
+                          {Math.round(((product.price - product.discountPrice) / product.price) * 100)}% OFF
+                        </div>
+                      )}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {filteredProducts.map((product) => (
-                    <ProductCard key={product.id} product={product} />
-                  ))}
-                </div>
-              )}
+                    <div className="p-2">
+                      <h3 className="text-xs font-bold text-neutral-800 line-clamp-2 mb-1">
+                        {product.name}
+                      </h3>
+                      <p className="text-[10px] text-neutral-500 mb-1">{product.unit}</p>
+                      <div className="flex items-center gap-1 mb-2">
+                        {product.rating > 0 && (
+                          <>
+                            <span className="text-yellow-500 text-xs">★</span>
+                            <span className="text-[10px] font-bold text-neutral-700">{product.rating}</span>
+                          </>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="text-sm font-black text-neutral-900">
+                            ₹{product.discountPrice || product.price}
+                          </span>
+                          {product.discountPrice && (
+                            <span className="text-[10px] text-neutral-400 line-through ml-1">
+                              ₹{product.price}
+                            </span>
+                          )}
+                        </div>
+                        {product.stock > 0 && product.stock < 10 && (
+                          <span className="text-[9px] text-orange-600 font-bold">
+                            {product.stock} left
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
-              {!loading && filteredProducts.length === 0 && (
-                <div className="text-center py-20">
-                  <p className="text-neutral-500 font-medium">No products found</p>
-                </div>
-              )}
-            </main>
-          </div>
+            {!loading && filteredProducts.length === 0 && (
+              <div className="text-center py-20">
+                <p className="text-neutral-500 font-medium">No products found</p>
+              </div>
+            )}
+          </main>
         </div>
       </div>
 
       <Footer />
 
-      {showSortMenu && (
-        <>
-          <div 
-            className="fixed inset-0 bg-black/50 z-50"
-            onClick={() => setShowSortMenu(false)}
-          />
-          <motion.div
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 p-6"
-          >
-            <div className="w-12 h-1 bg-neutral-300 rounded-full mx-auto mb-6" />
-            <h3 className="text-lg font-black mb-4">Sort By</h3>
-            <div className="space-y-2">
+      <AnimatePresence>
+        {showFilters && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowFilters(false)}
+              className="fixed inset-0 bg-black/50 z-50"
+            />
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              className="fixed top-0 right-0 bottom-0 w-full max-w-sm bg-white z-50 shadow-2xl flex flex-col"
+            >
+              <div className="p-4 border-b flex items-center justify-between">
+                <h3 className="text-lg font-black">Filters</h3>
+                <button onClick={() => setShowFilters(false)} className="p-2">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4">
+                <FilterSidebar filters={filters} onChange={setFilters} onClear={handleClearFilters} />
+              </div>
+              <div className="p-4 border-t">
+                <button 
+                  onClick={() => setShowFilters(false)}
+                  className="w-full bg-orange-500 text-white py-3 rounded-xl font-black"
+                >
+                  Apply Filters
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+
+        {showSortMenu && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowSortMenu(false)}
+              className="fixed inset-0 bg-black/50 z-50"
+            />
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 p-6"
+            >
+              <div className="w-12 h-1 bg-neutral-300 rounded-full mx-auto mb-4" />
+              <h3 className="text-lg font-black mb-4">Sort By</h3>
               {[
                 { value: 'relevance', label: 'Relevance' },
                 { value: 'popular', label: 'Popularity' },
@@ -218,19 +319,19 @@ export default function Shop() {
                     setSortBy(option.value);
                     setShowSortMenu(false);
                   }}
-                  className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${
+                  className={`w-full text-left px-4 py-3 rounded-xl font-bold mb-2 transition-colors ${
                     sortBy === option.value
                       ? 'bg-orange-500 text-white'
-                      : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                      : 'bg-neutral-100 text-neutral-700'
                   }`}
                 >
                   {option.label}
                 </button>
               ))}
-            </div>
-          </motion.div>
-        </>
-      )}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       <style jsx>{`
         .scrollbar-hide::-webkit-scrollbar {
