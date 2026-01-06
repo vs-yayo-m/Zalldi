@@ -13,7 +13,7 @@ export default function ProductCard({ product }) {
   const [isWishlisted, setIsWishlisted] = useState(false);
   
   const quantity = getItemQuantity(product.id);
-  const discount = product.discountPrice ?
+  const discount = product.discountPrice && product.price ?
     Math.round(((product.price - product.discountPrice) / product.price) * 100) :
     null;
   
@@ -68,6 +68,7 @@ export default function ProductCard({ product }) {
         <button
           onClick={handleWishlist}
           className="absolute top-2 left-2 p-1.5 bg-white rounded-full shadow-sm hover:scale-110 transition-transform"
+          aria-label="toggle wishlist"
         >
           <Heart 
             className={`w-4 h-4 ${isWishlisted ? 'fill-red-500 text-red-500' : 'text-neutral-400'}`}
@@ -129,10 +130,19 @@ export default function ProductCard({ product }) {
           <span className="text-[9px] font-bold text-neutral-500 uppercase"> 30 mins</span>
         </div>
 
+        {/* Weight badge: very small, rounded, translucent green badge */}
+        {product.weight && (
+          <div className="mb-1">
+            <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-50/60 text-green-700 border border-green-100">
+              {product.weight}
+            </span>
+          </div>
+        )}
+
         <h3 className="text-sm font-bold text-neutral-800 line-clamp-2 mb-1 leading-tight">
           {product.name}
         </h3>
-
+        
         {product.unit && (
           <p className="text-[10px] text-neutral-500 mb-2">
             {product.stock > 0 ? product.unit : 'Out of stock'}
@@ -144,7 +154,7 @@ export default function ProductCard({ product }) {
             <span className="text-base font-black text-neutral-900">
               Rs.{product.discountPrice || product.price}
             </span>
-            {product.discountPrice && (
+            {product.discountPrice && product.price && (
               <span className="text-[10px] text-neutral-400 line-through">
                 ₹{product.price}
               </span>
