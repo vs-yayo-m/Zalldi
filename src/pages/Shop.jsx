@@ -172,8 +172,8 @@ export default function Shop() {
 
           <main className="flex-1 p-4 overflow-y-auto">
             <div className="mb-4 bg-gradient-to-r from-green-500 to-green-600 rounded-2xl p-4 text-white">
-              <h2 className="text-lg font-black mb-1">Healthy, juicy & seasonal</h2>
-              <p className="text-xs opacity-90">Picked fresh from India's orchards</p>
+              <h2 className="text-lg font-black mb-1"> Cheapest Price , Enjoy Free Delivery</h2>
+              <p className="text-xs opacity-90"> Order Now , Enjoy Free Delivery </p>
             </div>
 
             {loading ? (
