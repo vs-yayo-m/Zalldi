@@ -126,7 +126,7 @@ export default function ProductCard({ product }) {
       <div className="p-3">
         <div className="flex items-center gap-1 mb-1">
           <Clock className="w-3 h-3 text-neutral-400" />
-          <span className="text-[9px] font-bold text-neutral-500 uppercase">8 mins</span>
+          <span className="text-[9px] font-bold text-neutral-500 uppercase"> 30 mins</span>
         </div>
 
         <h3 className="text-sm font-bold text-neutral-800 line-clamp-2 mb-1 leading-tight">
