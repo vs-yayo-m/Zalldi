@@ -86,7 +86,7 @@ export default function Shop() {
       maxPrice: null,
       minRating: null,
       inStock: true,
-      hasDiscount: true
+      hasDiscount: false
     });
   };
 
