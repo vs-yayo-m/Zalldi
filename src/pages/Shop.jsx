@@ -11,7 +11,7 @@ import FilterSidebar from '@/components/customer/FilterSidebar';
 import ProductCard from '@/components/customer/ProductCard';
 
 export default function Shop() {
-  const { products, loading } = useProducts({ active: true });
+  const { products, loading, error } = useProducts({ active: true });
   
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [sortBy, setSortBy] = useState('relevance');
@@ -35,7 +35,7 @@ export default function Shop() {
     return cats;
   }, []);
 
-const filteredProducts = useMemo(() => {
+  const filteredProducts = useMemo(() => {
     if (!products || !Array.isArray(products)) return [];
     let filtered = [...products];
 
@@ -98,6 +98,18 @@ const filteredProducts = useMemo(() => {
     if (filters.hasDiscount) count++;
     return count;
   }, [filters]);
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-neutral-50">
+        <Header />
+        <div className="pt-32 text-center">
+          <p className="text-red-500 font-medium">Error: {error}</p>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -187,7 +199,7 @@ const filteredProducts = useMemo(() => {
                   </div>
                 ))}
               </div>
-            ) : filteredProducts && filteredProducts.length > 0 ? (
+            ) : filteredProducts.length > 0 ? (
               <div className="grid grid-cols-2 gap-3">
                 {filteredProducts.map((product) => (
                   <ProductCard key={product.id} product={product} />
@@ -196,12 +208,12 @@ const filteredProducts = useMemo(() => {
             ) : (
               <div className="text-center py-20">
                 <p className="text-neutral-500 font-medium">No products found</p>
-              </div>
-            )}
-
-            {!loading && filteredProducts.length === 0 && (
-              <div className="text-center py-20">
-                <p className="text-neutral-500 font-medium">No products found</p>
+                <button 
+                  onClick={handleClearFilters}
+                  className="mt-4 px-6 py-2 bg-orange-500 text-white rounded-xl font-bold"
+                >
+                  Clear Filters
+                </button>
               </div>
             )}
           </main>
