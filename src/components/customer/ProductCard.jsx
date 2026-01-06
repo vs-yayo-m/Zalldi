@@ -2,15 +2,17 @@
 
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Minus } from 'lucide-react'
 import { useCart } from '@/hooks/useCart'
 import { formatCurrency, formatDiscount } from '@/utils/formatters'
+import Badge from '@/components/ui/Badge'
 import RatingStars from './RatingStars'
+import StockIndicator from './StockIndicator'
 
 export default function ProductCard({ product }) {
   const { addItem, removeItem, getItemQuantity } = useCart()
-  const quantity = getItemQuantity(product.id) || 0
+  const quantity = getItemQuantity?.(product.id) || 0
   
   const discount = product.discountPrice ?
     formatDiscount(product.price, product.discountPrice) :
@@ -18,92 +20,108 @@ export default function ProductCard({ product }) {
   
   const handleAdd = (e) => {
     e.preventDefault()
+    e.stopPropagation()
     addItem(product, 1)
   }
   
   const handleRemove = (e) => {
     e.preventDefault()
+    e.stopPropagation()
     removeItem(product.id, 1)
   }
   
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -3 }}
+      whileHover={{ y: -2 }}
       transition={{ duration: 0.25 }}
-      className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow"
+      className="group relative"
     >
-      <Link to={`/product/${product.slug}`} className="block">
+      <Link
+        to={`/product/${product.slug}`}
+        className="block bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+      >
         {/* IMAGE */}
-        <div className="relative aspect-[4/3] bg-neutral-100 rounded-t-xl overflow-hidden">
+        <div className="relative aspect-[4/3] bg-neutral-100 overflow-hidden">
           <img
             src={product.images?.[0] || '/placeholder.png'}
             alt={product.name}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
 
-          {/* DISCOUNT */}
+          {/* DISCOUNT BADGE */}
           {discount && (
-            <span className="absolute top-2 left-2 text-[10px] px-2 py-0.5 rounded-full bg-red-500 text-white font-medium">
+            <Badge className="absolute top-2 left-2 bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-md">
               {discount}% OFF
-            </span>
+            </Badge>
           )}
 
           {/* DELIVERY BADGE */}
-          <span className="absolute bottom-2 left-2 text-[10px] px-2 py-0.5 rounded-full bg-orange-500/90 text-white font-medium">
-            ⚡ 10–15 mins
-          </span>
+          <div className="absolute bottom-2 left-2 bg-orange-500 text-white text-[10px] px-2 py-0.5 rounded-full">
+            ⚡ In mins
+          </div>
 
           {/* ADD / COUNTER */}
-          <div className="absolute top-2 right-2">
-            {quantity === 0 ? (
-              <button
-                onClick={handleAdd}
-                disabled={product.stock === 0}
-                className="px-3 py-1 text-xs font-semibold rounded-full bg-white border border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white transition"
-              >
-                ADD
-              </button>
-            ) : (
-              <div className="flex items-center bg-white rounded-full border shadow-sm overflow-hidden">
-                <button
-                  onClick={handleRemove}
-                  className="p-1.5 hover:bg-neutral-100"
-                >
-                  <Minus className="w-3 h-3 text-orange-500" />
-                </button>
-                <span className="px-2 text-xs font-semibold">
-                  {quantity}
-                </span>
-                <button
+          <div className="absolute top-2 right-2 z-10">
+            <AnimatePresence mode="wait">
+              {quantity === 0 ? (
+                <motion.button
+                  key="add"
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
                   onClick={handleAdd}
-                  className="p-1.5 hover:bg-neutral-100"
+                  className="bg-white text-orange-500 text-xs font-semibold px-3 py-1 rounded-lg border border-orange-500 shadow-sm hover:bg-orange-50"
                 >
-                  <Plus className="w-3 h-3 text-orange-500" />
-                </button>
-              </div>
-            )}
+                  ADD
+                </motion.button>
+              ) : (
+                <motion.div
+                  key="counter"
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  className="flex items-center bg-white rounded-lg shadow-sm border border-orange-500 overflow-hidden"
+                >
+                  <button
+                    onClick={handleRemove}
+                    className="px-2 py-1 text-orange-500 hover:bg-orange-50"
+                  >
+                    <Minus size={14} />
+                  </button>
+                  <span className="px-2 text-xs font-semibold text-neutral-800">
+                    {quantity}
+                  </span>
+                  <button
+                    onClick={handleAdd}
+                    className="px-2 py-1 text-orange-500 hover:bg-orange-50"
+                  >
+                    <Plus size={14} />
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
 
         {/* CONTENT */}
-        <div className="p-3 space-y-1.5">
+        <div className="p-3 space-y-1">
           {/* PRODUCT NAME */}
-          <h3 className="text-sm font-medium text-neutral-900 line-clamp-2">
+          <h3 className="text-sm font-medium text-neutral-800 line-clamp-2">
             {product.name}
           </h3>
 
           {/* WEIGHT / VARIANT */}
-          {product.variant && (
-            <p className="text-xs text-neutral-500">
-              {product.variant}
-            </p>
+          {product.weight && (
+            <div className="text-[11px] text-neutral-500">
+              {product.weight}
+            </div>
           )}
 
           {/* RATING */}
           {product.rating > 0 && (
-            <div className="flex items-center gap-1 text-xs text-neutral-600">
+            <div className="flex items-center gap-1 text-[11px] text-neutral-600">
               <RatingStars rating={product.rating} size="xs" />
               <span>({product.reviewCount || 0})</span>
             </div>
@@ -115,24 +133,16 @@ export default function ProductCard({ product }) {
               {formatCurrency(product.discountPrice || product.price)}
             </span>
             {product.discountPrice && (
-              <span className="text-xs text-neutral-400 line-through">
+              <span className="text-[11px] text-neutral-400 line-through">
                 {formatCurrency(product.price)}
               </span>
             )}
           </div>
 
           {/* STOCK */}
-          {product.stock > 0 && product.stock <= 5 && (
-            <p className="text-[11px] text-orange-600 font-medium">
-              Only {product.stock} left
-            </p>
-          )}
-
-          {product.stock === 0 && (
-            <p className="text-[11px] text-red-500 font-medium">
-              Out of stock
-            </p>
-          )}
+          <div className="text-[11px]">
+            <StockIndicator stock={product.stock} />
+          </div>
         </div>
       </Link>
     </motion.div>
