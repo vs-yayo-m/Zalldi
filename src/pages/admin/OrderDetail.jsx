@@ -5,7 +5,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { 
   ArrowLeft, Package, User, MapPin, Phone, Mail, Clock, 
-  CheckCircle, XCircle, Truck, Edit, Printer, MessageSquare
+  CheckCircle, XCircle, Truck, Edit, Printer, MessageSquare, Zap
 } from 'lucide-react'
 import Header from '@components/layout/Header'
 import Footer from '@components/layout/Footer'
@@ -25,9 +25,7 @@ export default function AdminOrderDetail() {
   const [updating, setUpdating] = useState(false)
 
   useEffect(() => {
-    if (orderId) {
-      fetchOrder()
-    }
+    if (orderId) fetchOrder()
   }, [orderId])
 
   const fetchOrder = async () => {
@@ -36,40 +34,9 @@ export default function AdminOrderDetail() {
       const data = await getOrderById(orderId)
       setOrder(data)
     } catch (error) {
-      console.error('Error fetching order:', error)
       toast.error('Failed to load order details')
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleStatusUpdate = async (newStatus) => {
-    try {
-      setUpdating(true)
-      await updateOrderStatus(orderId, newStatus)
-      toast.success(`Order status updated to ${ORDER_STATUS_LABELS[newStatus]}`)
-      await fetchOrder()
-    } catch (error) {
-      console.error('Error updating status:', error)
-      toast.error('Failed to update order status')
-    } finally {
-      setUpdating(false)
-    }
-  }
-
-  const handleCancelOrder = async () => {
-    if (!confirm('Are you sure you want to cancel this order?')) return
-
-    try {
-      setUpdating(true)
-      await cancelOrder(orderId, 'Cancelled by admin')
-      toast.success('Order cancelled')
-      await fetchOrder()
-    } catch (error) {
-      console.error('Error cancelling order:', error)
-      toast.error('Failed to cancel order')
-    } finally {
-      setUpdating(false)
     }
   }
 
@@ -77,337 +44,187 @@ export default function AdminOrderDetail() {
     window.print()
   }
 
-  const getStatusColor = (status) => {
-    const colors = {
-      [ORDER_STATUS.PENDING]: 'orange',
-      [ORDER_STATUS.CONFIRMED]: 'blue',
-      [ORDER_STATUS.PICKING]: 'purple',
-      [ORDER_STATUS.PACKING]: 'indigo',
-      [ORDER_STATUS.OUT_FOR_DELIVERY]: 'cyan',
-      [ORDER_STATUS.DELIVERED]: 'green',
-      [ORDER_STATUS.CANCELLED]: 'red'
-    }
-    return colors[status] || 'gray'
-  }
-
-  const getNextStatus = (currentStatus) => {
-    const statusFlow = {
-      [ORDER_STATUS.PENDING]: ORDER_STATUS.CONFIRMED,
-      [ORDER_STATUS.CONFIRMED]: ORDER_STATUS.PICKING,
-      [ORDER_STATUS.PICKING]: ORDER_STATUS.PACKING,
-      [ORDER_STATUS.PACKING]: ORDER_STATUS.OUT_FOR_DELIVERY,
-      [ORDER_STATUS.OUT_FOR_DELIVERY]: ORDER_STATUS.DELIVERED
-    }
-    return statusFlow[currentStatus]
-  }
-
-  if (loading) {
-    return <LoadingScreen />
-  }
-
-  if (!order) {
-    return (
-      <div className="min-h-screen bg-neutral-50">
-        <Header />
-        <div className="container mx-auto px-4 py-20 text-center">
-          <h1 className="text-heading font-display font-bold text-neutral-800 mb-4">Order Not Found</h1>
-          <p className="text-body text-neutral-600 mb-8">The order you're looking for doesn't exist.</p>
-          <Button onClick={() => navigate(-1)}>Go Back</Button>
-        </div>
-        <Footer />
-      </div>
-    )
-  }
-
-  const nextStatus = getNextStatus(order.status)
-  const canProgress = nextStatus && order.status !== ORDER_STATUS.DELIVERED && order.status !== ORDER_STATUS.CANCELLED
+  if (loading) return <LoadingScreen />
+  if (!order) return <div className="p-20 text-center">Order not found</div>
 
   return (
     <div className="min-h-screen bg-neutral-50">
-      <Header />
+      <div className="no-print">
+        <Header />
+      </div>
       
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-6">
-          <button 
-            onClick={() => navigate(-1)}
-            className="flex items-center text-neutral-600 hover:text-neutral-900 transition-colors mb-4"
-          >
-            <ArrowLeft className="w-5 h-5 mr-2" />
-            Back to Orders
-          </button>
-          
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h1 className="text-display font-display font-bold text-neutral-900 mb-2">
-                Order #{order.orderNumber}
-              </h1>
-              <p className="text-body text-neutral-600">
-                Placed on {formatDateTime(order.createdAt)}
-              </p>
-            </div>
-            
-            <div className="flex flex-wrap gap-3">
-              {canProgress && (
-                <Button
-                  onClick={() => handleStatusUpdate(nextStatus)}
-                  disabled={updating}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  <CheckCircle className="w-5 h-5 mr-2" />
-                  Move to {ORDER_STATUS_LABELS[nextStatus]}
-                </Button>
-              )}
-              
-              {order.status !== ORDER_STATUS.DELIVERED && order.status !== ORDER_STATUS.CANCELLED && (
-                <Button
-                  variant="secondary"
-                  onClick={handleCancelOrder}
-                  disabled={updating}
-                >
-                  <XCircle className="w-5 h-5 mr-2" />
-                  Cancel Order
-                </Button>
-              )}
-              
-              <Button variant="outline" onClick={handlePrint}>
-                <Printer className="w-5 h-5 mr-2" />
-                Print
-              </Button>
+      {/* ==========================================================================
+         A. PRINT-ONLY LAYER (Enterprise Engine)
+         ========================================================================== */}
+      <div className="hidden print:block">
+        <div className="print-doc-header">
+          <div className="print-brand-identity">
+            {/* Using text logo if SVG is unavailable, styled as high-end typography */}
+            <h1 className="text-3xl font-black italic uppercase tracking-tighter text-orange-600">Zalldi</h1>
+            <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest mt-1">Butwal's Fresh Network</p>
+          </div>
+          <div className="print-doc-meta">
+            <h2 className="print-doc-id">ORDER #{order.orderNumber}</h2>
+            <p className="text-[10px] font-medium text-neutral-500">{formatDateTime(order.createdAt)}</p>
+            <div className="mt-2">
+               <span className="print-status">{ORDER_STATUS_LABELS[order.status]}</span>
             </div>
           </div>
         </div>
 
-        {/* Print-only header */}
-        <div className="print-only hidden">
-          <div className="print-header">
-            <h1 className="print-title">Zalldi</h1>
-            <p className="print-subtitle">Order Receipt</p>
-          </div>
-        </div>
-
-        <div className="grid lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white rounded-2xl shadow-card p-6 print-section">
-              <div className="flex items-center justify-between mb-6 no-print">
-                <h2 className="text-title font-display font-bold text-neutral-900">Order Status</h2>
-                <Badge variant={getStatusColor(order.status)}>
-                  {ORDER_STATUS_LABELS[order.status]}
-                </Badge>
-              </div>
-
-              {/* Print-only status */}
-              <div className="print-only hidden mb-4">
-                <span className={`print-badge ${order.status}`}>
-                  {ORDER_STATUS_LABELS[order.status]}
-                </span>
-              </div>
-
-              <div className="relative">
-                {(order.statusHistory || []).map((item, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="relative flex gap-4 pb-6 last:pb-0"
-                  >
-                    <div className="flex flex-col items-center">
-                      <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                      </div>
-                      {index < (order.statusHistory?.length || 0) - 1 && (
-                        <div className="w-0.5 h-full bg-neutral-200 my-2" />
-                      )}
-                    </div>
-                    
-                    <div className="flex-1 pt-1">
-                      <p className="font-semibold text-neutral-900 mb-1">
-                        {ORDER_STATUS_LABELS[item.status]}
-                      </p>
-                      <p className="text-body-sm text-neutral-600">
-                        {formatDateTime(item.timestamp)}
-                      </p>
-                      {item.note && (
-                        <p className="text-body-sm text-neutral-500 mt-1">
-                          {item.note}
-                        </p>
-                      )}
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl shadow-card p-6 print-section">
-              <h2 className="text-title font-display font-bold text-neutral-900 mb-4">Order Items</h2>
-              
-              {/* Screen view */}
-              <div className="space-y-4 no-print">
-                {(order.items || []).map((item, index) => (
-                  <div key={index} className="flex gap-4 p-4 bg-neutral-50 rounded-xl">
-                    <img 
-                      src={item.image || '/placeholder.png'} 
-                      alt={item.name}
-                      className="w-20 h-20 object-cover rounded-lg"
-                    />
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-neutral-900 mb-1">{item.name}</h3>
-                      <p className="text-body-sm text-neutral-600 mb-2">
-                        Quantity: {item.quantity}
-                      </p>
-                      <p className="font-bold text-neutral-900">
-                        {formatCurrency(item.price)} × {item.quantity} = {formatCurrency(item.total)}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Print view - table format */}
-              <div className="print-only hidden">
-                <table className="print-table">
-                  <thead>
-                    <tr>
-                      <th>Item</th>
-                      <th>Qty</th>
-                      <th>Price</th>
-                      <th>Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(order.items || []).map((item, index) => (
-                      <tr key={index}>
-                        <td>{item.name}</td>
-                        <td>{item.quantity}</td>
-                        <td>{formatCurrency(item.price)}</td>
-                        <td>{formatCurrency(item.total)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="mt-6 pt-6 border-t border-neutral-200 space-y-3 print-summary">
-                <div className="flex justify-between text-body print-summary-row">
-                  <span className="text-neutral-600">Subtotal</span>
-                  <span className="font-semibold">{formatCurrency(order.subtotal)}</span>
-                </div>
-                <div className="flex justify-between text-body print-summary-row">
-                  <span className="text-neutral-600">Delivery Fee</span>
-                  <span className="font-semibold">{formatCurrency(order.deliveryFee)}</span>
-                </div>
-                {order.discount > 0 && (
-                  <div className="flex justify-between text-body print-summary-row">
-                    <span className="text-neutral-600">Discount</span>
-                    <span className="font-semibold text-green-600">-{formatCurrency(order.discount)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-title font-bold pt-3 border-t border-neutral-200 print-summary-total">
-                  <span>Total</span>
-                  <span className="text-orange-600">{formatCurrency(order.total)}</span>
-                </div>
-              </div>
+        <div className="print-info-grid">
+          <div>
+            <span className="print-label">Billing & Shipping To</span>
+            <p className="font-black text-sm">{order.customerName}</p>
+            <p className="text-xs text-neutral-600 mt-1">{formatAddress(order.deliveryAddress)}</p>
+            <div className="flex gap-4 mt-2 text-[10px] font-bold">
+              <span>TEL: {order.customerPhone}</span>
+              {order.customerEmail && <span>MAIL: {order.customerEmail}</span>}
             </div>
           </div>
-
-          <div className="space-y-6">
-            <div className="bg-white rounded-2xl shadow-card p-6 print-info-box">
-              <h2 className="text-title font-display font-bold text-neutral-900 mb-4 flex items-center print-info-title no-print">
-                <User className="w-5 h-5 mr-2 text-orange-500" />
-                Customer Details
-              </h2>
-              <span className="print-info-title print-only hidden">Customer Details</span>
-              
-              <div className="space-y-3 print-info-content">
-                <div>
-                  <p className="text-body-sm text-neutral-600 mb-1">Name</p>
-                  <p className="font-semibold text-neutral-900">{order.customerName}</p>
-                </div>
-                
-                <div>
-                  <p className="text-body-sm text-neutral-600 mb-1 flex items-center no-print">
-                    <Phone className="w-4 h-4 mr-1" />
-                    Phone
-                  </p>
-                  <p className="text-body-sm text-neutral-600 mb-1 print-only hidden">Phone</p>
-                  <a 
-                    href={`tel:${order.customerPhone}`}
-                    className="font-semibold text-orange-600 hover:underline no-print"
-                  >
-                    {order.customerPhone}
-                  </a>
-                  <p className="font-semibold text-neutral-900 print-only hidden">
-                    {order.customerPhone}
-                  </p>
-                </div>
-                
-                {order.customerEmail && (
-                  <div>
-                    <p className="text-body-sm text-neutral-600 mb-1 flex items-center no-print">
-                      <Mail className="w-4 h-4 mr-1" />
-                      Email
-                    </p>
-                    <p className="text-body-sm text-neutral-600 mb-1 print-only hidden">Email</p>
-                    <a 
-                      href={`mailto:${order.customerEmail}`}
-                      className="font-semibold text-orange-600 hover:underline break-all no-print"
-                    >
-                      {order.customerEmail}
-                    </a>
-                    <p className="font-semibold text-neutral-900 break-all print-only hidden">
-                      {order.customerEmail}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl shadow-card p-6 print-info-box">
-              <h2 className="text-title font-display font-bold text-neutral-900 mb-4 flex items-center print-info-title no-print">
-                <MapPin className="w-5 h-5 mr-2 text-orange-500" />
-                Delivery Address
-              </h2>
-              <span className="print-info-title print-only hidden">Delivery Address</span>
-              
-              <p className="text-body text-neutral-700 leading-relaxed print-info-content">
-                {formatAddress(order.deliveryAddress)}
-              </p>
-              
-              {order.deliveryAddress?.landmark && (
-                <p className="text-body-sm text-neutral-600 mt-2 print-info-content">
-                  Landmark: {order.deliveryAddress.landmark}
-                </p>
-              )}
-            </div>
-
+          <div className="text-right">
+            <span className="print-label">Shipping Method</span>
+            <p className="font-bold text-xs uppercase flex items-center justify-end gap-1">
+               <Zap size={10} className="text-orange-500" /> Express 1-Hour Delivery
+            </p>
             {order.notes && (
-              <div className="bg-orange-50 rounded-2xl p-6 print-info-box">
-                <h2 className="text-title font-display font-bold text-neutral-900 mb-3 flex items-center print-info-title no-print">
-                  <MessageSquare className="w-5 h-5 mr-2 text-orange-500" />
-                  Order Notes
-                </h2>
-                <span className="print-info-title print-only hidden">Order Notes</span>
-                <p className="text-body text-neutral-700 print-info-content">{order.notes}</p>
+              <div className="mt-4">
+                <span className="print-label">Order Notes</span>
+                <p className="text-[10px] italic">{order.notes}</p>
               </div>
             )}
           </div>
         </div>
 
-        {/* Print footer */}
-        <div className="print-only hidden print-footer">
-          <p>Thank you for your order!</p>
-          <p className="print-contact">
-            Zalldi - Fast 1-Hour Delivery in Butwal<br />
-            Contact: +977 9821072912 | support.zalldi@gmail.com<br />
-            www.zalldi.com.np
-          </p>
-          <p style={{ fontSize: '8pt', marginTop: '10px' }}>
-            Printed on {new Date().toLocaleString()}
-          </p>
+        <table className="print-data-table">
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th className="text-center">Qty</th>
+              <th className="text-right">Unit Price</th>
+              <th className="text-right">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(order.items || []).map((item, index) => (
+              <tr key={index}>
+                <td>
+                  <p className="print-item-title">{item.name}</p>
+                  <p className="print-item-desc">{item.unit || 'Standard Unit'}</p>
+                </td>
+                <td className="text-center font-bold">{item.quantity}</td>
+                <td className="text-right">{formatCurrency(item.price)}</td>
+                <td className="text-right font-bold">{formatCurrency(item.total)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <div className="print-summary-container">
+          <div className="print-summary-card">
+            <div className="print-summary-row">
+              <span className="text-xs text-neutral-500 font-bold uppercase">Subtotal</span>
+              <span className="font-bold">{formatCurrency(order.subtotal)}</span>
+            </div>
+            <div className="print-summary-row">
+              <span className="text-xs text-neutral-500 font-bold uppercase">Delivery Fee</span>
+              <span className="font-bold">{formatCurrency(order.deliveryFee || 0)}</span>
+            </div>
+            {order.discount > 0 && (
+              <div className="print-summary-row">
+                <span className="text-xs text-neutral-500 font-bold uppercase">Discounts</span>
+                <span className="font-bold">-{formatCurrency(order.discount)}</span>
+              </div>
+            )}
+            <div className="print-summary-row grand-total">
+              <span>TOTAL (NPR)</span>
+              <span>{formatCurrency(order.total)}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="print-compliance-footer">
+          <p>This is a computer-generated invoice. No signature required.</p>
+          <p className="mt-1">Zalldi Pvt. Ltd. | Ward No. 11, Butwal, Rupandehi | PAN: 610023941</p>
         </div>
       </div>
 
-      <Footer />
+
+      {/* ==========================================================================
+         B. BROWSER INTERFACE (SCREEN ONLY)
+         ========================================================================== */}
+      <div className="container mx-auto px-4 py-8 no-print">
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <button onClick={() => navigate(-1)} className="flex items-center text-neutral-500 hover:text-black mb-2 transition-all">
+              <ArrowLeft className="w-4 h-4 mr-2" /> Back
+            </button>
+            <h1 className="text-3xl font-black uppercase italic tracking-tighter">Order #{order.orderNumber}</h1>
+          </div>
+          <div className="flex gap-2">
+             <Button variant="outline" onClick={handlePrint} className="bg-white border-2 border-neutral-200">
+                <Printer className="w-4 h-4 mr-2" /> Print Invoice
+             </Button>
+             <Button className="bg-orange-500 hover:bg-orange-600 text-white font-black shadow-lg shadow-orange-200">
+                Manage Logistics
+             </Button>
+          </div>
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-6">
+             <section className="bg-white rounded-3xl p-8 border border-neutral-100 shadow-sm">
+                <div className="flex items-center justify-between mb-8">
+                  <h2 className="text-xl font-black uppercase italic">Line Items</h2>
+                  <Badge variant="blue" className="px-4 py-1.5 rounded-full">{order.items?.length} Items</Badge>
+                </div>
+                <div className="divide-y divide-neutral-100">
+                  {order.items?.map((item, idx) => (
+                    <div key={idx} className="py-4 flex items-center gap-4">
+                      <div className="w-16 h-16 bg-neutral-50 rounded-2xl p-2 border border-neutral-100 shrink-0">
+                        <img src={item.image} alt="" className="w-full h-full object-contain mix-blend-multiply" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-bold text-neutral-800">{item.name}</h4>
+                        <p className="text-[10px] font-black text-neutral-400 uppercase">{item.unit || 'Standard'}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-black text-sm">{formatCurrency(item.total)}</p>
+                        <p className="text-[10px] font-bold text-neutral-400">{item.quantity} x {formatCurrency(item.price)}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+             </section>
+          </div>
+
+          <div className="space-y-6">
+             <section className="bg-neutral-900 rounded-3xl p-8 text-white shadow-xl">
+                <h3 className="text-sm font-black uppercase tracking-widest text-orange-500 mb-6">Customer Dossier</h3>
+                <div className="space-y-6">
+                   <div>
+                      <label className="text-[10px] font-black text-neutral-500 uppercase block mb-1">Full Name</label>
+                      <p className="font-bold text-lg">{order.customerName}</p>
+                   </div>
+                   <div>
+                      <label className="text-[10px] font-black text-neutral-500 uppercase block mb-1">Contact Link</label>
+                      <p className="font-bold flex items-center gap-2"><Phone size={14} className="text-orange-500" /> {order.customerPhone}</p>
+                      {order.customerEmail && <p className="text-sm font-medium text-neutral-400 mt-1 underline italic">{order.customerEmail}</p>}
+                   </div>
+                   <div className="pt-6 border-t border-white/10">
+                      <label className="text-[10px] font-black text-neutral-500 uppercase block mb-1">Drop Point</label>
+                      <p className="text-sm font-medium leading-relaxed">{formatAddress(order.deliveryAddress)}</p>
+                   </div>
+                </div>
+             </section>
+          </div>
+        </div>
+      </div>
+
+      <div className="no-print">
+        <Footer />
+      </div>
     </div>
   )
 }
+
