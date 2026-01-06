@@ -1,304 +1,305 @@
 // src/pages/ProductDetail.jsx
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  ArrowLeft,
-  ChevronRight,
-  ChevronDown,
-  Heart,
-  Share2,
-  Clock,
-  ShieldCheck,
-  Zap,
-  Star,
-  Info,
-  Package,
-  ShoppingCart,
-  Tag
+import { 
+  ArrowLeft, ChevronRight, ChevronDown, Heart, Share2,
+  Clock, ShieldCheck, Zap, Star, Info, Package
 } from 'lucide-react';
-
-// NOTE: these hooks/services are expected to exist in your project (kept from your original file)
 import { useProductBySlug } from '@/hooks/useProducts';
 import { useCart } from '@/hooks/useCart';
 import { useWishlist } from '@/hooks/useWishlist';
+import ProductGrid from '@/components/customer/ProductGrid';
+import Header from '@/components/layout/Header';
+import LoadingScreen from '@/components/shared/LoadingScreen';
 import productService from '@/services/product.service';
 import { formatCurrency } from '@/utils/formatters';
 import toast from 'react-hot-toast';
 
-// -----------------------------------------------------------------------------
-// PRODUCT DETAIL - Mobile-first, premium, animated, and organized
-// - Single-file page component (export default)
-// - Uses Tailwind classes (mobile first) and Framer Motion for micro-interactions
-// - Image carousel supports swipe/drag, thumbnails, and indicators
-// - Compact, high-contrast typographic scale for mobile
-// - Sticky, compact action bar with conditional states
-// - Organized details accordion, features, instructions, and policy chips
-// - Multiple recommendation carousels with lazy-loading (infinite-like UX)
-// -----------------------------------------------------------------------------
-
-export default function ProductDetailPageRevamped() {
+export default function ProductDetailPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const { product, loading } = useProductBySlug(slug);
   const { addItem } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
-
-  // UI state
+  
   const [activeImage, setActiveImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
-  const [expandedSection, setExpandedSection] = useState(null);
-  const [recommendations, setRecommendations] = useState({
-    related: [],
-    recommended: [],
-    boughtTogether: [],
-    others: []
-  });
-  const [loadingRec, setLoadingRec] = useState(false);
-  const [thumbsVisible, setThumbsVisible] = useState(true);
-
-  const images = useMemo(() => (product ? product.images || [product.image] : []), [product]);
-  const inWishlist = product && isInWishlist(product.id);
-  const discount = product && product.comparePrice ? Math.round(((product.comparePrice - product.price) / product.comparePrice) * 100) : 0;
-
-  // refs
-  const carouselRef = useRef(null);
-  const recLoadRef = useRef(null);
-
-  useEffect(() => window.scrollTo(0, 0), [slug]);
-
+  const [showDetails, setShowDetails] = useState(false);
+  const [relatedProducts, setRelatedProducts] = useState([]);
+  const [recommendedProducts, setRecommendedProducts] = useState([]);
+  const [boughtTogether, setBoughtTogether] = useState([]);
+  
   useEffect(() => {
-    if (product) fetchRecommendations();
+    window.scrollTo(0, 0);
+  }, [slug]);
+  
+  useEffect(() => {
+    if (product) {
+      loadRecommendations();
+    }
   }, [product]);
-
-  async function fetchRecommendations() {
+  
+  const loadRecommendations = async () => {
     try {
-      setLoadingRec(true);
-      const [related, recommended, bought, others] = await Promise.all([
+      const [related, recommended, together] = await Promise.all([
         productService.getRelated(product.id, product.category, 8),
         productService.getTrending(8),
-        productService.getBoughtTogether(product.id, 4),
-        productService.getOthers(product.category, 12)
+        productService.getBoughtTogether(product.id, 4)
       ]);
-      setRecommendations({ related, recommended, boughtTogether: bought, others });
+      setRelatedProducts(related);
+      setRecommendedProducts(recommended);
+      setBoughtTogether(together);
     } catch (err) {
-      console.error('rec error', err);
-    } finally {
-      setLoadingRec(false);
+      console.error('Error loading recommendations:', err);
     }
-  }
+  };
 
-  // Add to cart with strong microcopy and animated feedback
-  function handleAddToCart({ single = false } = {}) {
-    if (!product) return;
-    const stock = product.stock ?? 9999;
-    if (stock <= 0) return toast.error('Out of stock');
-
+  const handleAddToCart = () => {
     addItem({ ...product, quantity });
+    toast.success('Added to cart!');
+  };
 
-    // micro-interaction
-    toast.custom((t) => (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-white shadow-lg rounded-2xl p-3 flex items-center gap-3"
-      >
-        <img src={images[0]} alt="thumb" className="w-12 h-12 object-cover rounded-lg" />
-        <div>
-          <div className="text-sm font-bold">Added to cart</div>
-          <div className="text-xs text-neutral-500">{product.name}</div>
-        </div>
-        <div className="ml-auto text-xs text-neutral-400">{formatCurrency(product.price)}</div>
-      </motion.div>
-    ));
-
-    if (single) navigate('/cart');
-  }
-
-  function handleShare() {
-    if (!product) return;
+  const handleShare = async () => {
     if (navigator.share) {
-      navigator.share({ title: product.name, text: product.name, url: window.location.href });
+      await navigator.share({
+        title: product.name,
+        text: `Check out ${product.name} on Zalldi`,
+        url: window.location.href
+      });
     } else {
       navigator.clipboard.writeText(window.location.href);
-      toast.success('Link copied');
+      toast.success('Link copied!');
     }
-  }
+  };
 
-  // small helper: toggle accordion
-  function toggleSection(key) {
-    setExpandedSection((prev) => (prev === key ? null : key));
-  }
-
-  if (loading) return <FullScreenLoader />;
+  if (loading) return <LoadingScreen />;
   if (!product) return navigate('/shop');
 
+  const images = product.images || [product.image];
+  const discount = product.comparePrice ? 
+    Math.round(((product.comparePrice - product.price) / product.comparePrice) * 100) : 0;
+  const inWishlist = isInWishlist(product.id);
+
   return (
-    <div className="min-h-screen bg-neutral-50 pb-28">
-      <MobileHeader onBack={() => navigate(-1)} onShare={handleShare} inWishlist={inWishlist} onToggleWishlist={() => toggleWishlist(product)} />
+    <div className="min-h-screen bg-neutral-50">
+      <Header />
+      
+      <div className="sticky top-16 z-40 bg-white border-b border-neutral-100 lg:hidden">
+        <div className="flex items-center justify-between px-4 py-3">
+          <button onClick={() => navigate(-1)} className="p-2 -ml-2">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={handleShare} className="p-2">
+              <Share2 className="w-5 h-5" />
+            </button>
+            <button onClick={() => toggleWishlist(product)} className="p-2">
+              <Heart className={`w-5 h-5 ${inWishlist ? 'fill-red-500 text-red-500' : ''}`} />
+            </button>
+          </div>
+        </div>
+      </div>
 
-      <main className="max-w-3xl mx-auto px-4 pt-4">
-        <div className="bg-white rounded-3xl shadow-sm overflow-hidden">
-          <div className="grid grid-cols-1 gap-4">
-            {/* IMAGE + THUMBS */}
+      <div className="max-w-7xl mx-auto px-4 py-6 lg:py-8">
+        <div className="bg-white rounded-3xl shadow-sm overflow-hidden mb-6">
+          <div className="grid lg:grid-cols-2 gap-6 lg:gap-12">
             <div className="relative">
-              <ImageCarousel
-                images={images}
-                active={activeImage}
-                onChange={(i) => setActiveImage(i)}
-                hiddenThumbs={!thumbsVisible}
-                setHiddenThumbs={setThumbsVisible}
-                ref={carouselRef}
-              />
-
-              {/* floating chips */}
-              <div className="absolute top-3 left-3 flex gap-2">
+              <div className="aspect-square bg-neutral-50 relative overflow-hidden">
+                <AnimatePresence mode="wait">
+                  <motion.img
+                    key={activeImage}
+                    src={images[activeImage]}
+                    alt={product.name}
+                    className="w-full h-full object-cover"
+                    initial={{ opacity: 0, scale: 1.1 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.3 }}
+                  />
+                </AnimatePresence>
+                
                 {discount > 0 && (
-                  <span className="bg-red-600 text-white px-3 py-1 rounded-full text-xs font-black">{discount}% OFF</span>
+                  <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+                    {discount}% OFF
+                  </div>
                 )}
-                <span className="bg-neutral-900/70 text-white px-3 py-1 rounded-full text-xs">{product.unit}</span>
+
+                <div className="absolute top-4 right-4 flex gap-2 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                  <button onClick={handleShare} className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-lg">
+                    <Share2 className="w-5 h-5" />
+                  </button>
+                  <button onClick={() => toggleWishlist(product)} className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-lg">
+                    <Heart className={`w-5 h-5 ${inWishlist ? 'fill-red-500 text-red-500' : ''}`} />
+                  </button>
+                </div>
               </div>
 
-              <div className="absolute top-3 right-3 flex gap-2">
-                <button onClick={handleShare} aria-label="share" className="w-10 h-10 bg-white rounded-xl shadow-md flex items-center justify-center">
-                  <Share2 className="w-4 h-4" />
-                </button>
-                <button onClick={() => toggleWishlist(product)} aria-label="wishlist" className="w-10 h-10 bg-white rounded-xl shadow-md flex items-center justify-center">
-                  <Heart className={`w-4 h-4 ${inWishlist ? 'fill-red-500 text-red-500' : ''}`} />
-                </button>
-              </div>
+              {images.length > 1 && (
+                <div className="flex gap-2 p-4 overflow-x-auto scrollbar-hide">
+                  {images.map((img, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setActiveImage(idx)}
+                      className={`flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${
+                        activeImage === idx ? 'border-orange-500 scale-105' : 'border-neutral-200'
+                      }`}
+                    >
+                      <img src={img} alt="" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* INFO */}
-            <section className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-orange-500" />
-                  <span className="text-xs font-bold text-orange-600">Fast — {product.eta || '30 MINS'}</span>
+            <div className="p-6 lg:py-8">
+              <div className="flex items-center gap-2 mb-3">
+                <Clock className="w-4 h-4 text-orange-500" />
+                <span className="text-xs font-bold text-orange-600 uppercase tracking-wider">
+                  21 MINS
+                </span>
+              </div>
+
+              <h1 className="text-2xl lg:text-3xl font-black text-neutral-900 mb-2 leading-tight">
+                {product.name}
+              </h1>
+
+              <p className="text-sm text-neutral-500 mb-4">{product.unit}</p>
+
+              <div className="flex items-center gap-4 mb-6">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-black text-neutral-900">
+                    {formatCurrency(product.price)}
+                  </span>
+                  {product.comparePrice && (
+                    <span className="text-lg text-neutral-400 line-through font-medium">
+                      {formatCurrency(product.comparePrice)}
+                    </span>
+                  )}
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1 bg-green-50 text-green-600 px-2 py-1 rounded-lg">
-                    <Star className="w-3 h-3 fill-green-600" />
-                    <span className="text-xs font-bold">{product.rating ?? '—'}</span>
+                {discount > 0 && (
+                  <div className="bg-green-50 text-green-700 px-3 py-1 rounded-lg text-sm font-bold">
+                    {discount}% OFF
                   </div>
-                  <span className="text-xs text-neutral-500">{product.reviewCount || 0} reviews</span>
-                </div>
+                )}
               </div>
 
-              <h1 className="text-xl font-extrabold text-neutral-900 leading-tight mb-1">{product.name}</h1>
-              <p className="text-xs text-neutral-500 mb-3 line-clamp-2">{product.shortDescription || product.description}</p>
-
-              <div className="flex items-end justify-between mb-4">
-                <div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-2xl font-extrabold">{formatCurrency(product.price)}</span>
-                    {product.comparePrice && <span className="text-xs line-through text-neutral-400">{formatCurrency(product.comparePrice)}</span>}
+              {product.rating && (
+                <div className="flex items-center gap-3 mb-6 pb-6 border-b border-neutral-100">
+                  <div className="flex items-center gap-1 bg-green-50 px-3 py-1.5 rounded-lg">
+                    <Star className="w-4 h-4 fill-green-600 text-green-600" />
+                    <span className="text-sm font-bold text-green-700">{product.rating}</span>
                   </div>
-                  {discount > 0 && <div className="text-xs text-green-700 font-bold">Save {formatCurrency(product.comparePrice - product.price)} today</div>}
+                  <span className="text-sm text-neutral-500">
+                    {product.reviewCount || 0} ratings
+                  </span>
                 </div>
-                <div className="text-right">
-                  <div className="text-xs text-neutral-500">Seller</div>
-                  <div className="text-sm font-semibold">{product.sellerName || 'Zalldi'}</div>
-                </div>
-              </div>
+              )}
 
-              {/* features chips */}
-              <div className="flex flex-wrap gap-2 mb-4">
-                <Chip icon={<ShieldCheck className="w-4 h-4" />} label="Quality Assured" />
-                <Chip icon={<Zap className="w-4 h-4" />} label="Fast Delivery" />
-                <Chip icon={<Package className="w-4 h-4" />} label={product.weight ? `${product.weight}g` : 'Packed Fresh'} />
-                {product.stock !== undefined && <Chip icon={<Tag className="w-4 h-4" />} label={product.stock > 0 ? `In stock` : 'Out of stock'} />}
-              </div>
+              <button
+                onClick={() => setShowDetails(!showDetails)}
+                className="flex items-center justify-between w-full py-4 text-left font-bold text-green-600 hover:text-green-700 transition-colors"
+              >
+                <span>View product details</span>
+                <ChevronDown className={`w-5 h-5 transition-transform ${showDetails ? 'rotate-180' : ''}`} />
+              </button>
 
-              {/* quantity + add buttons compact */}
-              <div className="flex items-center gap-3 mb-3">
-                <div className="flex items-center bg-neutral-100 rounded-xl overflow-hidden">
-                  <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="px-3 py-2 text-lg font-bold">−</button>
-                  <div className="px-4 py-2 font-bold">{quantity}</div>
-                  <button onClick={() => setQuantity(Math.min((product.stock ?? 9999), quantity + 1))} className="px-3 py-2 text-lg font-bold">+</button>
-                </div>
-
-                <button onClick={() => handleAddToCart()} className={`flex-1 py-3 rounded-xl font-bold transition-all ${product.stock === 0 ? 'bg-neutral-300 text-neutral-600 cursor-not-allowed' : 'bg-green-600 text-white'}`}>
-                  Add • {formatCurrency(product.price * quantity)}
-                </button>
-              </div>
-
-              <div className="flex gap-3 text-xs text-neutral-500 mb-2">
-                <div className="flex items-center gap-1"><Info className="w-3 h-3" /> Free returns</div>
-                <div className="flex items-center gap-1"><ShieldCheck className="w-3 h-3" /> Certified</div>
-              </div>
-
-              {/* DETAILS - COLLAPSIBLE */}
-              <div className="space-y-2">
-                <AccordionItem
-                  title="Product details"
-                  open={expandedSection === 'details'}
-                  onToggle={() => toggleSection('details')}
-                >
-                  <div className="text-sm text-neutral-700 space-y-2">
-                    <p className="leading-relaxed">{product.description}</p>
-                    {product.instructions && (
+              <AnimatePresence>
+                {showDetails && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="py-4 space-y-4 text-sm text-neutral-600 border-t border-neutral-100">
                       <div>
-                        <h4 className="font-bold">How to use</h4>
-                        <ol className="list-decimal ml-5 space-y-1 text-sm text-neutral-600">
-                          {product.instructions.map((it, i) => (
-                            <li key={i}>{it}</li>
-                          ))}
-                        </ol>
+                        <h4 className="font-bold text-neutral-900 mb-2">Product Details</h4>
+                        <p className="leading-relaxed">{product.description}</p>
                       </div>
-                    )}
-                  </div>
-                </AccordionItem>
+                      
+                      {product.features && (
+                        <div>
+                          <h4 className="font-bold text-neutral-900 mb-2">Key Features</h4>
+                          <ul className="space-y-1">
+                            {product.features.map((feature, idx) => (
+                              <li key={idx} className="flex items-start gap-2">
+                                <span className="text-orange-500 mt-1">•</span>
+                                <span>{feature}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
 
-                <AccordionItem title="Key features" open={expandedSection === 'features'} onToggle={() => toggleSection('features')}>
-                  <ul className="text-sm text-neutral-700 space-y-1">
-                    {(product.features || []).map((f, idx) => (
-                      <li key={idx} className="flex items-start gap-2">
-                        <span className="mt-1 text-orange-500">•</span>
-                        <span>{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </AccordionItem>
-
-                <AccordionItem title="Nutrition / Ingredients" open={expandedSection === 'nutrition'} onToggle={() => toggleSection('nutrition')}>
-                  <div className="text-sm text-neutral-700">
-                    {product.nutrition || <div className="text-neutral-500">No nutrition info provided.</div>}
-                  </div>
-                </AccordionItem>
-
-                <AccordionItem title="Shipping & Returns" open={expandedSection === 'shipping'} onToggle={() => toggleSection('shipping')}>
-                  <div className="text-sm text-neutral-700 space-y-2">
-                    <div>Delivered by <strong>{product.sellerName || 'Zalldi'}</strong>. Fast returns within 7 days.</div>
-                    <div className="text-xs text-neutral-500">Free delivery over {formatCurrency(product.freeDeliveryOver || 1500)}</div>
-                  </div>
-                </AccordionItem>
-              </div>
-
-            </section>
+                      <div className="grid grid-cols-2 gap-4 pt-4">
+                        <div className="flex items-center gap-3 p-3 bg-neutral-50 rounded-xl">
+                          <ShieldCheck className="w-5 h-5 text-green-600" />
+                          <span className="text-xs font-bold">Quality Assured</span>
+                        </div>
+                        <div className="flex items-center gap-3 p-3 bg-neutral-50 rounded-xl">
+                          <Zap className="w-5 h-5 text-orange-500" />
+                          <span className="text-xs font-bold">Fast Delivery</span>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
 
-        {/* RECOMMENDATIONS */}
-        <div className="mt-6 space-y-6">
-          <RecommendationCarousel title="People also bought" products={recommendations.boughtTogether} />
-          <RecommendationCarousel title="Top products in this category" products={recommendations.related} viewAll={`/category/${product.category}`} />
-          <RecommendationCarousel title="Recommended for you" products={recommendations.recommended} />
-          <RecommendationCarousel title="Other products" products={recommendations.others} infiniteLoad />
-        </div>
+        {boughtTogether.length > 0 && (
+          <RecommendationSection
+            title="People also bought"
+            products={boughtTogether}
+            icon="🛒"
+          />
+        )}
 
-      </main>
+        {relatedProducts.length > 0 && (
+          <RecommendationSection
+            title="Top products in this category"
+            products={relatedProducts}
+            icon="🔥"
+            viewAllLink={`/category/${product.category}`}
+          />
+        )}
 
-      {/* STICKY BOTTOM ACTION (mobile-first) */}
-      <div className="fixed bottom-0 left-0 right-0 p-3 bg-white border-t border-neutral-200 z-50 lg:hidden">
-        <div className="max-w-3xl mx-auto flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <div className="text-xs text-neutral-500">{quantity} ×</div>
-            <div className="font-bold">{formatCurrency(product.price * quantity)}</div>
+        {recommendedProducts.length > 0 && (
+          <RecommendationSection
+            title="Recommended for you"
+            products={recommendedProducts}
+            icon="✨"
+          />
+        )}
+      </div>
+
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 p-4 z-40 lg:hidden">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center border border-neutral-200 rounded-xl overflow-hidden">
+            <button
+              onClick={() => setQuantity(Math.max(1, quantity - 1))}
+              className="px-4 py-3 font-bold text-neutral-600 hover:bg-neutral-50"
+            >
+              −
+            </button>
+            <span className="px-4 py-3 font-bold text-neutral-900 border-x border-neutral-200">
+              {quantity}
+            </span>
+            <button
+              onClick={() => setQuantity(quantity + 1)}
+              className="px-4 py-3 font-bold text-neutral-600 hover:bg-neutral-50"
+            >
+              +
+            </button>
           </div>
-          <button onClick={() => handleAddToCart()} className={`ml-auto px-5 py-3 rounded-xl font-bold transition ${product.stock === 0 ? 'bg-neutral-300 text-neutral-600 cursor-not-allowed' : 'bg-green-600 text-white'}`}>
+          <button
+            onClick={handleAddToCart}
+            className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl transition-colors"
+          >
             Add to cart
           </button>
         </div>
@@ -307,160 +308,75 @@ export default function ProductDetailPageRevamped() {
   );
 }
 
-// ----------------------
-// Subcomponents (kept in same file for simplicity)
-// ----------------------
-
-const FullScreenLoader = () => (
-  <div className="min-h-screen flex items-center justify-center">
-    <div className="animate-pulse">
-      <div className="w-60 h-60 bg-neutral-100 rounded-2xl" />
-    </div>
-  </div>
-);
-
-const MobileHeader = ({ onBack, onShare, inWishlist, onToggleWishlist }) => (
-  <div className="sticky top-0 z-40 bg-white border-b border-neutral-100 lg:hidden">
-    <div className="flex items-center justify-between px-4 py-3">
-      <button onClick={onBack} className="p-2 -ml-2"><ArrowLeft className="w-5 h-5" /></button>
-      <div className="text-sm font-bold">Product</div>
-      <div className="flex items-center gap-2">
-        <button onClick={onShare} className="p-2"><Share2 className="w-5 h-5" /></button>
-        <button onClick={onToggleWishlist} className="p-2"><Heart className={`w-5 h-5 ${inWishlist ? 'fill-red-500 text-red-500' : ''}`} /></button>
-      </div>
-    </div>
-  </div>
-);
-
-const Chip = ({ icon, label }) => (
-  <div className="flex items-center gap-2 bg-neutral-100 px-3 py-1 rounded-full text-xs font-semibold">
-    <div className="w-4 h-4 flex items-center justify-center">{icon}</div>
-    <div>{label}</div>
-  </div>
-);
-
-// ImageCarousel supports drag/swipe (framer-motion) and thumbnails
-const ImageCarousel = React.forwardRef(({ images = [], active = 0, onChange, hiddenThumbs, setHiddenThumbs }, ref) => {
-  const [index, setIndex] = useState(active);
-
-  useEffect(() => setIndex(active), [active]);
-
-  function clamp(i) {
-    if (i < 0) return images.length - 1;
-    if (i >= images.length) return 0;
-    return i;
-  }
-
-  function onDragEnd(_event, info) {
-    if (Math.abs(info.offset.x) < 40) return; // ignore small drags
-    const dir = info.offset.x > 0 ? -1 : 1;
-    const next = clamp(index + dir);
-    setIndex(next);
-    onChange(next);
-  }
-
-  return (
-    <div className="relative" ref={ref}>
-      <div className="aspect-square bg-neutral-50 overflow-hidden rounded-2xl">
-        <AnimatePresence mode="wait">
-          <motion.img
-            key={index}
-            src={images[index]}
-            alt={`image-${index}`}
-            className="w-full h-full object-cover"
-            initial={{ opacity: 0.8, scale: 1.05 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            transition={{ duration: 0.28 }}
-            drag="x"
-            dragConstraints={{ left: 0, right: 0 }}
-            onDragEnd={onDragEnd}
-            whileTap={{ cursor: 'grabbing' }}
-          />
-        </AnimatePresence>
-      </div>
-
-      {/* position indicator */}
-      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2">
-        {images.map((_, i) => (
-          <button key={i} onClick={() => { setIndex(i); onChange(i); }} className={`w-2 h-2 rounded-full ${i === index ? 'bg-white' : 'bg-white/40'}`} />
-        ))}
-      </div>
-
-      {/* thumbnails for quick nav */}
-      {!hiddenThumbs && images.length > 1 && (
-        <div className="absolute -bottom-8 left-4 right-4 flex gap-2 overflow-x-auto py-2">
-          {images.map((img, idx) => (
-            <button key={idx} onClick={() => { setIndex(idx); onChange(idx); }} className={`flex-shrink-0 w-14 h-14 rounded-xl overflow-hidden border ${idx === index ? 'border-orange-500 scale-105' : 'border-neutral-200'} transition-transform`}>
-              <img src={img} alt="thumb" className="w-full h-full object-cover" />
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-});
-
-// AccordionItem
-function AccordionItem({ title, open, onToggle, children }) {
-  return (
-    <div className="bg-white rounded-xl p-3 border border-neutral-100">
-      <button onClick={onToggle} className="w-full flex items-center justify-between">
-        <div className="text-sm font-bold">{title}</div>
-        <ChevronDown className={`w-5 h-5 transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
-      <AnimatePresence>
-        {open && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="pt-3 text-sm text-neutral-700">
-            {children}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-// RecommendationCarousel - horizontal, snap, with small product cards
-function RecommendationCarousel({ title, products = [], viewAll, infiniteLoad = false }) {
+function RecommendationSection({ title, products, icon, viewAllLink }) {
   const navigate = useNavigate();
-
+  
   return (
-    <section>
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-lg font-black">{title}</h3>
-        {viewAll && (
-          <button onClick={() => navigate(viewAll)} className="text-sm font-bold text-green-600 flex items-center gap-1">See all <ChevronRight className="w-4 h-4" /></button>
+    <section className="mb-8">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-black text-neutral-900 flex items-center gap-2">
+          <span>{icon}</span>
+          {title}
+        </h2>
+        {viewAllLink && (
+          <button
+            onClick={() => navigate(viewAllLink)}
+            className="text-sm font-bold text-green-600 hover:text-green-700 flex items-center gap-1"
+          >
+            See all
+            <ChevronRight className="w-4 h-4" />
+          </button>
         )}
       </div>
-
-      <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory">
-        {products.map((p) => (
-          <div key={p.id} className="flex-shrink-0 w-40 snap-start">
-            <SmallProductCard product={p} />
-          </div>
+      
+      <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 snap-x snap-mandatory">
+        {products.map((product) => (
+          <ProductCard key={product.id} product={product} />
         ))}
-
-        {products.length === 0 && <div className="text-sm text-neutral-500">No suggestions right now.</div>}
       </div>
     </section>
   );
 }
 
-function SmallProductCard({ product }) {
-  const { addItem } = useCart();
+function ProductCard({ product }) {
   const navigate = useNavigate();
-
+  const { addItem } = useCart();
+  
   return (
-    <motion.div whileTap={{ scale: 0.97 }} className="bg-white rounded-2xl border border-neutral-100 overflow-hidden">
-      <button onClick={() => navigate(`/product/${product.slug}`)} className="block text-left">
-        <div className="aspect-square bg-neutral-50 overflow-hidden">
-          <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+    <motion.div
+      whileTap={{ scale: 0.95 }}
+      className="flex-shrink-0 w-36 snap-start bg-white rounded-2xl border border-neutral-100 overflow-hidden"
+    >
+      <button
+        onClick={() => navigate(`/product/${product.slug}`)}
+        className="block"
+      >
+        <div className="aspect-square bg-neutral-50 relative">
+          <img
+            src={product.image}
+            alt={product.name}
+            className="w-full h-full object-cover"
+          />
         </div>
-        <div className="p-2">
-          <div className="text-xs font-semibold leading-tight line-clamp-2">{product.name}</div>
-          <div className="flex items-center justify-between mt-2">
-            <div className="text-sm font-bold">{formatCurrency(product.price)}</div>
-            <button onClick={(e) => { e.stopPropagation(); addItem(product); toast.success('Added'); }} className="px-2 py-1 bg-green-600 text-white text-xs rounded-lg">Add</button>
+        <div className="p-3">
+          <h3 className="text-xs font-bold text-neutral-900 line-clamp-2 mb-2 leading-tight">
+            {product.name}
+          </h3>
+          <p className="text-xs text-neutral-500 mb-2">{product.unit}</p>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-black text-neutral-900">
+              {formatCurrency(product.price)}
+            </span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                addItem(product);
+                toast.success('Added!');
+              }}
+              className="px-3 py-1.5 bg-green-600 text-white text-xs font-bold rounded-lg"
+            >
+              ADD
+            </button>
           </div>
         </div>
       </button>
