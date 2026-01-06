@@ -1,22 +1,13 @@
-import React, { useState, useMemo, useEffect } from 'react';
+// src/pages/Shop.jsx
+
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  SlidersHorizontal, 
-  ArrowUpDown, 
-  X, 
-  ShoppingBag, 
-  Search, 
-  ChevronRight,
-  Filter,
-  Check,
-  Star,
-  Info
-} from 'lucide-react';
+import { SlidersHorizontal, ArrowUpDown, X } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
-import { CATEGORIES } from '@/utils/constants';
+import { CATEGORIES_DATA } from '@/data/categoriesData';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
-import ProductCard from '@/components/customer/ProductCard';
+import FilterSidebar from '@/components/customer/FilterSidebar';
 
 export default function Shop() {
   const { products, loading } = useProducts({ active: true });
@@ -25,18 +16,22 @@ export default function Shop() {
   const [sortBy, setSortBy] = useState('relevance');
   const [showFilters, setShowFilters] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   
   const [filters, setFilters] = useState({
+    categories: [],
     minPrice: null,
     maxPrice: null,
+    minRating: null,
     inStock: true,
     hasDiscount: false
   });
 
-  // Flatten categories for the sidebar
   const allCategories = useMemo(() => {
-    return [{ id: 'all', name: 'All', icon: '🛒' }, ...CATEGORIES];
+    const cats = [{ id: 'all', name: 'All', image: null }];
+    CATEGORIES_DATA.forEach(section => {
+      section.subcategories.forEach(cat => cats.push(cat));
+    });
+    return cats;
   }, []);
 
   const filteredProducts = useMemo(() => {
@@ -47,185 +42,306 @@ export default function Shop() {
       filtered = filtered.filter(p => p.category === selectedCategory);
     }
 
-    if (searchQuery) {
-      filtered = filtered.filter(p => 
-        p.name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+    if (filters.categories.length > 0) {
+      filtered = filtered.filter(p => filters.categories.includes(p.category));
     }
 
-    if (filters.inStock) filtered = filtered.filter(p => p.stock > 0);
-    if (filters.hasDiscount) filtered = filtered.filter(p => (p.comparePrice && p.comparePrice > p.price));
+    if (filters.minPrice) {
+      filtered = filtered.filter(p => (p.discountPrice || p.price) >= filters.minPrice);
+    }
+
+    if (filters.maxPrice) {
+      filtered = filtered.filter(p => (p.discountPrice || p.price) <= filters.maxPrice);
+    }
+
+    if (filters.minRating) {
+      filtered = filtered.filter(p => (p.rating || 0) >= filters.minRating);
+    }
+
+    if (filters.inStock) {
+      filtered = filtered.filter(p => p.stock > 0);
+    }
+
+    if (filters.hasDiscount) {
+      filtered = filtered.filter(p => p.discountPrice);
+    }
 
     return filtered.sort((a, b) => {
+      const priceA = a.discountPrice || a.price;
+      const priceB = b.discountPrice || b.price;
       switch (sortBy) {
-        case 'price-low': return a.price - b.price;
-        case 'price-high': return b.price - a.price;
+        case 'price-low': return priceA - priceB;
+        case 'price-high': return priceB - priceA;
+        case 'rating': return (b.rating || 0) - (a.rating || 0);
         case 'popular': return (b.soldCount || 0) - (a.soldCount || 0);
         default: return 0;
       }
     });
-  }, [products, selectedCategory, filters, sortBy, searchQuery]);
+  }, [products, selectedCategory, filters, sortBy]);
+
+  const handleClearFilters = () => {
+    setFilters({
+      categories: [],
+      minPrice: null,
+      maxPrice: null,
+      minRating: null,
+      inStock: true,
+      hasDiscount: true
+    });
+  };
+
+  const activeFilterCount = useMemo(() => {
+    let count = filters.categories.length;
+    if (filters.minPrice || filters.maxPrice) count++;
+    if (filters.minRating) count++;
+    if (filters.hasDiscount) count++;
+    return count;
+  }, [filters]);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-neutral-50">
       <Header />
       
-      {/* MOBILE SEARCH BAR - Sticky underneath header */}
-      <div className="pt-20 lg:pt-24 sticky top-0 z-30 bg-white/80 backdrop-blur-md px-4 py-3 border-b border-neutral-100">
-        <div className="relative group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 group-focus-within:text-orange-500 transition-colors" size={18} />
-          <input 
-            type="text"
-            placeholder="Search Butwal's freshest..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-12 pl-12 pr-4 bg-neutral-100 border-2 border-transparent focus:border-orange-500 focus:bg-white rounded-2xl font-bold text-sm outline-none transition-all"
-          />
+      <div className="pt-20 md:pt-24">
+        <div className="bg-white border-b border-neutral-100 sticky top-16 md:top-20 z-40 shadow-sm">
+          <div className="flex items-center justify-between px-4 py-3">
+            <h1 className="text-xl font-black text-neutral-900">
+              {selectedCategory === 'all' ? 'All Products' : allCategories.find(c => c.id === selectedCategory)?.name || 'Shop'}
+            </h1>
+            <p className="text-sm text-neutral-500 font-medium">{filteredProducts.length} items</p>
+          </div>
+
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide px-4 pb-3">
+            <button
+              onClick={() => setShowFilters(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-neutral-200 rounded-xl text-sm font-bold text-neutral-700 whitespace-nowrap hover:border-orange-500 transition-colors flex-shrink-0"
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+              Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+            </button>
+
+            <button
+              onClick={() => setShowSortMenu(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-neutral-200 rounded-xl text-sm font-bold text-neutral-700 whitespace-nowrap hover:border-orange-500 transition-colors flex-shrink-0"
+            >
+              <ArrowUpDown className="w-4 h-4" />
+              Sort
+            </button>
+
+            <button className="px-4 py-2 bg-white border-2 border-neutral-200 rounded-xl text-sm font-bold text-neutral-700 whitespace-nowrap hover:border-orange-500 transition-colors flex-shrink-0">
+              Price
+            </button>
+          </div>
+        </div>
+
+        <div className="flex">
+          <aside className="w-20 flex-shrink-0 bg-neutral-900 sticky top-36 h-[calc(100vh-144px)] overflow-y-auto scrollbar-hide">
+            {allCategories.map((category) => (
+              <button
+                key={category.id}
+                onClick={() => setSelectedCategory(category.id)}
+                className={`w-full px-2 py-4 flex flex-col items-center gap-2 transition-all ${
+                  selectedCategory === category.id
+                    ? 'bg-orange-500'
+                    : 'hover:bg-neutral-800'
+                }`}
+              >
+                {category.image ? (
+                  <div className={`w-12 h-12 rounded-full overflow-hidden border-2 ${
+                    selectedCategory === category.id ? 'border-white' : 'border-transparent'
+                  }`}>
+                    <img 
+                      src={category.image} 
+                      alt={category.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-orange-500 flex items-center justify-center text-white text-xl font-black">
+                    🛒
+                  </div>
+                )}
+                <span className={`text-[9px] font-bold text-center leading-tight line-clamp-2 ${
+                  selectedCategory === category.id ? 'text-white' : 'text-neutral-400'
+                }`}>
+                  {category.name}
+                </span>
+              </button>
+            ))}
+          </aside>
+
+          <main className="flex-1 p-4 overflow-y-auto">
+            <div className="mb-4 bg-gradient-to-r from-green-500 to-green-600 rounded-2xl p-4 text-white">
+              <h2 className="text-lg font-black mb-1">Healthy, juicy & seasonal</h2>
+              <p className="text-xs opacity-90">Picked fresh from India's orchards</p>
+            </div>
+
+            {loading ? (
+              <div className="grid grid-cols-2 gap-3">
+                {[...Array(8)].map((_, i) => (
+                  <div key={i} className="bg-white rounded-xl p-3 animate-pulse">
+                    <div className="aspect-square bg-neutral-200 rounded-lg mb-2" />
+                    <div className="h-3 bg-neutral-200 rounded mb-1" />
+                    <div className="h-2 bg-neutral-200 rounded w-2/3" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {filteredProducts.map((product) => (
+                  <div key={product.id} className="bg-white rounded-xl border border-neutral-100 overflow-hidden hover:shadow-lg transition-shadow">
+                    <div className="relative aspect-square bg-neutral-50 p-2">
+                      <img 
+                        src={product.images?.[0]} 
+                        alt={product.name}
+                        className="w-full h-full object-contain"
+                      />
+                      <button className="absolute top-2 right-2 bg-neutral-900 text-white px-2 py-1 rounded-lg text-[10px] font-black">
+                        ADD
+                      </button>
+                      {product.discountPrice && (
+                        <div className="absolute top-2 left-2 bg-orange-500 text-white px-2 py-0.5 rounded text-[10px] font-black">
+                          {Math.round(((product.price - product.discountPrice) / product.price) * 100)}% OFF
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-2">
+                      <h3 className="text-xs font-bold text-neutral-800 line-clamp-2 mb-1">
+                        {product.name}
+                      </h3>
+                      <p className="text-[10px] text-neutral-500 mb-1">{product.unit}</p>
+                      <div className="flex items-center gap-1 mb-2">
+                        {product.rating > 0 && (
+                          <>
+                            <span className="text-yellow-500 text-xs">★</span>
+                            <span className="text-[10px] font-bold text-neutral-700">{product.rating}</span>
+                          </>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="text-sm font-black text-neutral-900">
+                            ₹{product.discountPrice || product.price}
+                          </span>
+                          {product.discountPrice && (
+                            <span className="text-[10px] text-neutral-400 line-through ml-1">
+                              ₹{product.price}
+                            </span>
+                          )}
+                        </div>
+                        {product.stock > 0 && product.stock < 10 && (
+                          <span className="text-[9px] text-orange-600 font-bold">
+                            {product.stock} left
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {!loading && filteredProducts.length === 0 && (
+              <div className="text-center py-20">
+                <p className="text-neutral-500 font-medium">No products found</p>
+              </div>
+            )}
+          </main>
         </div>
       </div>
 
-      <div className="flex h-[calc(100vh-136px)] lg:h-auto overflow-hidden">
-        
-        {/* LEFT NAV: Iconic Category Rail */}
-        <aside className="w-20 lg:w-24 shrink-0 bg-neutral-900 flex flex-col items-center py-6 overflow-y-auto scrollbar-hide">
-          {allCategories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              className="relative w-full py-4 flex flex-col items-center gap-2 group transition-all"
-            >
-              <div className={`w-12 h-12 lg:w-14 lg:h-14 rounded-2xl flex items-center justify-center text-xl transition-all ${
-                selectedCategory === cat.id 
-                  ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/40 rotate-0' 
-                  : 'bg-white/5 text-neutral-500 group-hover:bg-white/10 rotate-3'
-              }`}>
-                {cat.icon || '📦'}
-              </div>
-              <span className={`text-[9px] font-black uppercase tracking-tighter text-center px-1 ${
-                selectedCategory === cat.id ? 'text-white' : 'text-neutral-500'
-              }`}>
-                {cat.name}
-              </span>
-              {selectedCategory === cat.id && (
-                <motion.div 
-                  layoutId="activeRail"
-                  className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-orange-500 rounded-l-full" 
-                />
-              )}
-            </button>
-          ))}
-        </aside>
+      <Footer />
 
-        {/* MAIN FEED */}
-        <main className="flex-1 overflow-y-auto bg-neutral-50 lg:bg-white rounded-tl-[2.5rem] lg:rounded-none shadow-inner lg:shadow-none p-4 lg:p-8">
-          
-          {/* TOOLBAR */}
-          <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
-            <div>
-              <h1 className="text-2xl lg:text-4xl font-black text-neutral-900 tracking-tighter italic uppercase">
-                {selectedCategory === 'all' ? 'The Market' : allCategories.find(c => c.id === selectedCategory)?.name}
-              </h1>
-              <p className="text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em]">{filteredProducts.length} Results Found</p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button 
-                onClick={() => setShowSortMenu(true)}
-                className="flex items-center gap-2 px-5 py-3 bg-white border border-neutral-200 rounded-2xl text-xs font-black uppercase tracking-widest hover:border-orange-500 transition-all"
-              >
-                <ArrowUpDown size={14} /> {sortBy}
-              </button>
-              <button 
-                onClick={() => setShowFilters(true)}
-                className="flex items-center gap-2 px-5 py-3 bg-neutral-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-orange-600 transition-all"
-              >
-                <Filter size={14} /> Filter
-              </button>
-            </div>
-          </div>
-
-          {/* GRID */}
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-8">
-            <AnimatePresence mode="popLayout">
-              {loading ? (
-                Array.from({ length: 8 }).map((_, i) => (
-                  <div key={i} className="aspect-[3/4.5] bg-neutral-100 rounded-[2rem] animate-pulse" />
-                ))
-              ) : (
-                filteredProducts.map((product) => (
-                  <motion.div
-                    key={product.id}
-                    layout
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    transition={{ type: 'spring', damping: 20 }}
-                  >
-                    <ProductCard product={product} />
-                  </motion.div>
-                ))
-              )}
-            </AnimatePresence>
-          </div>
-
-          {!loading && filteredProducts.length === 0 && (
-            <div className="py-20 flex flex-col items-center justify-center text-center">
-              <div className="w-20 h-20 bg-neutral-100 rounded-full flex items-center justify-center mb-6 text-neutral-400">
-                <Search size={32} />
-              </div>
-              <h3 className="text-xl font-black uppercase italic mb-2">Nothing found</h3>
-              <p className="text-neutral-500 text-sm max-w-xs">Try adjusting your filters or search for something else.</p>
-            </div>
-          )}
-        </main>
-      </div>
-
-      {/* MODAL: SORTING */}
       <AnimatePresence>
+        {showFilters && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowFilters(false)}
+              className="fixed inset-0 bg-black/50 z-50"
+            />
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              className="fixed top-0 right-0 bottom-0 w-full max-w-sm bg-white z-50 shadow-2xl flex flex-col"
+            >
+              <div className="p-4 border-b flex items-center justify-between">
+                <h3 className="text-lg font-black">Filters</h3>
+                <button onClick={() => setShowFilters(false)} className="p-2">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4">
+                <FilterSidebar filters={filters} onChange={setFilters} onClear={handleClearFilters} />
+              </div>
+              <div className="p-4 border-t">
+                <button 
+                  onClick={() => setShowFilters(false)}
+                  className="w-full bg-orange-500 text-white py-3 rounded-xl font-black"
+                >
+                  Apply Filters
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+
         {showSortMenu && (
           <>
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               onClick={() => setShowSortMenu(false)}
-              className="fixed inset-0 bg-neutral-900/40 backdrop-blur-sm z-[100]" 
+              className="fixed inset-0 bg-black/50 z-50"
             />
-            <motion.div 
-              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[3rem] p-8 z-[101] shadow-2xl"
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 p-6"
             >
-              <div className="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-8" />
-              <h3 className="text-xl font-black uppercase italic mb-6">Sort Collection</h3>
-              <div className="space-y-3">
-                {[
-                  { id: 'relevance', label: 'Recommended' },
-                  { id: 'popular', label: 'Most Popular' },
-                  { id: 'price-low', label: 'Lowest Price' },
-                  { id: 'price-high', label: 'Highest Price' }
-                ].map((opt) => (
-                  <button
-                    key={opt.id}
-                    onClick={() => { setSortBy(opt.id); setShowSortMenu(false); }}
-                    className={`w-full h-16 rounded-2xl flex items-center justify-between px-6 font-bold transition-all ${
-                      sortBy === opt.id ? 'bg-orange-500 text-white' : 'bg-neutral-50 text-neutral-600 hover:bg-neutral-100'
-                    }`}
-                  >
-                    {opt.label}
-                    {sortBy === opt.id && <Check size={20} />}
-                  </button>
-                ))}
-              </div>
+              <div className="w-12 h-1 bg-neutral-300 rounded-full mx-auto mb-4" />
+              <h3 className="text-lg font-black mb-4">Sort By</h3>
+              {[
+                { value: 'relevance', label: 'Relevance' },
+                { value: 'popular', label: 'Popularity' },
+                { value: 'price-low', label: 'Price: Low to High' },
+                { value: 'price-high', label: 'Price: High to Low' },
+                { value: 'rating', label: 'Rating' }
+              ].map(option => (
+                <button
+                  key={option.value}
+                  onClick={() => {
+                    setSortBy(option.value);
+                    setShowSortMenu(false);
+                  }}
+                  className={`w-full text-left px-4 py-3 rounded-xl font-bold mb-2 transition-colors ${
+                    sortBy === option.value
+                      ? 'bg-orange-500 text-white'
+                      : 'bg-neutral-100 text-neutral-700'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
             </motion.div>
           </>
         )}
       </AnimatePresence>
 
-      <Footer />
-
       <style jsx>{`
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
       `}</style>
     </div>
   );
 }
-
