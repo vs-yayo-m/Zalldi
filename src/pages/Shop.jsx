@@ -172,8 +172,8 @@ export default function Shop() {
 
           <main className="flex-1 p-4 overflow-y-auto">
             <div className="mb-4 bg-gradient-to-r from-green-500 to-green-600 rounded-2xl p-4 text-white">
-              <h2 className="text-lg font-black mb-1"> Cheapest Price , Enjoy Free Delivery</h2>
-              <p className="text-xs opacity-90"> Order Now , Enjoy Free Delivery </p>
+              <h2 className="text-lg font-black mb-1">Healthy, juicy & seasonal</h2>
+              <p className="text-xs opacity-90">Picked fresh from India's orchards</p>
             </div>
 
             {loading ? (
@@ -189,54 +189,7 @@ export default function Shop() {
             ) : (
               <div className="grid grid-cols-2 gap-3">
                 {filteredProducts.map((product) => (
-                  <div key={product.id} className="bg-white rounded-xl border border-neutral-100 overflow-hidden hover:shadow-lg transition-shadow">
-                    <div className="relative aspect-square bg-neutral-50 p-2">
-                      <img 
-                        src={product.images?.[0]} 
-                        alt={product.name}
-                        className="w-full h-full object-contain"
-                      />
-                      <button className="absolute top-2 right-2 bg-neutral-900 text-white px-2 py-1 rounded-lg text-[10px] font-black">
-                        ADD
-                      </button>
-                      {product.discountPrice && (
-                        <div className="absolute top-2 left-2 bg-orange-500 text-white px-2 py-0.5 rounded text-[10px] font-black">
-                          {Math.round(((product.price - product.discountPrice) / product.price) * 100)}% OFF
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-2">
-                      <h3 className="text-xs font-bold text-neutral-800 line-clamp-2 mb-1">
-                        {product.name}
-                      </h3>
-                      <p className="text-[10px] text-neutral-500 mb-1">{product.unit}</p>
-                      <div className="flex items-center gap-1 mb-2">
-                        {product.rating > 0 && (
-                          <>
-                            <span className="text-yellow-500 text-xs">★</span>
-                            <span className="text-[10px] font-bold text-neutral-700">{product.rating}</span>
-                          </>
-                        )}
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <span className="text-sm font-black text-neutral-900">
-                            ₹{product.discountPrice || product.price}
-                          </span>
-                          {product.discountPrice && (
-                            <span className="text-[10px] text-neutral-400 line-through ml-1">
-                              ₹{product.price}
-                            </span>
-                          )}
-                        </div>
-                        {product.stock > 0 && product.stock < 10 && (
-                          <span className="text-[9px] text-orange-600 font-bold">
-                            {product.stock} left
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                  <ProductCard key={product.id} product={product} />
                 ))}
               </div>
             )}

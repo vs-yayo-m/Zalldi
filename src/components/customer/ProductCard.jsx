@@ -1,127 +1,177 @@
 // src/components/customer/ProductCard.jsx
 
-import React, { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { ShoppingCart, Heart, Eye } from 'lucide-react'
-import { useCart } from '@/hooks/useCart'
-import { formatCurrency, formatDiscount } from '@/utils/formatters'
-import Button from '@/components/ui/Button'
-import Badge from '@/components/ui/Badge'
-import RatingStars from './RatingStars'
-import StockIndicator from './StockIndicator'
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Plus, Minus, Clock, Heart } from 'lucide-react';
+import { useCart } from '@/hooks/useCart';
+import { formatCurrency } from '@/utils/formatters';
+import toast from 'react-hot-toast';
 
 export default function ProductCard({ product }) {
-  const { addItem, hasItem } = useCart()
-  const [isHovered, setIsHovered] = useState(false)
+  const { addItem, updateQuantity, getItemQuantity, removeItem } = useCart();
+  const [isWishlisted, setIsWishlisted] = useState(false);
   
+  const quantity = getItemQuantity(product.id);
   const discount = product.discountPrice ?
-    formatDiscount(product.price, product.discountPrice) :
-    null
+    Math.round(((product.price - product.discountPrice) / product.price) * 100) :
+    null;
   
-  const handleAddToCart = (e) => {
-    e.preventDefault()
-    addItem(product, 1)
-  }
+  const handleAdd = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (product.stock === 0) {
+      toast.error('Out of stock');
+      return;
+    }
+    
+    if (quantity === 0) {
+      addItem(product, 1);
+      toast.success('Added to cart');
+    } else {
+      updateQuantity(product.id, quantity + 1);
+    }
+  };
+  
+  const handleDecrease = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (quantity === 1) {
+      removeItem(product.id);
+    } else {
+      updateQuantity(product.id, quantity - 1);
+    }
+  };
+  
+  const handleWishlist = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsWishlisted(!isWishlisted);
+    toast.success(isWishlisted ? 'Removed from wishlist' : 'Added to wishlist');
+  };
   
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -4 }}
-      onHoverStart={() => setIsHovered(true)}
-      onHoverEnd={() => setIsHovered(false)}
-      className="group relative"
+    <Link
+      to={`/product/${product.slug}`}
+      className="block bg-white rounded-2xl border border-neutral-100 overflow-hidden hover:shadow-lg transition-all duration-300"
     >
-      <Link
-        to={`/product/${product.slug}`}
-        className="block bg-white rounded-2xl overflow-hidden shadow-card hover:shadow-card-hover transition-shadow"
-      >
-        <div className="relative aspect-square overflow-hidden bg-neutral-100">
-          <img
-            src={product.images?.[0] || '/placeholder.png'}
-            alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+      <div className="relative aspect-square bg-neutral-50 p-3">
+        <img
+          src={product.images?.[0] || '/placeholder.png'}
+          alt={product.name}
+          className="w-full h-full object-contain"
+          loading="lazy"
+        />
+
+        <button
+          onClick={handleWishlist}
+          className="absolute top-2 left-2 p-1.5 bg-white rounded-full shadow-sm hover:scale-110 transition-transform"
+        >
+          <Heart 
+            className={`w-4 h-4 ${isWishlisted ? 'fill-red-500 text-red-500' : 'text-neutral-400'}`}
           />
+        </button>
 
-          {discount && (
-            <Badge
-              variant="solid"
-              className="absolute top-3 left-3 bg-red-500 text-white"
-            >
-              {discount}% OFF
-            </Badge>
-          )}
-
-          {product.featured && (
-            <Badge
-              variant="solid"
-              className="absolute top-3 right-3 bg-orange-500 text-white"
-            >
-              Featured
-            </Badge>
-          )}
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: isHovered ? 1 : 0 }}
-            className="absolute inset-0 bg-black/40 flex items-center justify-center gap-2"
-          >
-            <button
-              onClick={handleAddToCart}
-              className="p-3 bg-white rounded-full hover:bg-orange-500 hover:text-white transition-colors"
-              aria-label="Add to Cart"
-            >
-              <ShoppingCart className="w-5 h-5" />
-            </button>
-            <button
-              className="p-3 bg-white rounded-full hover:bg-orange-500 hover:text-white transition-colors"
-              aria-label="Add to wishlist"
-            >
-              <Heart className="w-5 h-5" />
-            </button>
-          </motion.div>
-        </div>
-
-        <div className="p-4">
-          <h3 className="font-semibold text-neutral-800 line-clamp-2 mb-2 group-hover:text-orange-500 transition-colors">
-            {product.name}
-          </h3>
-
-          <div className="flex items-center gap-2 mb-3">
-            <RatingStars rating={product.rating || 0} size="sm" />
-            <span className="text-sm text-neutral-600">
-              ({product.reviewCount || 0})
-            </span>
+        {discount && (
+          <div className="absolute top-2 right-2 bg-blue-500 text-white px-2 py-0.5 rounded-md text-[10px] font-black">
+            {discount}% OFF
           </div>
+        )}
 
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <span className="text-xl font-bold text-orange-500">
-                {formatCurrency(product.discountPrice || product.price)}
+        <AnimatePresence>
+          {quantity === 0 ? (
+            <motion.button
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              onClick={handleAdd}
+              disabled={product.stock === 0}
+              className={`absolute bottom-2 right-2 px-4 py-1.5 rounded-lg text-[11px] font-black transition-colors ${
+                product.stock === 0
+                  ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                  : 'bg-neutral-900 text-white hover:bg-orange-500'
+              }`}
+            >
+              ADD
+            </motion.button>
+          ) : (
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              className="absolute bottom-2 right-2 flex items-center gap-2 bg-green-500 rounded-lg shadow-lg"
+            >
+              <button
+                onClick={handleDecrease}
+                className="p-1.5 text-white hover:bg-green-600 rounded-l-lg transition-colors"
+              >
+                <Minus className="w-4 h-4" />
+              </button>
+              <span className="text-white font-black text-sm min-w-[20px] text-center">
+                {quantity}
               </span>
-              {product.discountPrice && (
-                <span className="text-sm text-neutral-500 line-through">
-                  {formatCurrency(product.price)}
-                </span>
-              )}
-            </div>
+              <button
+                onClick={handleAdd}
+                className="p-1.5 text-white hover:bg-green-600 rounded-r-lg transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <div className="p-3">
+        <div className="flex items-center gap-1 mb-1">
+          <Clock className="w-3 h-3 text-neutral-400" />
+          <span className="text-[9px] font-bold text-neutral-500 uppercase">8 mins</span>
+        </div>
+
+        <h3 className="text-sm font-bold text-neutral-800 line-clamp-2 mb-1 leading-tight">
+          {product.name}
+        </h3>
+
+        {product.unit && (
+          <p className="text-[10px] text-neutral-500 mb-2">
+            {product.stock > 0 ? product.unit : 'Out of stock'}
+          </p>
+        )}
+
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <span className="text-base font-black text-neutral-900">
+              ₹{product.discountPrice || product.price}
+            </span>
+            {product.discountPrice && (
+              <span className="text-[10px] text-neutral-400 line-through">
+                ₹{product.price}
+              </span>
+            )}
           </div>
 
-          <StockIndicator stock={product.stock} />
-
-          <Button
-            variant="primary"
-            size="sm"
-            fullWidth
-            onClick={handleAddToCart}
-            disabled={product.stock === 0}
-            className="mt-3"
-          >
-            {hasItem(product.id) ? 'Add More' : 'Add to Cart'}
-          </Button>
+          {product.stock > 0 && product.stock < 10 && (
+            <span className="text-[9px] font-bold text-orange-600">
+              Only {product.stock} left
+            </span>
+          )}
         </div>
-      </Link>
-    </motion.div>
-  )
+
+        {product.rating > 0 && (
+          <div className="flex items-center gap-1 mt-2">
+            <span className="text-yellow-500 text-xs">★</span>
+            <span className="text-[10px] font-bold text-neutral-700">
+              {product.rating}
+            </span>
+            {product.reviewCount > 0 && (
+              <span className="text-[9px] text-neutral-400">
+                ({product.reviewCount})
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+    </Link>
+  );
 }

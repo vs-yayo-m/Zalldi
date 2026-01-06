@@ -1,16 +1,6 @@
-import React, { useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
-import { 
-  Package, 
-  Tag, 
-  Layers, 
-  ChevronDown, 
-  Plus, 
-  Image as ImageIcon,
-  CheckCircle2,
-  AlertCircle,
-  TrendingDown
-} from 'lucide-react';
+// src/components/supplier/ProductForm.jsx
+
+import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -23,279 +13,411 @@ import { formatSlug, generateSKU } from '@/utils/helpers';
 import { createProduct, updateProduct } from '@/services/product.service';
 import toast from 'react-hot-toast';
 
+const groupedCategories = CATEGORIES.reduce((acc, cat) => {
+  if (!acc[cat.parent]) {
+    acc[cat.parent] = [];
+  }
+  acc[cat.parent].push(cat);
+  return acc;
+}, {});
+
+const parentLabels = {
+  'grocery-kitchen': 'Grocery & Kitchen',
+  'snacks-drinks': 'Snacks & Drinks',
+  'beauty-personal-care': 'Beauty & Personal Care',
+  'household-essentials': 'Household Essentials',
+  'shop-by-store': 'Shop by Store'
+};
+
 export default function ProductForm({ product = null, onSuccess, onCancel }) {
   const { user } = useAuth();
+  
   const [formData, setFormData] = useState({
     name: product?.name || '',
     description: product?.description || '',
     category: product?.category || '',
     price: product?.price || '',
-    comparePrice: product?.comparePrice || '',
+    discountPrice: product?.discountPrice || '',
     stock: product?.stock || '',
     unit: product?.unit || 'pc',
+    weight: product?.weight || '',
     minOrder: product?.minOrder || 1,
     maxOrder: product?.maxOrder || 100,
+    deliveryTime: product?.deliveryTime || '8',
     images: product?.images || [],
+    imageUrls: ['', '', '', '', ''],
+    brand: product?.brand || '',
+    manufacturer: product?.manufacturer || '',
+    expiryDate: product?.expiryDate || '',
+    tags: product?.tags?.join(', ') || '',
+    featured: product?.featured || false,
     active: product?.active ?? true
   });
-
+  
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
-
-  // Computed: Discount Insight for Suppliers
-  const discountInfo = useMemo(() => {
-    if (!formData.price || !formData.comparePrice) return null;
-    const price = Number(formData.price);
-    const compare = Number(formData.comparePrice);
-    if (compare <= price) return null;
-    const percent = Math.round(((compare - price) / compare) * 100);
-    return { percent, savings: (compare - price).toFixed(2) };
-  }, [formData.price, formData.comparePrice]);
-
-  // Grouping Categories for Cleaner UX
-  const groupedCategories = useMemo(() => {
-    return CATEGORIES.reduce((acc, cat) => {
-      if (!acc[cat.parent]) acc[cat.parent] = [];
-      acc[cat.parent].push(cat);
-      return acc;
-    }, {});
-  }, []);
-
-  const parentLabels = {
-    'grocery-kitchen': 'Grocery & Kitchen',
-    'snacks-drinks': 'Snacks & Drinks',
-    'beauty-personal-care': 'Beauty & Personal Care',
-    'household-essentials': 'Household Essentials',
-    'shop-by-store': 'Shop by Store'
-  };
-
+  
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    if (errors[field]) setErrors(prev => ({ ...prev, [field]: null }));
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: null }));
+    }
+    setError(null);
   };
-
+  
+  const handleImagesChange = (images) => {
+    handleChange('images', images);
+  };
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(null);
+    
     const validationErrors = validateProductForm(formData);
     if (validationErrors) {
       setErrors(validationErrors);
-      toast.error('Required fields are missing.');
       return;
     }
-
+    
     setIsSubmitting(true);
+    
     try {
+      const allImages = [
+        ...formData.images,
+        ...formData.imageUrls.filter(url => url.trim() !== '')
+      ];
+
       const productData = {
         ...formData,
-        supplierId: user?.uid,
+        images: allImages,
+        supplierId: user.uid,
         slug: product?.slug || formatSlug(formData.name),
         sku: product?.sku || generateSKU(formData.category, formData.name),
         price: Number(formData.price),
-        comparePrice: formData.comparePrice ? Number(formData.comparePrice) : null,
+        discountPrice: formData.discountPrice ? Number(formData.discountPrice) : null,
         stock: Number(formData.stock),
+        weight: formData.weight || null,
         minOrder: Number(formData.minOrder),
         maxOrder: Number(formData.maxOrder),
-        updatedAt: new Date().toISOString()
+        deliveryTime: Number(formData.deliveryTime),
+        tags: formData.tags ? formData.tags.split(',').map(t => t.trim()) : [],
+        rating: product?.rating || 0,
+        reviewCount: product?.reviewCount || 0,
+        soldCount: product?.soldCount || 0,
+        views: product?.views || 0
       };
-
+      
       if (product) {
         await updateProduct(product.id, productData);
-        toast.success('Inventory Updated');
+        toast.success('Product updated successfully');
       } else {
-        await createProduct({ ...productData, createdAt: new Date().toISOString() });
-        toast.success('Product Listed Live');
+        await createProduct(productData);
+        toast.success('Product added successfully');
       }
+      
       onSuccess?.();
     } catch (err) {
-      setError(err.message || 'Server connection failed');
+      console.error('Product form error:', err);
+      setError(err.message || 'Failed to save product');
+      toast.error('Failed to save product');
     } finally {
       setIsSubmitting(false);
     }
   };
-
+  
   return (
-    <form onSubmit={handleSubmit} className="space-y-8 max-w-4xl mx-auto pb-32 lg:pb-12">
+    <form onSubmit={handleSubmit} className="space-y-8">
       {error && (
-        <Alert variant="error" className="rounded-3xl border-rose-100 bg-rose-50/50">
+        <Alert variant="error" onClose={() => setError(null)}>
           {error}
         </Alert>
       )}
 
-      {/* SECTION: VISUALS */}
-      <motion.section 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white p-6 md:p-8 rounded-[2.5rem] border border-neutral-100 shadow-sm"
-      >
-        <div className="flex items-center gap-4 mb-8">
-          <div className="w-12 h-12 rounded-2xl bg-orange-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/20">
-            <ImageIcon size={22} />
-          </div>
-          <div>
-            <h3 className="text-xl font-black uppercase tracking-tight italic">Product Gallery</h3>
-            <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest">First image is your main cover</p>
-          </div>
-        </div>
-        
+      <div className="bg-white rounded-2xl p-6 border border-neutral-200">
+        <h3 className="text-lg font-black text-neutral-900 mb-4">Product Images</h3>
         <ImageUploader
           images={formData.images}
-          onChange={(imgs) => handleChange('images', imgs)}
+          onChange={handleImagesChange}
           maxImages={5}
         />
-        {errors.images && <p className="mt-4 text-[10px] font-black text-rose-500 uppercase tracking-widest">{errors.images}</p>}
-      </motion.section>
-
-      {/* SECTION: IDENTITY */}
-      <motion.section 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="bg-white p-6 md:p-8 rounded-[2.5rem] border border-neutral-100 shadow-sm space-y-8"
-      >
-        <div className="flex items-center gap-4 mb-2">
-          <div className="w-12 h-12 rounded-2xl bg-neutral-900 flex items-center justify-center text-white">
-            <Tag size={22} />
-          </div>
-          <h3 className="text-xl font-black uppercase tracking-tight italic">Basic Info</h3>
+        
+        <div className="mt-4">
+          <label className="block text-sm font-bold text-neutral-700 mb-2">
+            Or Add Image URLs (Optional)
+          </label>
+          {formData.imageUrls.map((url, index) => (
+            <Input
+              key={index}
+              value={url}
+              onChange={(e) => {
+                const newUrls = [...formData.imageUrls];
+                newUrls[index] = e.target.value;
+                handleChange('imageUrls', newUrls);
+              }}
+              placeholder={`Image URL ${index + 1}`}
+              className="mb-2"
+            />
+          ))}
         </div>
+        {errors.images && (
+          <p className="mt-2 text-sm text-red-600">{errors.images}</p>
+        )}
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="bg-white rounded-2xl p-6 border border-neutral-200">
+        <h3 className="text-lg font-black text-neutral-900 mb-4">Basic Information</h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
-            label="What are you selling?"
+            label="Product Name"
             value={formData.name}
             onChange={(e) => handleChange('name', e.target.value)}
-            placeholder="e.g. Premium Avocado"
+            placeholder="e.g., Fresh Red Apples"
             error={errors.name}
+            required
           />
 
-          <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">Market Category</label>
-            <div className="relative">
-              <select
-                value={formData.category}
-                onChange={(e) => handleChange('category', e.target.value)}
-                className="w-full h-14 pl-5 pr-10 bg-neutral-50 border-2 border-transparent focus:border-orange-500 rounded-2xl appearance-none font-bold text-sm transition-all outline-none"
-              >
-                <option value="">Select a Category</option>
-                {Object.entries(groupedCategories).map(([parent, categories]) => (
-                  <optgroup key={parent} label={parentLabels[parent] || parent}>
-                    {categories.map(cat => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" size={18} />
-            </div>
+          <div>
+            <label className="block text-sm font-bold text-neutral-700 mb-2">
+              Category <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={formData.category}
+              onChange={(e) => handleChange('category', e.target.value)}
+              className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none"
+              required
+            >
+              <option value="">Select Category</option>
+              {Object.entries(groupedCategories).map(([parent, categories]) => (
+                <optgroup key={parent} label={parentLabels[parent]}>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+            {errors.category && (
+              <p className="mt-2 text-sm text-red-600">{errors.category}</p>
+            )}
           </div>
         </div>
 
-        <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">Product Description</label>
+        <div className="mt-4">
+          <label className="block text-sm font-bold text-neutral-700 mb-2">
+            Description <span className="text-red-500">*</span>
+          </label>
           <textarea
             value={formData.description}
             onChange={(e) => handleChange('description', e.target.value)}
+            placeholder="Describe your product in detail..."
             rows={4}
-            className="w-full p-6 bg-neutral-50 border-2 border-transparent focus:border-orange-500 rounded-[2rem] font-medium text-sm transition-all outline-none resize-none"
-            placeholder="Highlight freshness, origin, or special instructions..."
+            className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none resize-none"
+          />
+          {errors.description && (
+            <p className="mt-2 text-sm text-red-600">{errors.description}</p>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <Input
+            label="Brand (Optional)"
+            value={formData.brand}
+            onChange={(e) => handleChange('brand', e.target.value)}
+            placeholder="e.g., Amul, Parle"
+          />
+
+          <Input
+            label="Manufacturer (Optional)"
+            value={formData.manufacturer}
+            onChange={(e) => handleChange('manufacturer', e.target.value)}
+            placeholder="e.g., Britannia Industries"
           />
         </div>
-      </motion.section>
+      </div>
 
-      {/* SECTION: PRICING */}
-      <motion.section 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="bg-white p-6 md:p-8 rounded-[2.5rem] border border-neutral-100 shadow-sm space-y-8"
-      >
-        <div className="flex items-center gap-4 mb-2">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-500 flex items-center justify-center text-white">
-            <Package size={22} />
-          </div>
-          <h3 className="text-xl font-black uppercase tracking-tight italic">Pricing & Inventory</h3>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="bg-white rounded-2xl p-6 border border-neutral-200">
+        <h3 className="text-lg font-black text-neutral-900 mb-4">Pricing</h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
-            label="Listing Price (NPR)"
+            label="Market Price (MRP)"
             type="number"
             value={formData.price}
             onChange={(e) => handleChange('price', e.target.value)}
+            placeholder="299"
             error={errors.price}
+            required
+            min="0"
+            step="0.01"
           />
-          <div className="relative">
-            <Input
-              label="Original Price (MRP)"
-              type="number"
-              value={formData.comparePrice}
-              onChange={(e) => handleChange('comparePrice', e.target.value)}
-            />
-            {discountInfo && (
-              <div className="absolute -top-1 right-0 bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-[9px] font-black uppercase flex items-center gap-1">
-                <TrendingDown size={10} /> {discountInfo.percent}% OFF
-              </div>
-            )}
+
+          <Input
+            label="Selling Price (After Discount)"
+            type="number"
+            value={formData.discountPrice}
+            onChange={(e) => handleChange('discountPrice', e.target.value)}
+            placeholder="249"
+            min="0"
+            step="0.01"
+            helper="Leave empty if no discount"
+          />
+        </div>
+
+        {formData.price && formData.discountPrice && (
+          <div className="mt-3 p-3 bg-green-50 rounded-xl">
+            <p className="text-sm font-bold text-green-700">
+              Discount: {Math.round(((formData.price - formData.discountPrice) / formData.price) * 100)}% OFF
+            </p>
           </div>
-          <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 ml-1">Unit Type</label>
+        )}
+      </div>
+
+      <div className="bg-white rounded-2xl p-6 border border-neutral-200">
+        <h3 className="text-lg font-black text-neutral-900 mb-4">Unit & Weight</h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-bold text-neutral-700 mb-2">
+              Unit Type <span className="text-red-500">*</span>
+            </label>
             <select
-                value={formData.unit}
-                onChange={(e) => handleChange('unit', e.target.value)}
-                className="w-full h-14 px-5 bg-neutral-50 border-2 border-transparent focus:border-orange-500 rounded-2xl font-bold text-sm transition-all outline-none"
+              value={formData.unit}
+              onChange={(e) => handleChange('unit', e.target.value)}
+              className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none"
+              required
             >
-                {PRODUCT_UNITS.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
+              {PRODUCT_UNITS.map(unit => (
+                <option key={unit.value} value={unit.value}>
+                  {unit.label}
+                </option>
+              ))}
             </select>
           </div>
+
+          <Input
+            label="Weight/Quantity"
+            value={formData.weight}
+            onChange={(e) => handleChange('weight', e.target.value)}
+            placeholder="e.g., 500 g, 1 L, 6 pieces"
+            helper="Specify the package size"
+          />
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl p-6 border border-neutral-200">
+        <h3 className="text-lg font-black text-neutral-900 mb-4">Stock & Limits</h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Input
+            label="Stock Quantity"
+            type="number"
+            value={formData.stock}
+            onChange={(e) => handleChange('stock', e.target.value)}
+            placeholder="100"
+            error={errors.stock}
+            required
+            min="0"
+          />
+
+          <Input
+            label="Min Order"
+            type="number"
+            value={formData.minOrder}
+            onChange={(e) => handleChange('minOrder', e.target.value)}
+            placeholder="1"
+            min="1"
+          />
+
+          <Input
+            label="Max Order"
+            type="number"
+            value={formData.maxOrder}
+            onChange={(e) => handleChange('maxOrder', e.target.value)}
+            placeholder="100"
+            min="1"
+          />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
-            <Input label="Total Stock" type="number" value={formData.stock} onChange={(e) => handleChange('stock', e.target.value)} error={errors.stock} />
-            <Input label="Min Order" type="number" value={formData.minOrder} onChange={(e) => handleChange('minOrder', e.target.value)} />
-            <Input label="Max Order" type="number" value={formData.maxOrder} onChange={(e) => handleChange('maxOrder', e.target.value)} />
+        <Input
+          label="Delivery Time (minutes)"
+          type="number"
+          value={formData.deliveryTime}
+          onChange={(e) => handleChange('deliveryTime', e.target.value)}
+          placeholder="8"
+          min="1"
+          className="mt-4"
+          helper="Estimated delivery time in minutes"
+        />
+      </div>
+
+      <div className="bg-white rounded-2xl p-6 border border-neutral-200">
+        <h3 className="text-lg font-black text-neutral-900 mb-4">Additional Info</h3>
+        
+        <Input
+          label="Tags (comma separated)"
+          value={formData.tags}
+          onChange={(e) => handleChange('tags', e.target.value)}
+          placeholder="organic, fresh, seasonal"
+          helper="Help customers find your product"
+          className="mb-4"
+        />
+
+        <Input
+          label="Expiry Date (Optional)"
+          type="date"
+          value={formData.expiryDate}
+          onChange={(e) => handleChange('expiryDate', e.target.value)}
+        />
+      </div>
+
+      <div className="bg-white rounded-2xl p-6 border border-neutral-200">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className="font-bold text-neutral-900">Featured Product</p>
+            <p className="text-sm text-neutral-600">Show in featured section</p>
+          </div>
+          <Switch
+            checked={formData.featured}
+            onChange={(checked) => handleChange('featured', checked)}
+          />
         </div>
 
-        <div className="p-8 bg-neutral-50 rounded-[2.5rem] flex items-center justify-between">
-            <div className="flex items-center gap-5">
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors ${formData.active ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'bg-neutral-200 text-neutral-400'}`}>
-                    {formData.active ? <CheckCircle2 size={28} /> : <AlertCircle size={28} />}
-                </div>
-                <div>
-                    <p className="text-sm font-black uppercase tracking-tight italic">Visibility Status</p>
-                    <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">
-                        {formData.active ? 'Live on ZALLDI marketplace' : 'Draft mode (Hidden)'}
-                    </p>
-                </div>
-            </div>
-            <Switch checked={formData.active} onChange={(val) => handleChange('active', val)} />
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="font-bold text-neutral-900">Product Active</p>
+            <p className="text-sm text-neutral-600">Visible to customers</p>
+          </div>
+          <Switch
+            checked={formData.active}
+            onChange={(checked) => handleChange('active', checked)}
+          />
         </div>
-      </motion.section>
+      </div>
 
-      {/* PERSISTENT ACTION BAR */}
-      <div className="fixed bottom-10 left-6 right-6 lg:relative lg:bottom-0 lg:left-0 lg:right-0 z-[100] lg:z-auto">
-        <div className="max-w-xl mx-auto lg:max-w-none flex items-center gap-4 bg-white/80 backdrop-blur-2xl p-4 lg:p-0 rounded-[2.5rem] border border-white/20 shadow-2xl lg:shadow-none lg:bg-transparent lg:border-none lg:backdrop-blur-none">
-            {onCancel && (
-                <button 
-                  type="button"
-                  onClick={onCancel} 
-                  className="h-16 px-8 rounded-[1.5rem] font-black uppercase text-[10px] tracking-widest text-neutral-400 hover:text-neutral-900 transition-colors bg-neutral-100 lg:bg-transparent"
-                >
-                    Discard
-                </button>
-            )}
-            <Button 
-                type="submit" 
-                variant="orange" 
-                className="flex-1 h-16 !rounded-[1.5rem] shadow-xl shadow-orange-500/20"
-                loading={isSubmitting}
-                icon={product ? null : <Plus size={18} />}
-            >
-                {product ? 'Update Inventory' : 'List on Market'}
-            </Button>
-        </div>
+      <div className="flex gap-3 pt-4">
+        {onCancel && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={isSubmitting}
+            className="flex-1"
+          >
+            Cancel
+          </Button>
+        )}
+        <Button
+          type="submit"
+          disabled={isSubmitting}
+          loading={isSubmitting}
+          className="flex-1 bg-orange-500 hover:bg-orange-600"
+        >
+          {isSubmitting ? 'Saving...' : product ? 'Update Product' : 'Add Product'}
+        </Button>
       </div>
     </form>
   );
 }
-
