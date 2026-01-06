@@ -3,123 +3,136 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ShoppingCart, Heart, Eye } from 'lucide-react'
+import { Plus, Minus } from 'lucide-react'
 import { useCart } from '@/hooks/useCart'
 import { formatCurrency, formatDiscount } from '@/utils/formatters'
-import Button from '@/components/ui/Button'
-import Badge from '@/components/ui/Badge'
 import RatingStars from './RatingStars'
-import StockIndicator from './StockIndicator'
 
 export default function ProductCard({ product }) {
-  const { addItem, hasItem } = useCart()
-  const [isHovered, setIsHovered] = useState(false)
+  const { addItem, removeItem, getItemQuantity } = useCart()
+  const quantity = getItemQuantity(product.id) || 0
   
   const discount = product.discountPrice ?
     formatDiscount(product.price, product.discountPrice) :
     null
   
-  const handleAddToCart = (e) => {
+  const handleAdd = (e) => {
     e.preventDefault()
     addItem(product, 1)
   }
   
+  const handleRemove = (e) => {
+    e.preventDefault()
+    removeItem(product.id, 1)
+  }
+  
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -4 }}
-      onHoverStart={() => setIsHovered(true)}
-      onHoverEnd={() => setIsHovered(false)}
-      className="group relative"
+      whileHover={{ y: -3 }}
+      transition={{ duration: 0.25 }}
+      className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow"
     >
-      <Link
-        to={`/product/${product.slug}`}
-        className="block bg-white rounded-2xl overflow-hidden shadow-card hover:shadow-card-hover transition-shadow"
-      >
-        <div className="relative aspect-square overflow-hidden bg-neutral-100">
+      <Link to={`/product/${product.slug}`} className="block">
+        {/* IMAGE */}
+        <div className="relative aspect-[4/3] bg-neutral-100 rounded-t-xl overflow-hidden">
           <img
             src={product.images?.[0] || '/placeholder.png'}
             alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-full object-cover"
           />
 
+          {/* DISCOUNT */}
           {discount && (
-            <Badge
-              variant="solid"
-              className="absolute top-3 left-3 bg-red-500 text-white"
-            >
+            <span className="absolute top-2 left-2 text-[10px] px-2 py-0.5 rounded-full bg-red-500 text-white font-medium">
               {discount}% OFF
-            </Badge>
+            </span>
           )}
 
-          {product.featured && (
-            <Badge
-              variant="solid"
-              className="absolute top-3 right-3 bg-orange-500 text-white"
-            >
-              Featured
-            </Badge>
-          )}
+          {/* DELIVERY BADGE */}
+          <span className="absolute bottom-2 left-2 text-[10px] px-2 py-0.5 rounded-full bg-orange-500/90 text-white font-medium">
+            ⚡ 10–15 mins
+          </span>
 
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: isHovered ? 1 : 0 }}
-            className="absolute inset-0 bg-black/40 flex items-center justify-center gap-2"
-          >
-            <button
-              onClick={handleAddToCart}
-              className="p-3 bg-white rounded-full hover:bg-orange-500 hover:text-white transition-colors"
-              aria-label="Add to Cart"
-            >
-              <ShoppingCart className="w-5 h-5" />
-            </button>
-            <button
-              className="p-3 bg-white rounded-full hover:bg-orange-500 hover:text-white transition-colors"
-              aria-label="Add to wishlist"
-            >
-              <Heart className="w-5 h-5" />
-            </button>
-          </motion.div>
+          {/* ADD / COUNTER */}
+          <div className="absolute top-2 right-2">
+            {quantity === 0 ? (
+              <button
+                onClick={handleAdd}
+                disabled={product.stock === 0}
+                className="px-3 py-1 text-xs font-semibold rounded-full bg-white border border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white transition"
+              >
+                ADD
+              </button>
+            ) : (
+              <div className="flex items-center bg-white rounded-full border shadow-sm overflow-hidden">
+                <button
+                  onClick={handleRemove}
+                  className="p-1.5 hover:bg-neutral-100"
+                >
+                  <Minus className="w-3 h-3 text-orange-500" />
+                </button>
+                <span className="px-2 text-xs font-semibold">
+                  {quantity}
+                </span>
+                <button
+                  onClick={handleAdd}
+                  className="p-1.5 hover:bg-neutral-100"
+                >
+                  <Plus className="w-3 h-3 text-orange-500" />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="p-4">
-          <h3 className="font-semibold text-neutral-800 line-clamp-2 mb-2 group-hover:text-orange-500 transition-colors">
+        {/* CONTENT */}
+        <div className="p-3 space-y-1.5">
+          {/* PRODUCT NAME */}
+          <h3 className="text-sm font-medium text-neutral-900 line-clamp-2">
             {product.name}
           </h3>
 
-          <div className="flex items-center gap-2 mb-3">
-            <RatingStars rating={product.rating || 0} size="sm" />
-            <span className="text-sm text-neutral-600">
-              ({product.reviewCount || 0})
-            </span>
-          </div>
+          {/* WEIGHT / VARIANT */}
+          {product.variant && (
+            <p className="text-xs text-neutral-500">
+              {product.variant}
+            </p>
+          )}
 
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <span className="text-xl font-bold text-orange-500">
-                {formatCurrency(product.discountPrice || product.price)}
-              </span>
-              {product.discountPrice && (
-                <span className="text-sm text-neutral-500 line-through">
-                  {formatCurrency(product.price)}
-                </span>
-              )}
+          {/* RATING */}
+          {product.rating > 0 && (
+            <div className="flex items-center gap-1 text-xs text-neutral-600">
+              <RatingStars rating={product.rating} size="xs" />
+              <span>({product.reviewCount || 0})</span>
             </div>
+          )}
+
+          {/* PRICE */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-neutral-900">
+              {formatCurrency(product.discountPrice || product.price)}
+            </span>
+            {product.discountPrice && (
+              <span className="text-xs text-neutral-400 line-through">
+                {formatCurrency(product.price)}
+              </span>
+            )}
           </div>
 
-          <StockIndicator stock={product.stock} />
+          {/* STOCK */}
+          {product.stock > 0 && product.stock <= 5 && (
+            <p className="text-[11px] text-orange-600 font-medium">
+              Only {product.stock} left
+            </p>
+          )}
 
-          <Button
-            variant="primary"
-            size="sm"
-            fullWidth
-            onClick={handleAddToCart}
-            disabled={product.stock === 0}
-            className="mt-3"
-          >
-            {hasItem(product.id) ? 'Add More' : 'Add to Cart'}
-          </Button>
+          {product.stock === 0 && (
+            <p className="text-[11px] text-red-500 font-medium">
+              Out of stock
+            </p>
+          )}
         </div>
       </Link>
     </motion.div>
