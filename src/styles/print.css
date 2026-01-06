@@ -1,274 +1,236 @@
-/* src/styles/print.css */
-
+/* * ZALLDI ENTERPRISE PRINT ENGINE v2.0
+ * Optimized for: A4 Invoices, Thermal Receipts, and Packing Slips
+   */
 @media print {
-  /* Hide unnecessary elements */
-  header,
-  footer,
-  .no-print,
-  button:not(.print-button),
-  nav,
-  .sticky,
-  .fixed,
-  .hide-print {
-    display: none !important;
-  }
-
-  /* Reset page styles */
-  * {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  body {
-    margin: 0;
-    padding: 20px;
-    background: white !important;
-    color: black !important;
-    font-size: 12pt;
-  }
-
-  /* Page setup */
-  @page {
-    size: A4;
-    margin: 1cm;
-  }
-
-  /* Prevent page breaks inside elements */
-  .print-section,
-  .print-item {
-    page-break-inside: avoid;
-    break-inside: avoid;
-  }
-
-  /* Add page breaks before sections */
-  .page-break-before {
-    page-break-before: always;
-    break-before: always;
-  }
-
-  .page-break-after {
-    page-break-after: always;
-    break-after: always;
-  }
-
-  /* Print-specific visibility */
-  .print-only {
-    display: block !important;
-  }
-
-  /* Order detail print styles */
-  .print-header {
-    margin-bottom: 30px;
-    padding-bottom: 20px;
-    border-bottom: 2px solid #FF6B35;
-  }
-
-  .print-logo {
-    width: 120px;
-    height: auto;
-    margin-bottom: 10px;
-  }
-
-  .print-title {
-    font-size: 24pt;
-    font-weight: bold;
-    color: #2D2D2D;
-    margin-bottom: 5px;
-  }
-
-  .print-subtitle {
-    font-size: 14pt;
-    color: #737373;
-  }
-
-  /* Order details table */
-  .print-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 20px 0;
-  }
-
-  .print-table th,
-  .print-table td {
-    padding: 12px;
-    text-align: left;
-    border-bottom: 1px solid #E5E5E5;
-  }
-
-  .print-table th {
-    background-color: #FFF8F3;
-    font-weight: bold;
-    color: #2D2D2D;
-  }
-
-  .print-table tbody tr:last-child td {
-    border-bottom: 2px solid #2D2D2D;
-  }
-
-  /* Product image in print */
-  .print-table img {
-    width: 50px;
-    height: 50px;
-    object-fit: cover;
-  }
-
-  /* Summary section */
-  .print-summary {
-    margin-top: 20px;
-    padding: 15px;
-    background-color: #F5F5F5;
-    border-radius: 8px;
-  }
-
-  .print-summary-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 5px 0;
-    font-size: 11pt;
-  }
-
-  .print-summary-total {
-    font-size: 14pt;
-    font-weight: bold;
-    padding-top: 10px;
-    margin-top: 10px;
-    border-top: 2px solid #2D2D2D;
-  }
-
-  /* Customer details box */
-  .print-info-box {
-    border: 1px solid #E5E5E5;
-    padding: 15px;
-    margin: 15px 0;
-    border-radius: 8px;
-  }
-
-  .print-info-title {
-    font-size: 12pt;
-    font-weight: bold;
-    color: #FF6B35;
-    margin-bottom: 10px;
-    display: block;
-  }
-
-  .print-info-content {
-    font-size: 11pt;
-    line-height: 1.6;
-  }
-
-  /* Status badge print */
-  .print-badge {
-    display: inline-block;
-    padding: 4px 12px;
-    border-radius: 4px;
-    font-size: 10pt;
-    font-weight: bold;
-  }
-
-  .print-badge.pending {
-    background-color: #FED7AA;
-    color: #9A3412;
-  }
-
-  .print-badge.confirmed {
-    background-color: #BFDBFE;
-    color: #1E40AF;
-  }
-
-  .print-badge.delivered {
-    background-color: #BBF7D0;
-    color: #166534;
-  }
-
-  .print-badge.cancelled {
-    background-color: #FECACA;
-    color: #991B1B;
-  }
-
-  /* Footer with print info */
-  .print-footer {
-    margin-top: 40px;
-    padding-top: 20px;
-    border-top: 1px solid #E5E5E5;
-    text-align: center;
-    font-size: 9pt;
-    color: #737373;
-  }
-
-  /* Timeline print */
-  .print-timeline {
-    margin: 20px 0;
-  }
-
-  .print-timeline-item {
-    padding: 10px 0;
-    border-left: 2px solid #FF6B35;
-    padding-left: 20px;
-    margin-left: 10px;
-  }
-
-  .print-timeline-item:last-child {
-    border-left-color: transparent;
-  }
-
-  /* Contact info */
-  .print-contact {
-    font-size: 10pt;
-    margin-top: 10px;
-  }
-
-  /* Receipt printer format (80mm width) */
-  @media print and (max-width: 80mm) {
-    @page {
-      size: 80mm auto;
-      margin: 5mm;
-    }
-
-    body {
-      font-size: 10pt;
-      padding: 5mm;
-    }
-
-    .print-table th,
-    .print-table td {
-      padding: 6px 4px;
-      font-size: 9pt;
-    }
-
-    .print-table img {
-      width: 30px;
-      height: 30px;
-    }
-
-    .print-title {
-      font-size: 16pt;
-    }
-  }
-
-  /* Force specific elements to print */
-  .force-print {
-    display: block !important;
-    visibility: visible !important;
-  }
-
-  /* Remove shadows and transitions in print */
-  * {
-    box-shadow: none !important;
-    text-shadow: none !important;
-    transition: none !important;
-    animation: none !important;
-  }
-
-  /* Links should show URL in print */
-  a[href]:after {
-    content: " (" attr(href) ")";
-    font-size: 9pt;
-    color: #737373;
-  }
-
-  /* But not for internal links */
-  a[href^="#"]:after,
-  a[href^="javascript:"]:after {
-    content: "";
-  }
+/* ==========================================================================
+1. GLOBAL PRINT RESETS
+========================================================================== /
+:root {
+--print-black: #000000;
+--print-gray-dark: #333333;
+--print-gray-mid: #666666;
+--print-gray-light: #eeeeee;
+--print-accent: #FF6B35; / Zalldi Brand Orange */
 }
+ * {
+   background: transparent !important;
+   color: var(--print-black) !important;
+   box-shadow: none !important;
+   text-shadow: none !important;
+   -webkit-print-color-adjust: exact !important;
+   print-color-adjust: exact !important;
+   transition: none !important;
+   animation: none !important;
+   }
+body {
+margin: 0;
+padding: 0;
+background: white !important;
+font-family: "Inter", -apple-system, "Segoe UI", sans-serif;
+font-size: 10pt;
+line-height: 1.4;
+}
+/* Hide UI elements globally */
+header, footer, nav, aside,
+button, .no-print, .modal-close,
+.sticky, .fixed, [role="tooltip"],
+input[type="checkbox"], .chat-widget {
+display: none !important;
+}
+/* ==========================================================================
+2. PAGE GEOMETRY & BREAKS
+========================================================================== */
+@page {
+size: A4 portrait;
+margin: 1.5cm;
+}
+/* Force headers to repeat on every page if needed */
+thead { display: table-header-group; }
+tfoot { display: table-footer-group; }
+/* Smart Page Breaks */
+.page-break { page-break-before: always; break-before: always; }
+.no-break { page-break-inside: avoid; break-inside: avoid; }
+h1, h2, h3 { page-break-after: avoid; break-after: avoid; }
+img { max-width: 100% !important; page-break-inside: avoid; }
+/* ==========================================================================
+3. ENTERPRISE DOCUMENT COMPONENTS
+========================================================================== */
+/* Modern Header with Logo & Document Info */
+.print-doc-header {
+display: flex;
+justify-content: space-between;
+align-items: flex-start;
+border-bottom: 3pt solid var(--print-accent);
+padding-bottom: 20pt;
+margin-bottom: 30pt;
+}
+.print-brand-identity {
+display: flex;
+flex-direction: column;
+}
+.print-logo-svg {
+height: 40pt;
+margin-bottom: 8pt;
+filter: grayscale(1); /* High contrast for black & white printers */
+}
+.print-doc-meta {
+text-align: right;
+}
+.print-doc-id {
+font-size: 18pt;
+font-weight: 900;
+text-transform: uppercase;
+letter-spacing: -0.5pt;
+margin: 0;
+}
+/* Information Grid (Customer vs Supplier) */
+.print-info-grid {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 40pt;
+margin-bottom: 30pt;
+}
+.print-label {
+font-size: 8pt;
+font-weight: 900;
+text-transform: uppercase;
+letter-spacing: 0.1em;
+color: var(--print-gray-mid) !important;
+margin-bottom: 5pt;
+display: block;
+border-bottom: 0.5pt solid var(--print-gray-light);
+}
+/* High-Performance Tables */
+.print-data-table {
+width: 100%;
+border-collapse: collapse;
+margin-bottom: 20pt;
+}
+.print-data-table th {
+background: var(--print-gray-light) !important;
+text-align: left;
+padding: 8pt 10pt;
+font-size: 9pt;
+font-weight: 900;
+text-transform: uppercase;
+}
+.print-data-table td {
+padding: 10pt;
+border-bottom: 0.5pt solid var(--print-gray-light);
+vertical-align: top;
+}
+.print-item-title {
+font-weight: 700;
+font-size: 10pt;
+}
+.print-item-desc {
+font-size: 8pt;
+color: var(--print-gray-mid) !important;
+}
+/* Financial Summary Block */
+.print-summary-container {
+display: flex;
+justify-content: flex-end;
+margin-top: 20pt;
+}
+.print-summary-card {
+width: 250pt;
+}
+.print-summary-row {
+display: flex;
+justify-content: space-between;
+padding: 5pt 0;
+border-bottom: 0.5pt dashed var(--print-gray-light);
+}
+.print-summary-row.grand-total {
+border-bottom: none;
+border-top: 2pt solid var(--print-black);
+margin-top: 5pt;
+padding-top: 10pt;
+font-size: 14pt;
+font-weight: 900;
+}
+/* ==========================================================================
+4. STATUS & SECURITY
+========================================================================== */
+/* Watermark for Voided or Unpaid docs */
+.print-watermark {
+position: fixed;
+top: 50%;
+left: 50%;
+transform: translate(-50%, -50%) rotate(-45deg);
+font-size: 80pt;
+font-weight: 900;
+color: rgba(0,0,0,0.05) !important;
+z-index: -1;
+text-transform: uppercase;
+pointer-events: none;
+}
+/* Status Badges */
+.print-status {
+padding: 4pt 8pt;
+border: 1.5pt solid var(--print-black);
+font-weight: 900;
+text-transform: uppercase;
+font-size: 8pt;
+border-radius: 4pt;
+}
+/* ==========================================================================
+5. THERMAL RECEIPT OVERRIDE (80mm)
+========================================================================== */
+@media print and (max-width: 80mm) {
+@page {
+size: 80mm auto;
+margin: 0;
+}
+body {
+  padding: 5mm;
+  font-size: 9pt;
+}
+
+.print-doc-header {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  border-bottom-width: 1pt;
+}
+
+.print-info-grid {
+  grid-template-columns: 1fr;
+  gap: 15pt;
+}
+
+.print-summary-container {
+  justify-content: stretch;
+}
+
+.print-summary-card {
+  width: 100%;
+}
+
+.print-data-table th, 
+.print-data-table td {
+  padding: 4pt 2pt;
+  font-size: 8pt;
+}
+
+.print-logo-svg {
+  height: 30pt;
+}
+
+}
+/* ==========================================================================
+6. FOOTER COMPLIANCE
+========================================================================== */
+.print-compliance-footer {
+position: fixed;
+bottom: 0;
+left: 0;
+right: 0;
+text-align: center;
+font-size: 7pt;
+color: var(--print-gray-mid) !important;
+padding-top: 10pt;
+border-top: 0.5pt solid var(--print-gray-light);
+}
+
