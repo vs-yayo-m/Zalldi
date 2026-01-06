@@ -1,4 +1,4 @@
-// src/pages/ProductDetail.jsx
+// /src/pages/ProductDetail.jsx
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ChevronRight } from 'lucide-react'
@@ -14,7 +14,7 @@ export default function ProductDetailPage() {
   const navigate = useNavigate()
   const { product, loading } = useProductBySlug(slug)
   
-  // Recommendation pagination state
+  // ----------------- Recommendations -----------------
   const [recommendations, setRecommendations] = useState([])
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
@@ -30,27 +30,24 @@ export default function ProductDetailPage() {
   
   useEffect(() => {
     if (!product) return
-    // initialize first page
     fetchRecommendations(1)
   }, [product])
   
-  // Personalized ranking: attempt to fetch personalized recs (based on user, product),
-  // fallback to trending if none.
   const fetchRecommendations = async (pageToLoad = 1) => {
     if (!product || loadingMore || !hasMore) return
     setLoadingMore(true)
     try {
-      // We prefer a personalized endpoint that accepts page & size.
-      // If your productService has different names adapt accordingly.
       const PAGE_SIZE = 12
-      const res = await productService.getPersonalizedRecommendations({
+      let items = await productService.getPersonalizedRecommendations({
         seedProductId: product.id,
         page: pageToLoad,
         size: PAGE_SIZE
       })
       
-      // If personalized returns empty or error, fallback to trending/related.
-      let items = Array.isArray(res) && res.length ? res : await productService.getRelated(product.id, product.category, PAGE_SIZE * pageToLoad)
+      if (!items || !items.length) {
+        // fallback to related
+        items = await productService.getRelated(product.id, product.category, PAGE_SIZE * pageToLoad)
+      }
       
       // deduplicate
       const existingIds = new Set(recommendations.map(p => p.id))
@@ -60,35 +57,27 @@ export default function ProductDetailPage() {
       setPage(pageToLoad)
       if (items.length < PAGE_SIZE) setHasMore(false)
     } catch (err) {
-      console.error('Recommendation load error', err)
-      // fallback to trending
-      try {
-        const fallback = await productService.getTrending(12)
-        setRecommendations(prev => {
-          const existing = new Set(prev.map(p => p.id))
-          return [...prev, ...fallback.filter(p => !existing.has(p.id))]
-        })
-        setHasMore(false)
-      } catch (e) {
-        console.error('Trending fallback failed', e)
-        setHasMore(false)
-      }
+      console.error(err)
+      setHasMore(false)
     } finally {
       setLoadingMore(false)
     }
   }
   
-  // IntersectionObserver to load more when sentinel visible (infinite scroll)
-  const sentinelRef = useCallback(node => {
-    if (loadingMore) return
-    if (observerRef.current) observerRef.current.disconnect()
-    observerRef.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore) {
-        fetchRecommendations(page + 1)
-      }
-    }, { rootMargin: '400px' }) // prefetch earlier
-    if (node) observerRef.current.observe(node)
-  }, [loadingMore, hasMore, page, recommendations])
+  // IntersectionObserver for infinite scroll
+  const sentinelRef = useCallback(
+    node => {
+      if (loadingMore) return
+      if (observerRef.current) observerRef.current.disconnect()
+      observerRef.current = new IntersectionObserver(entries => {
+        if (entries[0].isIntersecting && hasMore) {
+          fetchRecommendations(page + 1)
+        }
+      }, { rootMargin: '400px' })
+      if (node) observerRef.current.observe(node)
+    },
+    [loadingMore, hasMore, page, recommendations]
+  )
   
   if (loading) return <LoadingScreen />
   if (!product) return navigate('/shop')
@@ -102,27 +91,30 @@ export default function ProductDetailPage() {
           <ProductDetail product={product} />
         </div>
 
-        {/* Recommendations Carousel */}
+        {/* ---------------- Recommendations Grid ---------------- */}
         <section>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-black text-neutral-900">You may also like</h2>
-            <button onClick={() => navigate(`/category/${product.category}`)} className="text-sm text-green-600 font-bold flex items-center gap-1">
+            <button
+              onClick={() => navigate(`/category/${product.category}`)}
+              className="text-sm text-green-600 font-bold flex items-center gap-1"
+            >
               See all <ChevronRight className="w-4 h-4" />
             </button>
           </div>
 
-          <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x pb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {recommendations.map(p => (
               <ProductGrid.Card key={p.id} product={p} />
             ))}
-            {/* sentinel element at end for intersection observer */}
-            <div ref={sentinelRef} className="w-6 flex-shrink-0" />
-            {loadingMore && (
-              <div className="flex items-center justify-center w-36">
-                <div className="animate-pulse text-sm text-neutral-500">Loading...</div>
-              </div>
-            )}
+            {loadingMore &&
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-2xl p-4 aspect-square animate-pulse" />
+              ))}
           </div>
+
+          {/* sentinel for infinite scroll */}
+          <div ref={sentinelRef} className="h-1 w-full" />
         </section>
       </div>
     </div>
