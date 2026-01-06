@@ -35,8 +35,8 @@ export default function Shop() {
     return cats;
   }, []);
 
-  const filteredProducts = useMemo(() => {
-    if (!products) return [];
+const filteredProducts = useMemo(() => {
+    if (!products || !Array.isArray(products)) return [];
     let filtered = [...products];
 
     if (selectedCategory !== 'all') {
@@ -187,11 +187,15 @@ export default function Shop() {
                   </div>
                 ))}
               </div>
-            ) : (
+            ) : filteredProducts && filteredProducts.length > 0 ? (
               <div className="grid grid-cols-2 gap-3">
                 {filteredProducts.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}
+              </div>
+            ) : (
+              <div className="text-center py-20">
+                <p className="text-neutral-500 font-medium">No products found</p>
               </div>
             )}
 
