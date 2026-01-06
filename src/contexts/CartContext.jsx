@@ -11,6 +11,7 @@ export function CartProvider({ children }) {
   const [items, setItems] = useState([])
   const [isOpen, setIsOpen] = useState(false)
   
+  // Load cart from localStorage on mount
   useEffect(() => {
     const savedCart = localStorage.getItem('zalldi_cart')
     if (savedCart) {
@@ -22,10 +23,12 @@ export function CartProvider({ children }) {
     }
   }, [])
   
+  // Save cart to localStorage whenever items change
   useEffect(() => {
     localStorage.setItem('zalldi_cart', JSON.stringify(items))
   }, [items])
   
+  // Add item to cart
   const addItem = (product, quantity = 1) => {
     setItems(prevItems => {
       const existingItem = prevItems.find(item => item.id === product.id)
@@ -65,11 +68,13 @@ export function CartProvider({ children }) {
     })
   }
   
+  // Remove item from cart
   const removeItem = (productId) => {
     setItems(prevItems => prevItems.filter(item => item.id !== productId))
     toast.success('Removed from cart')
   }
   
+  // Update quantity for an item
   const updateQuantity = (productId, quantity) => {
     if (quantity < 1) {
       removeItem(productId)
@@ -96,18 +101,15 @@ export function CartProvider({ children }) {
     )
   }
   
+  // Convenience functions
   const increaseQuantity = (productId) => {
     const item = items.find(i => i.id === productId)
-    if (item) {
-      updateQuantity(productId, item.quantity + 1)
-    }
+    if (item) updateQuantity(productId, item.quantity + 1)
   }
   
   const decreaseQuantity = (productId) => {
     const item = items.find(i => i.id === productId)
-    if (item) {
-      updateQuantity(productId, item.quantity - 1)
-    }
+    if (item) updateQuantity(productId, item.quantity - 1)
   }
   
   const clearCart = () => {
@@ -115,32 +117,34 @@ export function CartProvider({ children }) {
     toast.success('Cart cleared')
   }
   
-  const getItemCount = () => {
-    return items.reduce((total, item) => total + item.quantity, 0)
+  // ✅ NEW FUNCTION: get quantity of a specific item
+  const getItemQuantity = (productId) => {
+    const item = items.find(i => i.id === productId)
+    return item ? item.quantity : 0
   }
   
-  const getTotalPrice = () => {
-    return items.reduce((total, item) => {
-      const price = item.discountPrice || item.price
-      return total + (price * item.quantity)
-    }, 0)
-  }
+  // Get total item count in cart
+  const getItemCount = () => items.reduce((total, item) => total + item.quantity, 0)
   
-  const hasItem = (productId) => {
-    return items.some(item => item.id === productId)
-  }
+  // Get total price of cart items
+  const getTotalPrice = () => items.reduce((total, item) => {
+    const price = item.discountPrice || item.price
+    return total + (price * item.quantity)
+  }, 0)
   
-  const getItem = (productId) => {
-    return items.find(item => item.id === productId)
-  }
+  const hasItem = (productId) => items.some(item => item.id === productId)
+  const getItem = (productId) => items.find(item => item.id === productId)
   
+  // Drawer open/close
   const openDrawer = () => setIsOpen(true)
   const closeDrawer = () => setIsOpen(false)
   
+  // Calculated totals
   const subtotal = calculateSubtotal(items)
   const deliveryFee = calculateDeliveryFee(subtotal)
   const total = calculateTotal(subtotal, deliveryFee)
   
+  // Context value
   const value = {
     items,
     isOpen,
@@ -151,6 +155,7 @@ export function CartProvider({ children }) {
     decreaseQuantity,
     clearCart,
     getItemCount,
+    getItemQuantity, // ✅ Added here
     getTotalPrice,
     hasItem,
     getItem,
