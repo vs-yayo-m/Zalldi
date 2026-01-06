@@ -1,3 +1,4 @@
+// /src/services/product.service.js
 import {
   collection,
   doc,
