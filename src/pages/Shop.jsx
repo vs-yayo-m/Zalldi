@@ -1,266 +1,246 @@
-// /src/pages/Shop.jsx
-import React, { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { 
-  SlidersHorizontal, 
-  X, 
-  Zap, 
-  Sparkles, 
-  Filter, 
-  Trash2, 
-  ChevronDown,
-  LayoutGrid,
-  ShoppingBag
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+// src/pages/Shop.jsx
+
+import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { SlidersHorizontal, ArrowUpDown, ChevronDown, Search } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
-import ProductGrid from '@/components/customer/ProductGrid';
-import FilterSidebar from '@/components/customer/FilterSidebar';
-import SortDropdown from '@/components/customer/SortDropdown';
-import Button from '@/components/ui/Button';
+import { CATEGORIES_DATA } from '@/data/categoriesData';
+import ProductCard from '@/components/customer/ProductCard';
 import Header from '@/components/layout/Header';
-import Breadcrumbs from '@/components/layout/Breadcrumbs';
-import EmptyState from '@/components/shared/EmptyState';
+import Footer from '@/components/layout/Footer';
 
 export default function Shop() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [showFilters, setShowFilters] = useState(false);
-  
-  // State Initialization
-  const [filters, setFilters] = useState({
-    categories: searchParams.getAll('category') || [],
-    minPrice: searchParams.get('minPrice') || null,
-    maxPrice: searchParams.get('maxPrice') || null,
-    minRating: searchParams.get('rating') || null,
-    inStock: searchParams.get('stock') !== 'false',
-    hasDiscount: searchParams.get('deals') === 'true'
-  });
-  
-  const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'relevance');
+  const navigate = useNavigate();
   const { products, loading } = useProducts({ active: true });
+  
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [sortBy, setSortBy] = useState('relevance');
+  const [priceFilter, setPriceFilter] = useState('all');
+  const [showSortMenu, setShowSortMenu] = useState(false);
 
-  // Sync state to URL
-  useEffect(() => {
-    const params = new URLSearchParams();
-    if (filters.categories.length > 0) filters.categories.forEach(c => params.append('category', c));
-    if (filters.minPrice) params.set('minPrice', filters.minPrice);
-    if (filters.maxPrice) params.set('maxPrice', filters.maxPrice);
-    if (filters.minRating) params.set('rating', filters.minRating);
-    if (!filters.inStock) params.set('stock', 'false');
-    if (filters.hasDiscount) params.set('deals', 'true');
-    if (sortBy !== 'relevance') params.set('sort', sortBy);
-    setSearchParams(params, { replace: true });
-  }, [filters, sortBy, setSearchParams]);
+  const allCategories = useMemo(() => {
+    const cats = [{ id: 'all', name: 'All', icon: '🛒' }];
+    CATEGORIES_DATA.forEach(section => {
+      section.subcategories.forEach(cat => {
+        cats.push({ ...cat, sectionColor: section.color });
+      });
+    });
+    return cats;
+  }, []);
 
-  // Logic: Filtering & Sorting
   const filteredProducts = useMemo(() => {
     if (!products) return [];
-    return products.filter(product => {
-      if (filters.categories.length > 0 && !filters.categories.includes(product.category)) return false;
-      const currentPrice = product.discountPrice || product.price;
-      if (filters.minPrice && currentPrice < filters.minPrice) return false;
-      if (filters.maxPrice && currentPrice > filters.maxPrice) return false;
-      if (filters.minRating && (product.rating || 0) < filters.minRating) return false;
-      if (filters.inStock && product.stock === 0) return false;
-      if (filters.hasDiscount && !product.discountPrice) return false;
-      return true;
-    });
-  }, [products, filters]);
+    let filtered = products;
 
-  const sortedProducts = useMemo(() => {
-    return [...filteredProducts].sort((a, b) => {
+    if (selectedCategory !== 'all') {
+      filtered = filtered.filter(p => p.category === selectedCategory);
+    }
+
+    if (priceFilter !== 'all') {
+      const [min, max] = priceFilter.split('-').map(Number);
+      filtered = filtered.filter(p => {
+        const price = p.discountPrice || p.price;
+        return price >= min && (max ? price <= max : true);
+      });
+    }
+
+    return filtered.sort((a, b) => {
       const priceA = a.discountPrice || a.price;
       const priceB = b.discountPrice || b.price;
       switch (sortBy) {
         case 'price-low': return priceA - priceB;
         case 'price-high': return priceB - priceA;
         case 'rating': return (b.rating || 0) - (a.rating || 0);
-        case 'newest': return new Date(b.createdAt) - new Date(a.createdAt);
+        case 'popular': return (b.soldCount || 0) - (a.soldCount || 0);
         default: return 0;
       }
     });
-  }, [filteredProducts, sortBy]);
+  }, [products, selectedCategory, priceFilter, sortBy]);
 
-  const activeFilterCount = useMemo(() => {
-    let count = filters.categories.length;
-    if (filters.minPrice || filters.maxPrice) count++;
-    if (filters.minRating) count++;
-    if (filters.hasDiscount) count++
-    return count;
-  }, [filters]);
-
-  const handleClearFilters = () => {
-    setFilters({
-      categories: [], minPrice: null, maxPrice: null,
-      minRating: null, inStock: true, hasDiscount: false
-    });
-    setSortBy('relevance');
+  const handleCategoryClick = (categoryId) => {
+    setSelectedCategory(categoryId);
+    if (categoryId !== 'all') {
+      navigate(`/category/${categoryId}`);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-neutral-50">
       <Header />
       
-      {/* HERO SECTION: Clean & Focused */}
-      <section className="pt-32 pb-12 bg-neutral-50 border-b border-neutral-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Breadcrumbs items={[{ label: 'Shop', to: '/shop' }]} className="mb-8" />
-          
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
-            <div className="max-w-2xl">
-              <motion.div 
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="flex items-center gap-2 text-orange-600 font-black text-[10px] uppercase tracking-[0.4em] mb-3"
-              >
-                <Sparkles size={14} className="fill-current" />
-                The Butwal Collection
-              </motion.div>
-              <h1 className="text-5xl md:text-7xl font-black text-neutral-900 tracking-tighter leading-none italic uppercase mb-4">
-                The <span className="text-orange-500">Market</span>
+      <div className="pt-16 md:pt-20 pb-20 md:pb-8">
+        <div className="bg-white border-b border-neutral-100 sticky top-16 md:top-20 z-40">
+          <div className="container mx-auto px-4">
+            <div className="flex items-center justify-between py-3">
+              <h1 className="text-lg font-black text-neutral-900">
+                {selectedCategory === 'all' ? 'All Products' : allCategories.find(c => c.id === selectedCategory)?.name}
               </h1>
-              <p className="text-neutral-500 font-medium text-lg italic">
-                {sortedProducts.length} premium items curated for instant 60-min delivery.
-              </p>
+              <div className="flex items-center gap-2">
+                <button className="p-2 hover:bg-neutral-100 rounded-lg transition-colors">
+                  <Search className="w-5 h-5 text-neutral-600" />
+                </button>
+              </div>
             </div>
 
-            <div className="flex items-center gap-3 bg-white p-2 rounded-[2rem] shadow-sm border border-neutral-100">
-                <Button 
-                  variant="secondary" 
-                  size="sm" 
-                  onClick={() => setShowFilters(true)}
-                  className="lg:hidden !rounded-full"
-                  leftIcon={<SlidersHorizontal size={14} />}
-                >
-                  Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
-                </Button>
-                <div className="hidden lg:flex items-center px-4 gap-2 text-neutral-400">
-                    <LayoutGrid size={16} />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Sort By</span>
-                </div>
-                <SortDropdown value={sortBy} onChange={setSortBy} className="!border-0 !bg-transparent !shadow-none" />
+            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-3 -mx-4 px-4">
+              <button
+                onClick={() => setShowSortMenu(!showSortMenu)}
+                className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-neutral-200 rounded-xl text-sm font-bold text-neutral-700 whitespace-nowrap hover:border-orange-500 transition-colors"
+              >
+                <SlidersHorizontal className="w-4 h-4" />
+                Filters
+              </button>
+
+              <button
+                onClick={() => setShowSortMenu(!showSortMenu)}
+                className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-neutral-200 rounded-xl text-sm font-bold text-neutral-700 whitespace-nowrap hover:border-orange-500 transition-colors"
+              >
+                <ArrowUpDown className="w-4 h-4" />
+                Sort
+                <ChevronDown className="w-4 h-4" />
+              </button>
+
+              <select
+                value={priceFilter}
+                onChange={(e) => setPriceFilter(e.target.value)}
+                className="px-4 py-2 bg-white border-2 border-neutral-200 rounded-xl text-sm font-bold text-neutral-700 outline-none hover:border-orange-500 transition-colors"
+              >
+                <option value="all">Price</option>
+                <option value="0-100">Under ₹100</option>
+                <option value="100-500">₹100 - ₹500</option>
+                <option value="500-1000">₹500 - ₹1000</option>
+                <option value="1000-99999">Above ₹1000</option>
+              </select>
             </div>
           </div>
         </div>
-      </section>
 
-      {/* MAIN EXPLORATION AREA */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-          
-          {/* DESKTOP SIDEBAR */}
-          <aside className="hidden lg:block lg:col-span-3">
-            <div className="sticky top-32 space-y-8">
-              <div className="flex items-center justify-between pb-4 border-b border-neutral-100">
-                <h3 className="text-xs font-black text-neutral-900 uppercase tracking-widest flex items-center gap-2">
-                  <Filter size={16} className="text-orange-500" />
-                  Control Panel
-                </h3>
-                {activeFilterCount > 0 && (
-                  <button 
-                    onClick={handleClearFilters}
-                    className="text-[10px] font-black text-rose-500 hover:scale-105 transition-transform uppercase tracking-widest flex items-center gap-1"
+        <div className="container mx-auto">
+          <div className="flex">
+            <aside className="w-24 md:w-28 flex-shrink-0 bg-neutral-900 min-h-screen sticky top-32 md:top-36 self-start overflow-y-auto scrollbar-hide">
+              <div className="py-4 space-y-2">
+                {allCategories.map((category) => (
+                  <button
+                    key={category.id}
+                    onClick={() => handleCategoryClick(category.id)}
+                    className={`w-full px-3 py-4 flex flex-col items-center justify-center gap-2 transition-all ${
+                      selectedCategory === category.id
+                        ? 'bg-orange-500 text-white'
+                        : 'text-neutral-400 hover:bg-neutral-800 hover:text-white'
+                    }`}
                   >
-                    <Trash2 size={12} />
-                    Reset
+                    {category.icon && (
+                      <span className="text-2xl">{category.icon}</span>
+                    )}
+                    {category.image && (
+                      <div className="w-12 h-12 rounded-lg overflow-hidden">
+                        <img 
+                          src={category.image} 
+                          alt={category.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+                    <span className="text-[10px] font-bold text-center leading-tight line-clamp-2">
+                      {category.name}
+                    </span>
                   </button>
-                )}
+                ))}
               </div>
-              
-              <div className="bg-neutral-50/50 rounded-[2.5rem] p-8 border border-neutral-100">
-                <FilterSidebar
-                  filters={filters}
-                  onChange={setFilters}
-                  onClear={handleClearFilters}
-                />
+            </aside>
+
+            <main className="flex-1 px-4 py-6 bg-gradient-to-b from-white to-neutral-50">
+              <div className="mb-6 bg-gradient-to-r from-green-500 to-green-600 rounded-2xl p-6 text-white">
+                <h2 className="text-xl font-black mb-2">
+                  Healthy, juicy & seasonal
+                </h2>
+                <p className="text-sm opacity-90">
+                  Picked fresh from India's orchards
+                </p>
               </div>
 
-              {/* LIVE SLOGAN WIDGET */}
-              <div className="bg-orange-500 rounded-[2rem] p-6 text-white relative overflow-hidden group">
-                  <Zap className="absolute -right-4 -bottom-4 w-24 h-24 text-white/10 group-hover:rotate-12 transition-transform duration-500" />
-                  <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-2">Zall-Dash Promise</p>
-                  <p className="text-sm font-black italic leading-tight">Delivered before your tea even cools down.</p>
-              </div>
-            </div>
-          </aside>
-
-          {/* PRODUCT LISTING */}
-          <main className="lg:col-span-9">
-            <AnimatePresence mode="wait">
-              {sortedProducts.length === 0 && !loading ? (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="py-32 flex flex-col items-center"
-                >
-                  <EmptyState
-                    icon={<ShoppingBag className="w-20 h-20 text-neutral-100 mb-6" />}
-                    title="No Match Found"
-                    description="The items you're looking for have outrun our filters. Try a broader search."
-                    action={{ label: "Show All Products", onClick: handleClearFilters }}
-                  />
-                </motion.div>
+              {loading ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {[...Array(8)].map((_, i) => (
+                    <div key={i} className="bg-white rounded-2xl p-4 animate-pulse">
+                      <div className="aspect-square bg-neutral-200 rounded-xl mb-3" />
+                      <div className="h-4 bg-neutral-200 rounded mb-2" />
+                      <div className="h-3 bg-neutral-200 rounded w-2/3" />
+                    </div>
+                  ))}
+                </div>
               ) : (
-                <motion.div layout className="space-y-12">
-                  <ProductGrid 
-                    products={sortedProducts} 
-                    loading={loading} 
-                    columns={3}
-                  />
-                </motion.div>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {filteredProducts.map((product) => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
+                </div>
               )}
-            </AnimatePresence>
-          </main>
+
+              {!loading && filteredProducts.length === 0 && (
+                <div className="text-center py-20">
+                  <p className="text-neutral-500 font-medium">No products found</p>
+                </div>
+              )}
+            </main>
+          </div>
         </div>
       </div>
 
-      {/* MOBILE DRAWER: Standardized & Clean */}
-      <AnimatePresence>
-        {showFilters && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowFilters(false)}
-              className="fixed inset-0 bg-neutral-900/60 backdrop-blur-md z-[100]"
-            />
-            <motion.div
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              className="fixed top-0 right-0 bottom-0 w-full max-w-[360px] bg-white z-[101] shadow-2xl flex flex-col"
-            >
-              <div className="p-8 border-b border-neutral-100 flex items-center justify-between">
-                <div>
-                  <h3 className="font-black text-neutral-900 uppercase tracking-widest text-sm italic">Filters</h3>
-                  <p className="text-[10px] font-bold text-orange-500 uppercase">{activeFilterCount} active selections</p>
-                </div>
-                <button onClick={() => setShowFilters(false)} className="w-12 h-12 rounded-full bg-neutral-50 flex items-center justify-center">
-                  <X size={20} />
-                </button>
-              </div>
+      <Footer />
 
-              <div className="flex-1 overflow-y-auto p-8">
-                <FilterSidebar filters={filters} onChange={setFilters} onClear={handleClearFilters} />
-              </div>
-
-              <div className="p-8 bg-neutral-50">
-                <Button 
-                    fullWidth 
-                    variant="orange" 
-                    size="lg"
-                    onClick={() => setShowFilters(false)}
+      {showSortMenu && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/50 z-50"
+            onClick={() => setShowSortMenu(false)}
+          />
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 p-6"
+          >
+            <div className="w-12 h-1 bg-neutral-300 rounded-full mx-auto mb-6" />
+            <h3 className="text-lg font-black mb-4">Sort By</h3>
+            <div className="space-y-2">
+              {[
+                { value: 'relevance', label: 'Relevance' },
+                { value: 'popular', label: 'Popularity' },
+                { value: 'price-low', label: 'Price: Low to High' },
+                { value: 'price-high', label: 'Price: High to Low' },
+                { value: 'rating', label: 'Rating' }
+              ].map(option => (
+                <button
+                  key={option.value}
+                  onClick={() => {
+                    setSortBy(option.value);
+                    setShowSortMenu(false);
+                  }}
+                  className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-colors ${
+                    sortBy === option.value
+                      ? 'bg-orange-500 text-white'
+                      : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                  }`}
                 >
-                    Apply Changes
-                </Button>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        </>
+      )}
+
+      <style jsx>{`
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
     </div>
   );
 }
-
