@@ -142,7 +142,7 @@ export default function ProductCard({ product }) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <span className="text-base font-black text-neutral-900">
-              ₹{product.discountPrice || product.price}
+              Rs.{product.discountPrice || product.price}
             </span>
             {product.discountPrice && (
               <span className="text-[10px] text-neutral-400 line-through">
