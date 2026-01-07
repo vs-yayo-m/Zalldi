@@ -65,12 +65,24 @@ export default function Category() {
 
   const allSubcategories = [
     { id: 'all', name: 'All', icon: '🛒' },
-    ...(category.subcategories || [])
+    ...((category?.subcategories || []))
   ];
 
   const filteredProducts = selectedSubcategory === 'all' 
     ? products 
     : products.filter(p => p.subcategory === selectedSubcategory);
+
+  if (!category) {
+    return (
+      <div className="min-h-screen bg-neutral-900 flex items-center justify-center p-4">
+        <EmptyState
+          icon={<ShoppingCart className="w-16 h-16 text-white" />}
+          title="Category Not Found"
+          description="The category you're looking for doesn't exist"
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-neutral-900 pb-24">
