@@ -147,7 +147,7 @@ export default function Header() {
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   {/* Primary Logo from Public Folder */}
                   <img 
-                    src="/header/logo.svg" 
+                    src="./header/logo.png" 
                     alt="Zalldi" 
                     className="h-8 md:h-10 w-auto object-contain"
                     onError={(e) => {
