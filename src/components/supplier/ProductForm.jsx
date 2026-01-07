@@ -1,33 +1,18 @@
 // src/components/supplier/ProductForm.jsx
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Switch from '@/components/ui/Switch';
 import Alert from '@/components/ui/Alert';
 import ImageUploader from '@/components/shared/ImageUploader';
-import { CATEGORIES, PRODUCT_UNITS } from '@/utils/constants';
+import { PRODUCT_UNITS } from '@/utils/constants';
+import { CATEGORIES_STRUCTURE, getCategoryById } from '@/data/categoriesStructure';
 import { validateProductForm } from '@/utils/validators';
 import { formatSlug, generateSKU } from '@/utils/helpers';
 import { createProduct, updateProduct } from '@/services/product.service';
 import toast from 'react-hot-toast';
-
-const groupedCategories = CATEGORIES.reduce((acc, cat) => {
-  if (!acc[cat.parent]) {
-    acc[cat.parent] = [];
-  }
-  acc[cat.parent].push(cat);
-  return acc;
-}, {});
-
-const parentLabels = {
-  'grocery-kitchen': 'Grocery & Kitchen',
-  'snacks-drinks': 'Snacks & Drinks',
-  'beauty-personal-care': 'Beauty & Personal Care',
-  'household-essentials': 'Household Essentials',
-  'shop-by-store': 'Shop by Store'
-};
 
 export default function ProductForm({ product = null, onSuccess, onCancel }) {
   const { user } = useAuth();
@@ -36,6 +21,7 @@ export default function ProductForm({ product = null, onSuccess, onCancel }) {
     name: product?.name || '',
     description: product?.description || '',
     category: product?.category || '',
+    subcategory: product?.subcategory || '',
     price: product?.price || '',
     discountPrice: product?.discountPrice || '',
     stock: product?.stock || '',
@@ -54,9 +40,24 @@ export default function ProductForm({ product = null, onSuccess, onCancel }) {
     active: product?.active ?? true
   });
   
+  const [availableSubcategories, setAvailableSubcategories] = useState([]);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  
+  useEffect(() => {
+    if (formData.category) {
+      const categoryData = getCategoryById(formData.category);
+      if (categoryData && categoryData.subcategories) {
+        setAvailableSubcategories(categoryData.subcategories);
+      } else {
+        setAvailableSubcategories([]);
+      }
+    } else {
+      setAvailableSubcategories([]);
+      setFormData(prev => ({ ...prev, subcategory: '' }));
+    }
+  }, [formData.category]);
   
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -64,6 +65,13 @@ export default function ProductForm({ product = null, onSuccess, onCancel }) {
       setErrors(prev => ({ ...prev, [field]: null }));
     }
     setError(null);
+  };
+  
+  const handleCategoryChange = (value) => {
+    setFormData(prev => ({ ...prev, category: value, subcategory: '' }));
+    if (errors.category) {
+      setErrors(prev => ({ ...prev, category: null }));
+    }
   };
   
   const handleImagesChange = (images) => {
@@ -184,14 +192,14 @@ export default function ProductForm({ product = null, onSuccess, onCancel }) {
             </label>
             <select
               value={formData.category}
-              onChange={(e) => handleChange('category', e.target.value)}
+              onChange={(e) => handleCategoryChange(e.target.value)}
               className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none"
               required
             >
               <option value="">Select Category</option>
-              {Object.entries(groupedCategories).map(([parent, categories]) => (
-                <optgroup key={parent} label={parentLabels[parent]}>
-                  {categories.map(cat => (
+              {CATEGORIES_STRUCTURE.map((group) => (
+                <optgroup key={group.groupId} label={group.groupName}>
+                  {group.categories.map(cat => (
                     <option key={cat.id} value={cat.id}>
                       {cat.name}
                     </option>
@@ -204,6 +212,30 @@ export default function ProductForm({ product = null, onSuccess, onCancel }) {
             )}
           </div>
         </div>
+
+        {availableSubcategories.length > 0 && (
+          <div className="mt-4">
+            <label className="block text-sm font-bold text-neutral-700 mb-2">
+              Subcategory <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={formData.subcategory}
+              onChange={(e) => handleChange('subcategory', e.target.value)}
+              className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none"
+              required
+            >
+              <option value="">Select Subcategory</option>
+              {availableSubcategories.map(sub => (
+                <option key={sub.id} value={sub.id}>
+                  {sub.name}
+                </option>
+              ))}
+            </select>
+            {errors.subcategory && (
+              <p className="mt-2 text-sm text-red-600">{errors.subcategory}</p>
+            )}
+          </div>
+        )}
 
         <div className="mt-4">
           <label className="block text-sm font-bold text-neutral-700 mb-2">
