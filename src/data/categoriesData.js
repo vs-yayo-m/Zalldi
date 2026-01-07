@@ -563,7 +563,8 @@ export const getCategoryById = (categoryId) => {
         ...found,
         groupId: group.id,
         groupName: group.name,
-        groupColor: group.color
+        groupColor: group.color,
+        subcategories: found.subcategories || []
       };
     }
   }
@@ -572,5 +573,18 @@ export const getCategoryById = (categoryId) => {
 
 export const getSubcategories = (categoryId) => {
   const category = getCategoryById(categoryId);
-  return category ? category.subcategories : [];
+  return category?.subcategories || [];
+};
+
+export const getAllSubcategories = () => {
+  return CATEGORIES_DATA.flatMap(group =>
+    group.categories.flatMap(cat =>
+      (cat.subcategories || []).map(sub => ({
+        ...sub,
+        categoryId: cat.id,
+        categoryName: cat.name,
+        groupId: group.id
+      }))
+    )
+  );
 };
