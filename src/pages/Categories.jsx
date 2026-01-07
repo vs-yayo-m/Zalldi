@@ -14,12 +14,25 @@ export default function Categories() {
   const { items } = useCart();
   const [searchQuery, setSearchQuery] = useState('');
 
-  const cartItemsCount = items.reduce((total, item) => total + item.quantity, 0);
+  const cartItemsCount = Array.isArray(items)
+    ? items.reduce((total, item) => total + (item.quantity || 0), 0)
+    : 0;
+
+  // Filter categories based on search
+  const filteredData = CATEGORIES_DATA?.map(section => {
+    if (!section || !Array.isArray(section.subcategories)) return section;
+
+    const filteredSubcats = section.subcategories.filter(sub =>
+      sub.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    return { ...section, subcategories: filteredSubcats };
+  }) || [];
 
   return (
     <div className="min-h-screen bg-neutral-50">
       <Header />
-      
+
       <div className="bg-gradient-to-b from-orange-50 to-white pb-8">
         <div className="container mx-auto px-4 pt-6">
           <div className="mb-6">
@@ -39,9 +52,9 @@ export default function Categories() {
                 <Search className="absolute left-4 w-5 h-5 text-neutral-400" />
                 <input
                   type="text"
-                  placeholder='Search categories'
+                  placeholder="Search categories"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={e => setSearchQuery(e.target.value)}
                   className="w-full pl-12 pr-12 py-4 bg-transparent outline-none text-neutral-800 font-medium placeholder:text-neutral-400"
                 />
                 <button className="absolute right-4 p-2 text-neutral-400 hover:text-orange-500 transition-colors">
@@ -51,31 +64,31 @@ export default function Categories() {
             </div>
           </div>
 
-          {Object.entries(CATEGORIES_DATA).map(([mainId, mainCat], sectionIdx) => (
+          {Array.isArray(filteredData) && filteredData.map((mainCat, sectionIdx) => (
             <motion.div
-              key={mainId}
+              key={mainCat.id || sectionIdx}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: sectionIdx * 0.1 }}
               className="mb-10"
             >
               <div className="flex items-center gap-3 mb-5">
-                <div 
+                <div
                   className="w-10 h-10 rounded-xl flex items-center justify-center text-2xl shadow-sm"
-                  style={{ backgroundColor: `${mainCat.color}15` }}
+                  style={{ backgroundColor: `${mainCat.color || '#eee'}15` }}
                 >
-                  {mainCat.icon}
+                  {mainCat.icon || '🛒'}
                 </div>
                 <h2 className="text-xl font-black text-neutral-900 tracking-tight">
-                  {mainCat.name}
+                  {mainCat.name || 'Unnamed Category'}
                 </h2>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4">
-                {Object.entries(mainCat.subcategories).map(([subId, subCat], idx) => (
+                {Array.isArray(mainCat.subcategories) && mainCat.subcategories.map((subCat, idx) => (
                   <motion.button
-                    key={subId}
-                    onClick={() => navigate(`/category/${subId}`)}
+                    key={subCat.id || idx}
+                    onClick={() => navigate(`/category/${subCat.id}`)}
                     whileHover={{ y: -4, scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     initial={{ opacity: 0, scale: 0.9 }}
@@ -85,16 +98,16 @@ export default function Categories() {
                   >
                     <div className="aspect-square mb-3 rounded-xl overflow-hidden bg-neutral-50">
                       <img
-                        src={subCat.image}
-                        alt={subCat.name}
+                        src={subCat.image || ''}
+                        alt={subCat.name || 'Category'}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                        onError={(e) => {
+                        onError={e => {
                           e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23f5f5f5" width="200" height="200"/%3E%3Ctext fill="%23a3a3a3" font-family="Arial" font-size="14" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3ENo Image%3C/text%3E%3C/svg%3E';
                         }}
                       />
                     </div>
                     <h3 className="text-sm font-bold text-neutral-800 text-center leading-tight group-hover:text-orange-600 transition-colors">
-                      {subCat.name}
+                      {subCat.name || 'Unnamed'}
                     </h3>
                     <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
                       <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
