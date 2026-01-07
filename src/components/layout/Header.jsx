@@ -114,7 +114,7 @@ export default function Header() {
           <div className="flex-1 flex items-center justify-center pointer-events-none">
             <Link to="/" className="pointer-events-auto">
               <img
-                src="/header/logo.svg"
+                src="/header/logo.png"
                 alt="Zalldi"
                 className="h-8 lg:h-10 w-auto"
                 onError={(e) => {
