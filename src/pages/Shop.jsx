@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SlidersHorizontal, ArrowUpDown, X } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
-import { CATEGORIES_DATA } from '@/data/categoriesData';
+import { getAllCategories } from '@/data/categoriesStructure';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import FilterSidebar from '@/components/customer/FilterSidebar';
@@ -27,29 +27,22 @@ export default function Shop() {
     hasDiscount: false
   });
 
-  // Generate flat list of all categories safely
   const allCategories = useMemo(() => {
-    const cats = [{ id: 'all', name: 'All', image: null }];
-    CATEGORIES_DATA.forEach(group => {
-      if (Array.isArray(group.categories)) {
-        group.categories.forEach(cat => cats.push(cat));
-      }
-    });
-    return cats;
+    return [
+      { id: 'all', name: 'All', image: null, groupColor: '#FF6B35' },
+      ...getAllCategories()
+    ];
   }, []);
 
-  // Filtered & sorted products
   const filteredProducts = useMemo(() => {
     if (!products || !Array.isArray(products)) return [];
 
     let filtered = [...products];
 
-    // Filter by selected category
     if (selectedCategory !== 'all') {
       filtered = filtered.filter(p => p.category === selectedCategory);
     }
 
-    // Filter by sidebar filters
     if (filters.categories.length > 0) {
       filtered = filtered.filter(p => filters.categories.includes(p.category));
     }
@@ -74,7 +67,6 @@ export default function Shop() {
       filtered = filtered.filter(p => p.discountPrice);
     }
 
-    // Sort products
     return filtered.sort((a, b) => {
       const priceA = a.discountPrice || a.price;
       const priceB = b.discountPrice || b.price;
@@ -124,7 +116,6 @@ export default function Shop() {
       <Header />
 
       <div className="pt-20 md:pt-24">
-        {/* Top Bar: Category Title + Filters */}
         <div className="bg-white border-b border-neutral-100 sticky top-16 md:top-20 z-40 shadow-sm">
           <div className="flex items-center justify-between px-4 py-3">
             <h1 className="text-xl font-black text-neutral-900">
@@ -159,7 +150,6 @@ export default function Shop() {
         </div>
 
         <div className="flex">
-          {/* Sidebar Categories */}
           <aside className="w-20 flex-shrink-0 bg-neutral-900 sticky top-36 h-[calc(100vh-144px)] overflow-y-auto scrollbar-hide">
             {allCategories.map(category => (
               <button
@@ -177,6 +167,9 @@ export default function Shop() {
                       src={category.image}
                       alt={category.name}
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.parentElement.innerHTML = '<div class="w-full h-full bg-orange-500 rounded-full flex items-center justify-center text-white text-xl font-black">🛒</div>';
+                      }}
                     />
                   </div>
                 ) : (
@@ -193,12 +186,10 @@ export default function Shop() {
             ))}
           </aside>
 
-          {/* Main Products Area */}
           <main className="flex-1 p-4 overflow-y-auto">
-            {/* Promo Banner */}
             <div className="mb-4 bg-gradient-to-r from-green-500 to-green-600 rounded-2xl p-4 text-white">
-              <h2 className="text-lg font-black mb-1">Healthy, juicy & seasonal</h2>
-              <p className="text-xs opacity-90">Picked fresh from India's orchards</p>
+              <h2 className="text-lg font-black mb-1">Fresh & Seasonal</h2>
+              <p className="text-xs opacity-90">Best quality products delivered fast</p>
             </div>
 
             {loading ? (
@@ -234,7 +225,6 @@ export default function Shop() {
 
       <Footer />
 
-      {/* Filter Sidebar */}
       <AnimatePresence>
         {showFilters && (
           <>
@@ -272,7 +262,6 @@ export default function Shop() {
           </>
         )}
 
-        {/* Sort Menu */}
         {showSortMenu && (
           <>
             <motion.div

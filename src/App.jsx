@@ -1,7 +1,7 @@
 // src/App.jsx
 
 import { Suspense, lazy } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from '@contexts/AuthContext'
 import { CartProvider } from '@contexts/CartContext'
@@ -83,12 +83,14 @@ export default function App() {
                       <Routes>
                         <Route path={ROUTES.HOME} element={<Home />} />
                         <Route path="/categories" element={<Categories />} />
-<Route path={ROUTES.CATEGORIES} element={<Categories />} />
+                        <Route path={ROUTES.CATEGORIES} element={<Categories />} />
 
                         <Route path={ROUTES.SHOP} element={<Shop />} />
                         <Route path="/product/:slug" element={<ProductDetail />} />
                         
+                        {/* Category with subcategories products view */}
                         <Route path="/category/:categoryId" element={<Category />} />
+                        
                         <Route path={ROUTES.SEARCH} element={<Search />} />
                         <Route path={ROUTES.CART} element={<Cart />} />
                         
