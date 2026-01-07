@@ -208,7 +208,7 @@ export default function Header() {
                 className="relative"
               >
                 <img
-                  src="/header/logo.webp"
+                  src="/header/logo.png"
                   alt="Zalldi"
                   className="h-10 md:h-12 w-auto drop-shadow-lg"
                   onError={(e) => {
