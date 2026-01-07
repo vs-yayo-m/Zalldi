@@ -1,9 +1,9 @@
 // src/pages/Categories.jsx
 
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, Mic, ShoppingCart, ChevronRight, Grid, Heart } from 'lucide-react';
+import { Search, Mic, ShoppingCart, ChevronRight } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { CATEGORIES_DATA } from '@/data/categoriesData';
@@ -15,10 +15,6 @@ export default function Categories() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const cartItemsCount = items.reduce((total, item) => total + item.quantity, 0);
-
-  const handleCategoryClick = (categoryId) => {
-    navigate(`/category/${categoryId}`);
-  };
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -43,7 +39,7 @@ export default function Categories() {
                 <Search className="absolute left-4 w-5 h-5 text-neutral-400" />
                 <input
                   type="text"
-                  placeholder='Search "notebooks"'
+                  placeholder='Search categories'
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-12 pr-12 py-4 bg-transparent outline-none text-neutral-800 font-medium placeholder:text-neutral-400"
@@ -55,9 +51,9 @@ export default function Categories() {
             </div>
           </div>
 
-          {CATEGORIES_DATA.map((section, sectionIdx) => (
+          {Object.entries(CATEGORIES_DATA).map(([mainId, mainCat], sectionIdx) => (
             <motion.div
-              key={section.id}
+              key={mainId}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: sectionIdx * 0.1 }}
@@ -66,20 +62,20 @@ export default function Categories() {
               <div className="flex items-center gap-3 mb-5">
                 <div 
                   className="w-10 h-10 rounded-xl flex items-center justify-center text-2xl shadow-sm"
-                  style={{ backgroundColor: `${section.color}15` }}
+                  style={{ backgroundColor: `${mainCat.color}15` }}
                 >
-                  {section.icon}
+                  {mainCat.icon}
                 </div>
                 <h2 className="text-xl font-black text-neutral-900 tracking-tight">
-                  {section.name}
+                  {mainCat.name}
                 </h2>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4">
-                {section.subcategories.map((category, idx) => (
+                {Object.entries(mainCat.subcategories).map(([subId, subCat], idx) => (
                   <motion.button
-                    key={category.id}
-                    onClick={() => handleCategoryClick(category.id)}
+                    key={subId}
+                    onClick={() => navigate(`/category/${subId}`)}
                     whileHover={{ y: -4, scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     initial={{ opacity: 0, scale: 0.9 }}
@@ -89,8 +85,8 @@ export default function Categories() {
                   >
                     <div className="aspect-square mb-3 rounded-xl overflow-hidden bg-neutral-50">
                       <img
-                        src={category.image}
-                        alt={category.name}
+                        src={subCat.image}
+                        alt={subCat.name}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                         onError={(e) => {
                           e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23f5f5f5" width="200" height="200"/%3E%3Ctext fill="%23a3a3a3" font-family="Arial" font-size="14" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3ENo Image%3C/text%3E%3C/svg%3E';
@@ -98,7 +94,7 @@ export default function Categories() {
                       />
                     </div>
                     <h3 className="text-sm font-bold text-neutral-800 text-center leading-tight group-hover:text-orange-600 transition-colors">
-                      {category.name}
+                      {subCat.name}
                     </h3>
                     <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
                       <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg">
