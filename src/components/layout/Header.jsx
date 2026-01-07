@@ -37,7 +37,7 @@ import { getDashboardRoute } from '@/utils/roleNavigation';
 // Logo Path: Place 'logo.svg' in 'public/header/' folder
 const HEADER_CONFIG = {
   bgPattern: 'url(/header/header-bg.webp)', 
-  logoPath: '/header/logo.svg'
+  logoPath: '/header/logo.png'
 };
 
 const ROLE_CONFIGS = {
