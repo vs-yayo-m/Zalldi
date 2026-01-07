@@ -1,793 +1,576 @@
 // src/data/categoriesData.js
 
-export const CATEGORIES_DATA = {
-  "grocery-kitchen": {
-    name: "Grocery & Kitchen",
-    icon: "🛒",
-    color: "#10B981",
-    subcategories: {
-      "vegetables-fruits": {
-        name: "Vegetables & Fruits",
-        image: "/categories/vegetables-fruits.webp",
-        leafGroups: {
-          "fresh-vegetables": {
-            name: "Fresh Vegetables",
-            items: ["Leafy Vegetables", "Root Vegetables", "Gourds & Squash", "Seasonal Vegetables", "Exotic Vegetables"]
-          },
-          "fresh-fruits": {
-            name: "Fresh Fruits",
-            items: ["Seasonal Fruits", "Exotic Fruits", "Citrus Fruits", "Berries & Grapes", "Melons"]
-          },
-          "organic-produce": {
-            name: "Organic Produce",
-            items: ["Organic Vegetables", "Organic Fruits"]
-          },
-          "frozen-produce": {
-            name: "Frozen Produce",
-            items: ["Frozen Vegetables", "Frozen Fruits"]
-          },
-          "cut-ready-produce": {
-            name: "Cut & Ready Produce",
-            items: ["Ready-to-Cook Vegetables", "Cut Fruits"]
-          }
-        }
+export const CATEGORIES_DATA = [
+  {
+    id: 'grocery-kitchen',
+    name: 'Grocery & Kitchen',
+    icon: '🛒',
+    color: '#10B981',
+    categories: [
+      {
+        id: 'vegetables-fruits',
+        name: 'Vegetables & Fruits',
+        image: '/categories/vegetables-fruits.webp',
+        banner: 'Healthy, juicy & seasonal',
+        tagline: "Picked fresh from India's orchards",
+        subcategories: [
+          { id: 'fresh-vegetables', name: 'Fresh Vegetables', icon: '🥕' },
+          { id: 'fresh-fruits', name: 'Fresh Fruits', icon: '🍎' },
+          { id: 'leafy-greens', name: 'Leafy Greens', icon: '🥬' },
+          { id: 'flowers', name: 'Flowers', icon: '🌺' },
+          { id: 'seasonal', name: 'Seasonal', icon: '🍊' },
+          { id: 'packed-vegs', name: 'Packed Vegs', icon: '📦' },
+          { id: 'cut-prepared', name: 'Cut & Prepared', icon: '🔪' },
+          { id: 'others-veg', name: 'Others', icon: '🌿' }
+        ]
       },
-      "atta-rice-dal": {
-        name: "Atta, Rice & Dal",
-        image: "/categories/atta-rice-dal.webp",
-        leafGroups: {
-          "atta-flour": {
-            name: "Atta & Flour",
-            items: ["Wheat Atta", "Multigrain Atta", "Rice Flour", "Maida & Sooji", "Besan & Other Flours"]
-          },
-          "rice": {
-            name: "Rice",
-            items: ["Basmati Rice", "Non-Basmati Rice", "Brown & Organic Rice", "Parboiled & Steamed Rice"]
-          },
-          "dal-pulses": {
-            name: "Dal & Pulses",
-            items: ["Toor Dal", "Moong Dal", "Chana Dal", "Masoor Dal", "Urad Dal", "Mixed Dal"]
-          },
-          "millets-grains": {
-            name: "Millets & Grains",
-            items: ["Ragi", "Jowar", "Bajra", "Quinoa", "Oats"]
-          }
-        }
+      {
+        id: 'atta-rice-dal',
+        name: 'Atta, Rice & Dal',
+        image: '/categories/atta-rice-dal.webp',
+        banner: 'Pure & nutritious staples',
+        tagline: 'Quality grains for every meal',
+        subcategories: [
+          { id: 'atta-flour', name: 'Atta & Flour', icon: '🌾' },
+          { id: 'rice', name: 'Rice', icon: '🍚' },
+          { id: 'dal-pulses', name: 'Dal & Pulses', icon: '🫘' },
+          { id: 'grains-millets', name: 'Grains & Millets', icon: '🌽' },
+          { id: 'baking-mix', name: 'Baking Mix', icon: '🧁' },
+          { id: 'organic-grains', name: 'Organic', icon: '🌱' },
+          { id: 'others-grains', name: 'Others', icon: '📦' }
+        ]
       },
-      "oil-ghee-masala": {
-        name: "Oil, Ghee & Masala",
-        image: "/categories/oil-ghee-masala.webp",
-        leafGroups: {
-          "cooking-oils": {
-            name: "Cooking Oils",
-            items: ["Mustard Oil", "Sunflower Oil", "Soybean Oil", "Rice Bran Oil", "Olive Oil", "Coconut Oil"]
-          },
-          "ghee-butter": {
-            name: "Ghee & Butter",
-            items: ["Pure Ghee", "Butter", "Margarine"]
-          },
-          "whole-spices": {
-            name: "Whole Spices",
-            items: ["Cumin", "Coriander Seeds", "Black Pepper", "Cardamom", "Cloves", "Bay Leaves"]
-          },
-          "powdered-spices": {
-            name: "Powdered Spices",
-            items: ["Turmeric Powder", "Red Chilli Powder", "Coriander Powder", "Cumin Powder"]
-          },
-          "blended-masala": {
-            name: "Blended Masala",
-            items: ["Garam Masala", "Kitchen King", "Chaat Masala", "Curry Powder", "Regional Masalas"]
-          }
-        }
+      {
+        id: 'oil-ghee-masala',
+        name: 'Oil, Ghee & Masala',
+        image: '/categories/oil-ghee-masala.webp',
+        banner: 'Authentic flavors & aroma',
+        tagline: 'Premium oils and spices',
+        subcategories: [
+          { id: 'mustard-oil', name: 'Mustard Oil', icon: '🫗' },
+          { id: 'cooking-oils', name: 'Cooking Oils', icon: '🛢️' },
+          { id: 'ghee-butter', name: 'Ghee & Butter', icon: '🧈' },
+          { id: 'whole-spices', name: 'Whole Spices', icon: '🌶️' },
+          { id: 'powder-masala', name: 'Powder Masala', icon: '🥘' },
+          { id: 'salt-chat', name: 'Salt & Chat Masala', icon: '🧂' },
+          { id: 'organic-spices', name: 'Organic', icon: '🌱' },
+          { id: 'others-oil', name: 'Others', icon: '📦' }
+        ]
       },
-      "dairy-bread-eggs": {
-        name: "Dairy, Bread & Eggs",
-        image: "/categories/dairy-bread-eggs.webp",
-        leafGroups: {
-          "milk": {
-            name: "Milk",
-            items: ["Toned Milk", "Full Cream Milk", "Double Toned Milk", "Flavoured Milk", "Plant-Based Milk"]
-          },
-          "curd-yogurt": {
-            name: "Curd & Yogurt",
-            items: ["Plain Curd", "Flavoured Yogurt", "Greek Yogurt"]
-          },
-          "paneer-cheese": {
-            name: "Paneer & Cheese",
-            items: ["Paneer", "Cheddar Cheese", "Mozzarella", "Processed Cheese", "Cream Cheese"]
-          },
-          "butter-cream": {
-            name: "Butter & Cream",
-            items: ["Table Butter", "Cooking Butter", "Fresh Cream", "Whipping Cream"]
-          },
-          "eggs": {
-            name: "Eggs",
-            items: ["White Eggs", "Brown Eggs", "Free-Range Eggs"]
-          },
-          "bread-buns": {
-            name: "Bread & Buns",
-            items: ["Sandwich Bread", "Brown Bread", "Pav & Buns", "Pizza Base"]
-          }
-        }
+      {
+        id: 'dairy-bread-eggs',
+        name: 'Dairy, Bread & Eggs',
+        image: '/categories/dairy-bread-eggs.webp',
+        banner: 'Fresh daily essentials',
+        tagline: 'Farm-fresh dairy products',
+        subcategories: [
+          { id: 'milk', name: 'Milk', icon: '🥛' },
+          { id: 'curd-yogurt', name: 'Curd & Yogurt', icon: '🍶' },
+          { id: 'paneer-cheese', name: 'Paneer & Cheese', icon: '🧀' },
+          { id: 'bread-buns', name: 'Bread & Buns', icon: '🍞' },
+          { id: 'eggs', name: 'Eggs', icon: '🥚' },
+          { id: 'others-dairy', name: 'Others', icon: '📦' }
+        ]
       },
-      "bakery-biscuits": {
-        name: "Bakery & Biscuits",
-        image: "/categories/bakery-biscuits.webp",
-        leafGroups: {
-          "biscuits-cookies": {
-            name: "Biscuits & Cookies",
-            items: ["Cream Biscuits", "Glucose Biscuits", "Digestive Biscuits", "Cookies"]
-          },
-          "cakes-pastries": {
-            name: "Cakes & Pastries",
-            items: ["Cakes", "Cupcakes", "Pastries", "Muffins"]
-          },
-          "rusk-toast": {
-            name: "Rusk & Toast",
-            items: ["Rusk", "Toast", "Breadsticks"]
-          },
-          "savoury-bakery": {
-            name: "Savoury Bakery",
-            items: ["Puffs", "Patties", "Samosas"]
-          }
-        }
+      {
+        id: 'bakery-biscuits',
+        name: 'Bakery & Biscuits',
+        image: '/categories/bakery-biscuits.webp',
+        banner: 'Sweet treats & snacks',
+        tagline: 'Freshly baked goodness',
+        subcategories: [
+          { id: 'cakes-rolls', name: 'Cakes & Rolls', icon: '🎂' },
+          { id: 'biscuits', name: 'Biscuits', icon: '🍪' },
+          { id: 'cookies', name: 'Cookies', icon: '🍪' },
+          { id: 'healthy-bakes', name: 'Healthy Bakes', icon: '🥖' },
+          { id: 'crackers', name: 'Crackers', icon: '🥐' },
+          { id: 'rusk', name: 'Rusk', icon: '🍞' },
+          { id: 'others-bakery', name: 'Others', icon: '📦' }
+        ]
       },
-      "dry-fruits-cereals": {
-        name: "Dry Fruits & Cereals",
-        image: "/categories/dry-fruits-cereals.webp",
-        leafGroups: {
-          "dry-fruits": {
-            name: "Dry Fruits",
-            items: ["Almonds", "Cashews", "Raisins", "Dates", "Walnuts", "Pistachios", "Figs"]
-          },
-          "seeds-mixes": {
-            name: "Seeds & Mixes",
-            items: ["Chia Seeds", "Flax Seeds", "Pumpkin Seeds", "Trail Mix"]
-          },
-          "breakfast-cereals": {
-            name: "Breakfast Cereals",
-            items: ["Cornflakes", "Oats", "Muesli", "Granola"]
-          }
-        }
+      {
+        id: 'dry-fruits-cereals',
+        name: 'Dry Fruits & Cereals',
+        image: '/categories/dry-fruits-cereals.webp',
+        banner: 'Nutrition powerhouse',
+        tagline: 'Premium nuts and cereals',
+        subcategories: [
+          { id: 'dry-fruits-nuts', name: 'Dry Fruits & Nuts', icon: '🥜' },
+          { id: 'seeds-mixes', name: 'Seeds & Mixes', icon: '🌻' },
+          { id: 'breakfast-cereals', name: 'Breakfast Cereals', icon: '🥣' },
+          { id: 'oats-muesli', name: 'Oats & Muesli', icon: '🌾' },
+          { id: 'others-cereals', name: 'Others', icon: '📦' }
+        ]
       },
-      "chicken-meat-fish": {
-        name: "Chicken, Meat & Fish",
-        image: "/categories/chicken-meat-fish.webp",
-        leafGroups: {
-          "chicken": {
-            name: "Chicken",
-            items: ["Whole Chicken", "Chicken Breast", "Chicken Legs", "Minced Chicken"]
-          },
-          "fish-seafood": {
-            name: "Fish & Seafood",
-            items: ["Fresh Fish", "Prawns", "Crabs", "Frozen Seafood"]
-          },
-          "mutton-red-meat": {
-            name: "Mutton & Red Meat",
-            items: ["Mutton", "Lamb", "Goat Meat"]
-          },
-          "frozen-processed-meat": {
-            name: "Frozen & Processed Meat",
-            items: ["Frozen Chicken", "Sausages", "Salami", "Ham"]
-          }
-        }
+      {
+        id: 'chicken-meat-fish',
+        name: 'Chicken, Meat & Fish',
+        image: '/categories/chicken-meat-fish.webp',
+        banner: 'Fresh & hygienic',
+        tagline: 'Quality meat products',
+        subcategories: [
+          { id: 'fresh-chicken', name: 'Fresh Chicken', icon: '🍗' },
+          { id: 'mutton-meat', name: 'Mutton & Meat', icon: '🥩' },
+          { id: 'fish-seafood', name: 'Fish & Seafood', icon: '🐟' },
+          { id: 'ready-to-cook', name: 'Ready-to-Cook', icon: '🍲' },
+          { id: 'processed-meat', name: 'Processed Meat', icon: '🥓' },
+          { id: 'others-meat', name: 'Others', icon: '📦' }
+        ]
       },
-      "kitchenware-appliances": {
-        name: "Kitchenware & Appliances",
-        image: "/categories/kitchenware-appliances.webp",
-        leafGroups: {
-          "cookware": {
-            name: "Cookware",
-            items: ["Non-Stick Pans", "Pressure Cookers", "Kadhai", "Tawa", "Stainless Steel Utensils"]
-          },
-          "kitchen-tools": {
-            name: "Kitchen Tools",
-            items: ["Knives", "Peelers", "Graters", "Choppers", "Rolling Pins"]
-          },
-          "storage-containers": {
-            name: "Storage & Containers",
-            items: ["Plastic Containers", "Glass Containers", "Steel Containers", "Lunch Boxes"]
-          },
-          "small-appliances": {
-            name: "Small Appliances",
-            items: ["Mixer Grinder", "Toaster", "Electric Kettle", "Rice Cooker", "Hand Blender"]
-          }
-        }
+      {
+        id: 'kitchenware-appliances',
+        name: 'Kitchenware & Appliances',
+        image: '/categories/kitchenware-appliances.webp',
+        banner: 'Kitchen essentials',
+        tagline: 'Modern kitchen solutions',
+        subcategories: [
+          { id: 'cookware', name: 'Cookware', icon: '🍳' },
+          { id: 'utensils', name: 'Utensils', icon: '🥄' },
+          { id: 'small-appliances', name: 'Small Appliances', icon: '⚡' },
+          { id: 'storage', name: 'Storage', icon: '📦' },
+          { id: 'kitchen-cleaning', name: 'Kitchen Cleaning', icon: '🧽' },
+          { id: 'others-kitchen', name: 'Others', icon: '🔧' }
+        ]
       }
-    }
+    ]
   },
-  "snacks-drinks": {
-    name: "Snacks & Drinks",
-    icon: "🍿",
-    color: "#F59E0B",
-    subcategories: {
-      "chips-namkeen": {
-        name: "Chips & Namkeen",
-        image: "/categories/chips-namkeen.webp",
-        leafGroups: {
-          "potato-chips": {
-            name: "Potato Chips",
-            items: ["Regular Chips", "Flavoured Chips", "Baked Chips"]
-          },
-          "namkeen-bhujia": {
-            name: "Namkeen & Bhujia",
-            items: ["Bhujia", "Sev", "Chivda", "Mixture"]
-          },
-          "popcorn-puffs": {
-            name: "Popcorn & Puffs",
-            items: ["Popcorn", "Corn Puffs", "Rice Puffs"]
-          }
-        }
+  {
+    id: 'snacks-drinks',
+    name: 'Snacks & Drinks',
+    icon: '🍿',
+    color: '#F59E0B',
+    categories: [
+      {
+        id: 'chips-namkeen',
+        name: 'Chips & Namkeen',
+        image: '/categories/chips-namkeen.webp',
+        banner: 'Crunchy & tasty',
+        tagline: 'Perfect munching companions',
+        subcategories: [
+          { id: 'potato-chips', name: 'Potato Chips', icon: '🥔' },
+          { id: 'corn-multigrain', name: 'Corn & Multigrain', icon: '🌽' },
+          { id: 'namkeen', name: 'Namkeen', icon: '🥨' },
+          { id: 'party-packs', name: 'Party Packs', icon: '🎉' },
+          { id: 'others-chips', name: 'Others', icon: '📦' }
+        ]
       },
-      "sweets-chocolates": {
-        name: "Sweets & Chocolates",
-        image: "/categories/sweets-chocolates.webp",
-        leafGroups: {
-          "indian-sweets": {
-            name: "Indian Sweets",
-            items: ["Ladoo", "Barfi", "Gulab Jamun", "Rasgulla", "Soan Papdi"]
-          },
-          "chocolates": {
-            name: "Chocolates",
-            items: ["Bars", "Packed Chocolates", "Premium Chocolates"]
-          },
-          "candies-toffees": {
-            name: "Candies & Toffees",
-            items: ["Hard Candy", "Soft Candy", "Toffees", "Lollipops"]
-          },
-          "sugar-free-sweets": {
-            name: "Sugar Free Sweets",
-            items: ["Sugar-Free Chocolates", "Sugar-Free Candies"]
-          }
-        }
+      {
+        id: 'sweets-chocolates',
+        name: 'Sweets & Chocolates',
+        image: '/categories/sweets-chocolates.webp',
+        banner: 'Sweet indulgence',
+        tagline: 'Delicious treats for everyone',
+        subcategories: [
+          { id: 'chocolates', name: 'Chocolates', icon: '🍫' },
+          { id: 'candies', name: 'Candies', icon: '🍬' },
+          { id: 'traditional-sweets', name: 'Traditional Sweets', icon: '🍮' },
+          { id: 'gift-packs', name: 'Gift Packs', icon: '🎁' },
+          { id: 'others-sweets', name: 'Others', icon: '📦' }
+        ]
       },
-      "drinks-juices": {
-        name: "Drinks & Juices",
-        image: "/categories/drinks-juices.webp",
-        leafGroups: {
-          "fruit-juices": {
-            name: "Fruit Juices",
-            items: ["Mango Juice", "Orange Juice", "Apple Juice", "Mixed Fruit Juice"]
-          },
-          "soft-drinks": {
-            name: "Soft Drinks",
-            items: ["Cola", "Lemon Drinks", "Orange Drinks", "Soda"]
-          },
-          "energy-sports-drinks": {
-            name: "Energy & Sports Drinks",
-            items: ["Energy Drinks", "Glucose Drinks", "Sports Drinks"]
-          }
-        }
+      {
+        id: 'drinks-juices',
+        name: 'Drinks & Juices',
+        image: '/categories/drinks-juices.webp',
+        banner: 'Refresh & energize',
+        tagline: 'Quench your thirst',
+        subcategories: [
+          { id: 'juices', name: 'Juices', icon: '🧃' },
+          { id: 'cold-drinks', name: 'Cold Drinks', icon: '🥤' },
+          { id: 'energy-drinks', name: 'Energy Drinks', icon: '⚡' },
+          { id: 'ready-drinks', name: 'Ready Drinks', icon: '🍹' },
+          { id: 'others-drinks', name: 'Others', icon: '📦' }
+        ]
       },
-      "tea-coffee-milk": {
-        name: "Tea, Coffee & Milk Drinks",
-        image: "/categories/tea-coffee-milk.webp",
-        leafGroups: {
-          "tea": {
-            name: "Tea",
-            items: ["Black Tea", "Green Tea", "Herbal Tea", "Masala Tea", "Tea Bags"]
-          },
-          "coffee": {
-            name: "Coffee",
-            items: ["Instant Coffee", "Ground Coffee", "Coffee Beans", "Cold Coffee Mix"]
-          },
-          "health-drinks": {
-            name: "Health Drinks",
-            items: ["Horlicks", "Bournvita", "Complan", "Protein Drinks"]
-          }
-        }
+      {
+        id: 'tea-coffee-milk',
+        name: 'Tea, Coffee & Milk Drinks',
+        image: '/categories/tea-coffee-milk.webp',
+        banner: 'Morning rituals',
+        tagline: 'Perfect brew every time',
+        subcategories: [
+          { id: 'tea', name: 'Tea', icon: '🍵' },
+          { id: 'coffee', name: 'Coffee', icon: '☕' },
+          { id: 'milk-drinks', name: 'Milk Drinks', icon: '🥛' },
+          { id: 'ready-tea-coffee', name: 'Ready Tea/Coffee', icon: '🧋' },
+          { id: 'others-tea', name: 'Others', icon: '📦' }
+        ]
       },
-      "instant-food": {
-        name: "Instant Food",
-        image: "/categories/instant-food.webp",
-        leafGroups: {
-          "instant-noodles": {
-            name: "Instant Noodles",
-            items: ["Cup Noodles", "Packet Noodles", "Vermicelli"]
-          },
-          "ready-meals": {
-            name: "Ready Meals",
-            items: ["Ready-to-Eat", "Frozen Meals", "Canned Food"]
-          },
-          "soup-mixes": {
-            name: "Soup & Mixes",
-            items: ["Instant Soup", "Pasta Mix", "Khichdi Mix"]
-          }
-        }
+      {
+        id: 'instant-food',
+        name: 'Instant Food',
+        image: '/categories/instant-food.webp',
+        banner: 'Quick & easy meals',
+        tagline: 'Ready in minutes',
+        subcategories: [
+          { id: 'noodles', name: 'Noodles', icon: '🍜' },
+          { id: 'ready-meals', name: 'Ready Meals', icon: '🍱' },
+          { id: 'instant-rice-pasta', name: 'Instant Rice/Pasta', icon: '🍝' },
+          { id: 'soups-mixes', name: 'Soups & Mixes', icon: '🥘' },
+          { id: 'others-instant', name: 'Others', icon: '📦' }
+        ]
       },
-      "sauces-spreads": {
-        name: "Sauces & Spreads",
-        image: "/categories/sauces-spreads.webp",
-        leafGroups: {
-          "sauces-ketchup": {
-            name: "Sauces & Ketchup",
-            items: ["Tomato Ketchup", "Chilli Sauce", "Soy Sauce", "Pasta Sauce", "Mayo"]
-          },
-          "spreads": {
-            name: "Spreads",
-            items: ["Peanut Butter", "Chocolate Spread", "Cheese Spread"]
-          },
-          "jams-honey": {
-            name: "Jams & Honey",
-            items: ["Mixed Fruit Jam", "Strawberry Jam", "Honey", "Marmalade"]
-          }
-        }
+      {
+        id: 'sauces-spreads',
+        name: 'Sauces & Spreads',
+        image: '/categories/sauces-spreads.webp',
+        banner: 'Flavor enhancers',
+        tagline: 'Add taste to every meal',
+        subcategories: [
+          { id: 'sauces-ketchup', name: 'Sauces & Ketchup', icon: '🍅' },
+          { id: 'chutney-pickle', name: 'Chutney & Pickle', icon: '🥒' },
+          { id: 'spreads', name: 'Spreads', icon: '🥜' },
+          { id: 'cooking-pastes', name: 'Cooking Pastes', icon: '🌶️' },
+          { id: 'others-sauces', name: 'Others', icon: '📦' }
+        ]
       },
-      "paan-corner": {
-        name: "Paan Corner",
-        image: "/categories/paan-corner.webp",
-        leafGroups: {
-          "mouth-fresheners": {
-            name: "Mouth Fresheners",
-            items: ["Mukhwas", "Candy Saunf", "Digestive Tablets"]
-          },
-          "paan-ingredients": {
-            name: "Paan Ingredients",
-            items: ["Supari", "Kattha", "Chuna", "Gulkand"]
-          },
-          "pan-masala": {
-            name: "Pan Masala",
-            items: ["Flavoured Pan Masala", "Meetha Pan Masala"]
-          }
-        }
+      {
+        id: 'paan-corner',
+        name: 'Paan Corner',
+        image: '/categories/paan-corner.webp',
+        banner: 'Traditional refreshment',
+        tagline: 'Authentic Indian flavors',
+        subcategories: [
+          { id: 'paan-masala', name: 'Paan Masala', icon: '🌿' },
+          { id: 'mouth-fresheners', name: 'Mouth Fresheners', icon: '🍃' },
+          { id: 'others-paan', name: 'Others', icon: '📦' }
+        ]
       },
-      "ice-creams-more": {
-        name: "Ice Creams & More",
-        image: "/categories/ice-creams-more.webp",
-        leafGroups: {
-          "ice-creams": {
-            name: "Ice Creams",
-            items: ["Family Packs", "Sticks & Cones", "Tubs", "Premium Ice Cream"]
-          },
-          "kulfi": {
-            name: "Kulfi",
-            items: ["Malai Kulfi", "Mango Kulfi", "Pista Kulfi"]
-          },
-          "frozen-desserts": {
-            name: "Frozen Desserts",
-            items: ["Ice Candy", "Frozen Yogurt"]
-          }
-        }
+      {
+        id: 'ice-creams-more',
+        name: 'Ice Creams & More',
+        image: '/categories/ice-creams-more.webp',
+        banner: 'Cool delights',
+        tagline: 'Beat the heat',
+        subcategories: [
+          { id: 'ice-cream', name: 'Ice Cream', icon: '🍦' },
+          { id: 'frozen-bars', name: 'Frozen Bars', icon: '🍡' },
+          { id: 'frozen-desserts', name: 'Frozen Desserts', icon: '🍨' },
+          { id: 'others-frozen', name: 'Others', icon: '📦' }
+        ]
       }
-    }
+    ]
   },
-  "beauty-personal-care": {
-    name: "Beauty & Personal Care",
-    icon: "💄",
-    color: "#EC4899",
-    subcategories: {
-      "bath-body": {
-        name: "Bath & Body",
-        image: "/categories/bath-body.webp",
-        leafGroups: {
-          "soaps": {
-            name: "Soaps",
-            items: ["Bathing Bars", "Liquid Soap", "Handmade Soap"]
-          },
-          "body-wash": {
-            name: "Body Wash",
-            items: ["Shower Gel", "Body Wash"]
-          },
-          "handwash-sanitizers": {
-            name: "Handwash & Sanitizers",
-            items: ["Liquid Handwash", "Handwash Refills", "Hand Sanitizer"]
-          }
-        }
+  {
+    id: 'beauty-personal-care',
+    name: 'Beauty & Personal Care',
+    icon: '💄',
+    color: '#EC4899',
+    categories: [
+      {
+        id: 'bath-body',
+        name: 'Bath & Body',
+        image: '/categories/bath-body.webp',
+        banner: 'Pamper yourself',
+        tagline: 'Nourish your skin',
+        subcategories: [
+          { id: 'soaps-body-wash', name: 'Soaps & Body Wash', icon: '🧼' },
+          { id: 'lotions-creams', name: 'Lotions & Creams', icon: '🧴' },
+          { id: 'scrubs', name: 'Scrubs', icon: '🫧' },
+          { id: 'hand-foot-care', name: 'Hand & Foot Care', icon: '👐' },
+          { id: 'others-bath', name: 'Others', icon: '📦' }
+        ]
       },
-      "hair-care": {
-        name: "Hair",
-        image: "/categories/hair-care.webp",
-        leafGroups: {
-          "shampoo": {
-            name: "Shampoo",
-            items: ["Anti-Dandruff", "Hair Fall Control", "Smooth & Silky", "Herbal Shampoo"]
-          },
-          "conditioner": {
-            name: "Conditioner",
-            items: ["Regular Conditioner", "Leave-In Conditioner"]
-          },
-          "hair-oil": {
-            name: "Hair Oil",
-            items: ["Coconut Oil", "Almond Oil", "Ayurvedic Oil", "Hair Serum"]
-          },
-          "hair-styling": {
-            name: "Hair Styling",
-            items: ["Gel", "Wax", "Hair Spray", "Hair Cream"]
-          }
-        }
+      {
+        id: 'hair-care',
+        name: 'Hair',
+        image: '/categories/hair-care.webp',
+        banner: 'Healthy hair goals',
+        tagline: 'Premium hair care',
+        subcategories: [
+          { id: 'shampoo-conditioner', name: 'Shampoo & Conditioner', icon: '🧴' },
+          { id: 'hair-oil', name: 'Hair Oil', icon: '🫗' },
+          { id: 'hair-treatment', name: 'Hair Treatment', icon: '💆' },
+          { id: 'anti-dandruff', name: 'Anti-Dandruff', icon: '❄️' },
+          { id: 'others-hair', name: 'Others', icon: '📦' }
+        ]
       },
-      "skin-face": {
-        name: "Skin & Face",
-        image: "/categories/skin-face.webp",
-        leafGroups: {
-          "face-wash": {
-            name: "Face Wash",
-            items: ["Acne Control", "Brightening", "Oil Control", "Sensitive Skin"]
-          },
-          "moisturizers": {
-            name: "Moisturizers",
-            items: ["Face Cream", "Body Lotion", "Night Cream"]
-          },
-          "sunscreen": {
-            name: "Sunscreen",
-            items: ["SPF 30", "SPF 50", "Tinted Sunscreen"]
-          },
-          "face-masks": {
-            name: "Face Masks",
-            items: ["Sheet Masks", "Clay Masks", "Peel-Off Masks"]
-          }
-        }
+      {
+        id: 'skin-face',
+        name: 'Skin & Face',
+        image: '/categories/skin-face.webp',
+        banner: 'Radiant skin',
+        tagline: 'Glow naturally',
+        subcategories: [
+          { id: 'face-wash', name: 'Face Wash', icon: '🧴' },
+          { id: 'cream-moisturiser', name: 'Cream & Moisturiser', icon: '🧴' },
+          { id: 'sunscreen', name: 'Sunscreen', icon: '☀️' },
+          { id: 'masks-care', name: 'Masks & Care', icon: '🎭' },
+          { id: 'others-skin', name: 'Others', icon: '📦' }
+        ]
       },
-      "beauty-cosmetics": {
-        name: "Beauty & Cosmetics",
-        image: "/categories/beauty-cosmetics.webp",
-        leafGroups: {
-          "makeup": {
-            name: "Makeup",
-            items: ["Foundation", "Lipstick", "Kajal", "Eyeliner", "Nail Polish", "Compact Powder"]
-          },
-          "beauty-tools": {
-            name: "Beauty Tools",
-            items: ["Brushes", "Sponges", "Tweezers", "Mirrors"]
-          }
-        }
+      {
+        id: 'beauty-cosmetics',
+        name: 'Beauty & Cosmetics',
+        image: '/categories/beauty-cosmetics.webp',
+        banner: 'Glamour essentials',
+        tagline: 'Enhance your beauty',
+        subcategories: [
+          { id: 'face-makeup', name: 'Face Makeup', icon: '💄' },
+          { id: 'eye-makeup', name: 'Eye Makeup', icon: '👁️' },
+          { id: 'lip-makeup', name: 'Lip Makeup', icon: '💋' },
+          { id: 'makeup-tools', name: 'Tools', icon: '🖌️' },
+          { id: 'others-cosmetics', name: 'Others', icon: '📦' }
+        ]
       },
-      "feminine-hygiene": {
-        name: "Feminine Hygiene",
-        image: "/categories/feminine-hygiene.webp",
-        leafGroups: {
-          "sanitary-pads": {
-            name: "Sanitary Pads",
-            items: ["Regular Pads", "Overnight Pads", "Panty Liners"]
-          },
-          "tampons-cups": {
-            name: "Tampons & Cups",
-            items: ["Tampons", "Menstrual Cups"]
-          },
-          "intimate-wash": {
-            name: "Intimate Wash",
-            items: ["Intimate Hygiene Wash", "Wipes"]
-          }
-        }
+      {
+        id: 'feminine-hygiene',
+        name: 'Feminine Hygiene',
+        image: '/categories/feminine-hygiene.webp',
+        banner: 'Comfort & care',
+        tagline: 'Period essentials',
+        subcategories: [
+          { id: 'sanitary-pads', name: 'Sanitary Pads', icon: '🩸' },
+          { id: 'tampons-cups', name: 'Tampons & Cups', icon: '🔴' },
+          { id: 'intimate-care', name: 'Intimate Care', icon: '💜' },
+          { id: 'others-feminine', name: 'Others', icon: '📦' }
+        ]
       },
-      "baby-care": {
-        name: "Baby Care",
-        image: "/categories/baby-care.webp",
-        leafGroups: {
-          "diapers-wipes": {
-            name: "Diapers & Wipes",
-            items: ["Newborn Diapers", "Baby Diapers", "Baby Wipes"]
-          },
-          "baby-food": {
-            name: "Baby Food",
-            items: ["Cerelac", "Baby Snacks", "Formula Milk"]
-          },
-          "baby-skin-care": {
-            name: "Baby Skin Care",
-            items: ["Baby Lotion", "Baby Oil", "Baby Powder", "Diaper Rash Cream"]
-          }
-        }
+      {
+        id: 'baby-care',
+        name: 'Baby Care',
+        image: '/categories/baby-care.webp',
+        banner: 'Gentle for babies',
+        tagline: 'Safe & trusted products',
+        subcategories: [
+          { id: 'baby-bath', name: 'Baby Bath', icon: '🛁' },
+          { id: 'diapers-wipes', name: 'Diapers & Wipes', icon: '👶' },
+          { id: 'baby-food', name: 'Baby Food', icon: '🍼' },
+          { id: 'others-baby', name: 'Others', icon: '📦' }
+        ]
       },
-      "health-pharma": {
-        name: "Health & Pharma",
-        image: "/categories/health-pharma.webp",
-        leafGroups: {
-          "otc-medicines": {
-            name: "OTC Medicines",
-            items: ["Pain Relief", "Cold & Cough", "Digestion", "First Aid"]
-          },
-          "vitamins-supplements": {
-            name: "Vitamins & Supplements",
-            items: ["Multivitamins", "Calcium", "Protein Powder", "Omega-3"]
-          },
-          "medical-devices": {
-            name: "Medical Devices",
-            items: ["Thermometer", "BP Monitor", "Glucometer", "Nebulizer"]
-          }
-        }
+      {
+        id: 'health-pharma',
+        name: 'Health & Pharma',
+        image: '/categories/health-pharma.webp',
+        banner: 'Wellness first',
+        tagline: 'Stay healthy',
+        subcategories: [
+          { id: 'medicines', name: 'Medicines', icon: '💊' },
+          { id: 'vitamins', name: 'Vitamins', icon: '🧪' },
+          { id: 'first-aid', name: 'First Aid', icon: '🩹' },
+          { id: 'health-devices', name: 'Health Devices', icon: '🩺' },
+          { id: 'others-health', name: 'Others', icon: '📦' }
+        ]
       },
-      "sexual-wellness": {
-        name: "Sexual Wellness",
-        image: "/categories/sexual-wellness.webp",
-        leafGroups: {
-          "condoms": {
-            name: "Condoms",
-            items: ["Regular Condoms", "Flavoured Condoms", "Dotted & Ribbed"]
-          },
-          "lubricants": {
-            name: "Lubricants",
-            items: ["Water-Based", "Silicone-Based"]
-          },
-          "intimate-care": {
-            name: "Intimate Care",
-            items: ["Intimate Wash", "Wipes"]
-          }
-        }
+      {
+        id: 'sexual-wellness',
+        name: 'Sexual Wellness',
+        image: '/categories/sexual-wellness.webp',
+        banner: 'Private & discreet',
+        tagline: 'Safe intimacy',
+        subcategories: [
+          { id: 'condoms', name: 'Condoms', icon: '🛡️' },
+          { id: 'lubricants', name: 'Lubricants', icon: '💧' },
+          { id: 'intimate-care-wellness', name: 'Intimate Care', icon: '💜' },
+          { id: 'others-wellness', name: 'Others', icon: '📦' }
+        ]
       }
-    }
+    ]
   },
-  "household-essentials": {
-    name: "Household Essentials",
-    icon: "🏠",
-    color: "#8B5CF6",
-    subcategories: {
-      "home-lifestyle": {
-        name: "Home & Lifestyle",
-        image: "/categories/home-lifestyle.webp",
-        leafGroups: {
-          "home-decor": {
-            name: "Home Decor",
-            items: ["Wall Hangings", "Showpieces", "Artificial Plants", "Photo Frames"]
-          },
-          "bedding-linen": {
-            name: "Bedding & Linen",
-            items: ["Bed Sheets", "Pillow Covers", "Comforters", "Towels"]
-          },
-          "storage-solutions": {
-            name: "Storage Solutions",
-            items: ["Plastic Boxes", "Baskets", "Organizers", "Racks"]
-          }
-        }
+  {
+    id: 'household-essentials',
+    name: 'Household Essentials',
+    icon: '🏠',
+    color: '#8B5CF6',
+    categories: [
+      {
+        id: 'home-lifestyle',
+        name: 'Home & Lifestyle',
+        image: '/categories/home-lifestyle.webp',
+        banner: 'Make home beautiful',
+        tagline: 'Everyday essentials',
+        subcategories: [
+          { id: 'home-utility', name: 'Home Utility', icon: '🏠' },
+          { id: 'storage-home', name: 'Storage', icon: '📦' },
+          { id: 'daily-needs', name: 'Daily Needs', icon: '🔧' },
+          { id: 'others-home', name: 'Others', icon: '📦' }
+        ]
       },
-      "cleaners-repellents": {
-        name: "Cleaners & Repellents",
-        image: "/categories/cleaners-repellents.webp",
-        leafGroups: {
-          "laundry": {
-            name: "Laundry",
-            items: ["Detergent Powder", "Liquid Detergent", "Fabric Softener", "Stain Remover"]
-          },
-          "floor-surface-cleaners": {
-            name: "Floor & Surface Cleaners",
-            items: ["Floor Cleaner", "Glass Cleaner", "Bathroom Cleaner", "Kitchen Cleaner"]
-          },
-          "dishwash": {
-            name: "Dishwash",
-            items: ["Dishwash Bar", "Dishwash Liquid", "Dishwasher Tablets"]
-          },
-          "insect-repellents": {
-            name: "Insect Repellents",
-            items: ["Mosquito Coils", "Liquid Vaporizers", "Sprays", "Rat Repellents"]
-          }
-        }
+      {
+        id: 'cleaners-repellents',
+        name: 'Cleaners & Repellents',
+        image: '/categories/cleaners-repellents.webp',
+        banner: 'Sparkle clean',
+        tagline: 'Hygiene solutions',
+        subcategories: [
+          { id: 'floor-surface-cleaners', name: 'Floor & Surface Cleaners', icon: '🧹' },
+          { id: 'dish-laundry', name: 'Dish & Laundry', icon: '🧺' },
+          { id: 'mosquito-pest', name: 'Mosquito & Pest', icon: '🦟' },
+          { id: 'others-cleaners', name: 'Others', icon: '📦' }
+        ]
       },
-      "electronics": {
-        name: "Electronics",
-        image: "/categories/electronics.webp",
-        leafGroups: {
-          "small-appliances": {
-            name: "Small Appliances",
-            items: ["Iron", "Fan", "Heater", "Room Freshener Machines"]
-          },
-          "batteries-chargers": {
-            name: "Batteries & Chargers",
-            items: ["AA Batteries", "AAA Batteries", "Mobile Chargers", "Power Banks"]
-          },
-          "accessories": {
-            name: "Accessories",
-            items: ["Extension Cords", "Adapters", "Bulbs", "Tube Lights"]
-          }
-        }
+      {
+        id: 'electronics',
+        name: 'Electronics',
+        image: '/categories/electronics.webp',
+        banner: 'Tech essentials',
+        tagline: 'Stay connected',
+        subcategories: [
+          { id: 'chargers-cables', name: 'Chargers & Cables', icon: '🔌' },
+          { id: 'batteries', name: 'Batteries', icon: '🔋' },
+          { id: 'small-electronics', name: 'Small Electronics', icon: '📱' },
+          { id: 'others-electronics', name: 'Others', icon: '📦' }
+        ]
       },
-      "stationery-games": {
-        name: "Stationery & Games",
-        image: "/categories/stationery-games.webp",
-        leafGroups: {
-          "office-supplies": {
-            name: "Office Supplies",
-            items: ["Pens", "Notebooks", "Staplers", "Files & Folders"]
-          },
-          "school-supplies": {
-            name: "School Supplies",
-            items: ["Pencils", "Erasers", "Geometry Box", "Crayons"]
-          },
-          "board-games": {
-            name: "Board Games",
-            items: ["Chess", "Ludo", "Cards", "Puzzles"]
-          },
-          "art-craft": {
-            name: "Art & Craft",
-            items: ["Colors", "Brushes", "Craft Paper", "Glue"]
-          }
-        }
+      {
+        id: 'stationery-games',
+        name: 'Stationery & Games',
+        image: '/categories/stationery-games.webp',
+        banner: 'Learning & fun',
+        tagline: 'Creative essentials',
+        subcategories: [
+          { id: 'school-office', name: 'School & Office', icon: '📝' },
+          { id: 'writing-items', name: 'Writing Items', icon: '✏️' },
+          { id: 'games-puzzles', name: 'Games & Puzzles', icon: '🎲' },
+          { id: 'others-stationery', name: 'Others', icon: '📦' }
+        ]
       }
-    }
+    ]
   },
-  "shop-by-store": {
-    name: "Shop by Store",
-    icon: "🏪",
-    color: "#3B82F6",
-    subcategories: {
-      "spiritual-store": {
-        name: "Spiritual Store",
-        image: "/categories/spiritual-store.webp",
-        leafGroups: {
-          "puja-items": {
-            name: "Puja Items",
-            items: ["Agarbatti", "Camphor", "Kumkum", "Haldi"]
-          },
-          "incense": {
-            name: "Incense",
-            items: ["Dhoop Sticks", "Cone Incense", "Incense Holders"]
-          },
-          "diyas-candles": {
-            name: "Diyas & Candles",
-            items: ["Clay Diyas", "Wax Candles", "Decorative Candles"]
-          },
-          "idols-frames": {
-            name: "Idols & Frames",
-            items: ["God Idols", "Photo Frames", "Religious Books"]
-          }
-        }
+  {
+    id: 'shop-by-store',
+    name: 'Shop by Store',
+    icon: '🏪',
+    color: '#3B82F6',
+    categories: [
+      {
+        id: 'spiritual-store',
+        name: 'Spiritual Store',
+        image: '/categories/spiritual-store.webp',
+        banner: 'Divine collection',
+        tagline: 'Spiritual essentials',
+        subcategories: [
+          { id: 'puja-items', name: 'Puja Items', icon: '🪔' },
+          { id: 'incense-dhoop', name: 'Incense & Dhoop', icon: '🕉️' },
+          { id: 'idols', name: 'Idols', icon: '🙏' },
+          { id: 'others-spiritual', name: 'Others', icon: '📦' }
+        ]
       },
-      "pharma-store": {
-        name: "Pharma Store",
-        image: "/categories/pharma-store.webp",
-        leafGroups: {
-          "medicines": {
-            name: "Medicines",
-            items: ["Pain Relief", "Antibiotics", "Vitamins"]
-          },
-          "health-devices": {
-            name: "Health Devices",
-            items: ["BP Monitor", "Thermometer", "Nebulizer"]
-          },
-          "personal-care": {
-            name: "Personal Care",
-            items: ["Bandages", "Cotton", "Antiseptic"]
-          }
-        }
+      {
+        id: 'pharma-store',
+        name: 'Pharma Store',
+        image: '/categories/pharma-store.webp',
+        banner: 'Healthcare hub',
+        tagline: 'Medicines delivered',
+        subcategories: [
+          { id: 'medicines-pharma', name: 'Medicines', icon: '💊' },
+          { id: 'wellness-pharma', name: 'Wellness', icon: '🧘' },
+          { id: 'medical-supplies', name: 'Medical Supplies', icon: '🩺' },
+          { id: 'others-pharma', name: 'Others', icon: '📦' }
+        ]
       },
-      "egifts-store": {
-        name: "E-Gifts",
-        image: "/categories/egifts-store.webp",
-        leafGroups: {
-          "gift-hampers": {
-            name: "Gift Hampers",
-            items: ["Chocolate Hampers", "Dry Fruit Boxes", "Personalized Gifts"]
-          },
-          "greeting-cards": {
-            name: "Greeting Cards",
-            items: ["Birthday Cards", "Anniversary Cards", "Thank You Cards"]
-          },
-          "flowers": {
-            name: "Flowers",
-            items: ["Rose Bouquets", "Mixed Flowers", "Flower Baskets"]
-          }
-        }
+      {
+        id: 'egifts-store',
+        name: 'E-Gifts',
+        image: '/categories/egifts-store.webp',
+        banner: 'Gift with love',
+        tagline: 'Perfect presents',
+        subcategories: [
+          { id: 'gift-cards', name: 'Gift Cards', icon: '💳' },
+          { id: 'gift-combos', name: 'Gift Combos', icon: '🎁' },
+          { id: 'others-gifts', name: 'Others', icon: '📦' }
+        ]
       },
-      "pet-store": {
-        name: "Pet Store",
-        image: "/categories/pet-store.webp",
-        leafGroups: {
-          "pet-food": {
-            name: "Pet Food",
-            items: ["Dog Food", "Cat Food", "Bird Food", "Fish Food"]
-          },
-          "pet-grooming": {
-            name: "Pet Grooming",
-            items: ["Shampoo", "Brushes", "Nail Clippers"]
-          },
-          "pet-accessories": {
-            name: "Pet Accessories",
-            items: ["Collars", "Leashes", "Toys", "Bowls"]
-          }
-        }
+      {
+        id: 'pet-store',
+        name: 'Pet Store',
+        image: '/categories/pet-store.webp',
+        banner: 'Pet care',
+        tagline: 'Happy pets, happy you',
+        subcategories: [
+          { id: 'pet-food', name: 'Pet Food', icon: '🦴' },
+          { id: 'grooming', name: 'Grooming', icon: '✂️' },
+          { id: 'accessories-pet', name: 'Accessories', icon: '🐾' },
+          { id: 'others-pet', name: 'Others', icon: '📦' }
+        ]
       },
-      "sports-store": {
-        name: "Sports",
-        image: "/categories/sports-store.webp",
-        leafGroups: {
-          "sports-equipment": {
-            name: "Sports Equipment",
-            items: ["Cricket Gear", "Football", "Badminton", "Gym Weights"]
-          },
-          "fitness-gear": {
-            name: "Fitness Gear",
-            items: ["Yoga Mats", "Resistance Bands", "Dumbbells", "Skipping Ropes"]
-          },
-          "sportswear": {
-            name: "Sportswear",
-            items: ["Jerseys", "Shorts", "Sports Shoes", "Tracksuits"]
-          }
-        }
+      {
+        id: 'sports-store',
+        name: 'Sports',
+        image: '/categories/sports-store.webp',
+        banner: 'Get fit',
+        tagline: 'Sports & fitness',
+        subcategories: [
+          { id: 'fitness-items', name: 'Fitness Items', icon: '🏋️' },
+          { id: 'sports-gear', name: 'Sports Gear', icon: '⚽' },
+          { id: 'bottles-supports', name: 'Bottles & Supports', icon: '🥤' },
+          { id: 'others-sports', name: 'Others', icon: '📦' }
+        ]
       },
-      "fashion-basics": {
-        name: "Fashion Basics Store",
-        image: "/categories/fashion-basics.webp",
-        leafGroups: {
-          "t-shirts": {
-            name: "T-Shirts",
-            items: ["Plain T-Shirts", "Printed T-Shirts", "Polo T-Shirts"]
-          },
-          "innerwear": {
-            name: "Innerwear",
-            items: ["Vests", "Briefs", "Bras", "Thermal Wear"]
-          },
-          "socks-accessories": {
-            name: "Socks & Accessories",
-            items: ["Cotton Socks", "Sports Socks", "Caps", "Handkerchiefs"]
-          }
-        }
+      {
+        id: 'fashion-basics',
+        name: 'Fashion Basics Store',
+        image: '/categories/fashion-basics.webp',
+        banner: 'Style essentials',
+        tagline: 'Everyday fashion',
+        subcategories: [
+          { id: 'innerwear', name: 'Innerwear', icon: '👕' },
+          { id: 'top-collection', name: 'Top Collection', icon: '👔' },
+          { id: 'socks', name: 'Socks', icon: '🧦' },
+          { id: 'daily-wear', name: 'Daily Wear', icon: '👗' },
+          { id: 'others-fashion', name: 'Others', icon: '📦' }
+        ]
       },
-      "toy-store": {
-        name: "Toy Store",
-        image: "/categories/toy-store.webp",
-        leafGroups: {
-          "educational-toys": {
-            name: "Educational Toys",
-            items: ["Building Blocks", "Puzzles", "Learning Toys"]
-          },
-          "soft-toys": {
-            name: "Soft Toys",
-            items: ["Teddy Bears", "Plush Animals"]
-          },
-          "action-figures": {
-            name: "Action Figures",
-            items: ["Superheroes", "Cars", "Dolls"]
-          }
-        }
+      {
+        id: 'toy-store',
+        name: 'Toy Store',
+        image: '/categories/toy-store.webp',
+        banner: 'Fun & learning',
+        tagline: 'Joy for kids',
+        subcategories: [
+          { id: 'learning-toys', name: 'Learning Toys', icon: '🧩' },
+          { id: 'action-toys', name: 'Action Toys', icon: '🚗' },
+          { id: 'creative-toys', name: 'Creative Toys', icon: '🎨' },
+          { id: 'others-toys', name: 'Others', icon: '📦' }
+        ]
       },
-      "book-store": {
-        name: "Book Store",
-        image: "/categories/book-store.webp",
-        leafGroups: {
-          "fiction": {
-            name: "Fiction",
-            items: ["Novels", "Mystery", "Romance", "Sci-Fi"]
-          },
-          "non-fiction": {
-            name: "Non-Fiction",
-            items: ["Self-Help", "Biography", "History"]
-          },
-          "children-books": {
-            name: "Children Books",
-            items: ["Story Books", "Activity Books", "Comics"]
-          },
-          "academic-books": {
-            name: "Academic Books",
-            items: ["School Textbooks", "Entrance Exam Books", "Workbooks"]
-          }
-        }
+      {
+        id: 'book-store',
+        name: 'Book Store',
+        image: '/categories/book-store.webp',
+        banner: 'Knowledge corner',
+        tagline: 'Read & grow',
+        subcategories: [
+          { id: 'fiction', name: 'Fiction', icon: '📖' },
+          { id: 'non-fiction', name: 'Non-Fiction', icon: '📚' },
+          { id: 'kids-books', name: 'Kids Books', icon: '📕' },
+          { id: 'academic', name: 'Academic', icon: '📘' },
+          { id: 'school-books', name: 'School Books', icon: '📗' },
+          { id: 'others-books', name: 'Others', icon: '📦' }
+        ]
       }
-    }
+    ]
   }
+];
+
+export const getAllCategories = () => {
+  return CATEGORIES_DATA.flatMap(group => 
+    group.categories.map(cat => ({
+      ...cat,
+      groupId: group.id,
+      groupName: group.name,
+      groupColor: group.color
+    }))
+  );
 };
 
-export const getAllSubcategories = () => {
-  const subcategories = [];
-  Object.entries(CATEGORIES_DATA).forEach(([mainId, mainCat]) => {
-    Object.entries(mainCat.subcategories).forEach(([subId, subCat]) => {
-      subcategories.push({
-        id: subId,
-        name: subCat.name,
-        image: subCat.image,
-        parentId: mainId,
-        parentName: mainCat.name,
-        parentColor: mainCat.color,
-        leafGroups: subCat.leafGroups
-      });
-    });
-  });
-  return subcategories;
-};
-
-export const getSubcategoryById = (subId) => {
-  for (const [mainId, mainCat] of Object.entries(CATEGORIES_DATA)) {
-    if (mainCat.subcategories[subId]) {
+export const getCategoryById = (categoryId) => {
+  for (const group of CATEGORIES_DATA) {
+    const found = group.categories.find(cat => cat.id === categoryId);
+    if (found) {
       return {
-        id: subId,
-        ...mainCat.subcategories[subId],
-        parentId: mainId,
-        parentName: mainCat.name,
-        parentColor: mainCat.color
+        ...found,
+        groupId: group.id,
+        groupName: group.name,
+        groupColor: group.color
       };
     }
   }
   return null;
 };
 
-export const getLeafGroupsBySubcategory = (subId) => {
-  const subcategory = getSubcategoryById(subId);
-  return subcategory ? subcategory.leafGroups : null;
+export const getSubcategories = (categoryId) => {
+  const category = getCategoryById(categoryId);
+  return category ? category.subcategories : [];
 };
