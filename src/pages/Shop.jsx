@@ -12,12 +12,12 @@ import ProductCard from '@/components/customer/ProductCard';
 
 export default function Shop() {
   const { products, loading, error } = useProducts({ active: true });
-  
+
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [sortBy, setSortBy] = useState('relevance');
   const [showFilters, setShowFilters] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
-  
+
   const [filters, setFilters] = useState({
     categories: [],
     minPrice: null,
@@ -27,22 +27,29 @@ export default function Shop() {
     hasDiscount: false
   });
 
+  // Generate flat list of all categories safely
   const allCategories = useMemo(() => {
     const cats = [{ id: 'all', name: 'All', image: null }];
-    CATEGORIES_DATA.forEach(section => {
-      section.subcategories.forEach(cat => cats.push(cat));
+    CATEGORIES_DATA.forEach(group => {
+      if (Array.isArray(group.categories)) {
+        group.categories.forEach(cat => cats.push(cat));
+      }
     });
     return cats;
   }, []);
 
+  // Filtered & sorted products
   const filteredProducts = useMemo(() => {
     if (!products || !Array.isArray(products)) return [];
+
     let filtered = [...products];
 
+    // Filter by selected category
     if (selectedCategory !== 'all') {
       filtered = filtered.filter(p => p.category === selectedCategory);
     }
 
+    // Filter by sidebar filters
     if (filters.categories.length > 0) {
       filtered = filtered.filter(p => filters.categories.includes(p.category));
     }
@@ -67,6 +74,7 @@ export default function Shop() {
       filtered = filtered.filter(p => p.discountPrice);
     }
 
+    // Sort products
     return filtered.sort((a, b) => {
       const priceA = a.discountPrice || a.price;
       const priceB = b.discountPrice || b.price;
@@ -114,12 +122,15 @@ export default function Shop() {
   return (
     <div className="min-h-screen bg-neutral-50">
       <Header />
-      
+
       <div className="pt-20 md:pt-24">
+        {/* Top Bar: Category Title + Filters */}
         <div className="bg-white border-b border-neutral-100 sticky top-16 md:top-20 z-40 shadow-sm">
           <div className="flex items-center justify-between px-4 py-3">
             <h1 className="text-xl font-black text-neutral-900">
-              {selectedCategory === 'all' ? 'All Products' : allCategories.find(c => c.id === selectedCategory)?.name || 'Shop'}
+              {selectedCategory === 'all'
+                ? 'All Products'
+                : allCategories.find(c => c.id === selectedCategory)?.name || 'Shop'}
             </h1>
             <p className="text-sm text-neutral-500 font-medium">{filteredProducts.length} items</p>
           </div>
@@ -148,23 +159,22 @@ export default function Shop() {
         </div>
 
         <div className="flex">
+          {/* Sidebar Categories */}
           <aside className="w-20 flex-shrink-0 bg-neutral-900 sticky top-36 h-[calc(100vh-144px)] overflow-y-auto scrollbar-hide">
-            {allCategories.map((category) => (
+            {allCategories.map(category => (
               <button
                 key={category.id}
                 onClick={() => setSelectedCategory(category.id)}
                 className={`w-full px-2 py-4 flex flex-col items-center gap-2 transition-all ${
-                  selectedCategory === category.id
-                    ? 'bg-orange-500'
-                    : 'hover:bg-neutral-800'
+                  selectedCategory === category.id ? 'bg-orange-500' : 'hover:bg-neutral-800'
                 }`}
               >
                 {category.image ? (
                   <div className={`w-12 h-12 rounded-full overflow-hidden border-2 ${
                     selectedCategory === category.id ? 'border-white' : 'border-transparent'
                   }`}>
-                    <img 
-                      src={category.image} 
+                    <img
+                      src={category.image}
                       alt={category.name}
                       className="w-full h-full object-cover"
                     />
@@ -183,7 +193,9 @@ export default function Shop() {
             ))}
           </aside>
 
+          {/* Main Products Area */}
           <main className="flex-1 p-4 overflow-y-auto">
+            {/* Promo Banner */}
             <div className="mb-4 bg-gradient-to-r from-green-500 to-green-600 rounded-2xl p-4 text-white">
               <h2 className="text-lg font-black mb-1">Healthy, juicy & seasonal</h2>
               <p className="text-xs opacity-90">Picked fresh from India's orchards</p>
@@ -201,14 +213,14 @@ export default function Shop() {
               </div>
             ) : filteredProducts.length > 0 ? (
               <div className="grid grid-cols-2 gap-3">
-                {filteredProducts.map((product) => (
+                {filteredProducts.map(product => (
                   <ProductCard key={product.id} product={product} />
                 ))}
               </div>
             ) : (
               <div className="text-center py-20">
                 <p className="text-neutral-500 font-medium">No products found</p>
-                <button 
+                <button
                   onClick={handleClearFilters}
                   className="mt-4 px-6 py-2 bg-orange-500 text-white rounded-xl font-bold"
                 >
@@ -222,6 +234,7 @@ export default function Shop() {
 
       <Footer />
 
+      {/* Filter Sidebar */}
       <AnimatePresence>
         {showFilters && (
           <>
@@ -248,7 +261,7 @@ export default function Shop() {
                 <FilterSidebar filters={filters} onChange={setFilters} onClear={handleClearFilters} />
               </div>
               <div className="p-4 border-t">
-                <button 
+                <button
                   onClick={() => setShowFilters(false)}
                   className="w-full bg-orange-500 text-white py-3 rounded-xl font-black"
                 >
@@ -259,6 +272,7 @@ export default function Shop() {
           </>
         )}
 
+        {/* Sort Menu */}
         {showSortMenu && (
           <>
             <motion.div
@@ -290,9 +304,7 @@ export default function Shop() {
                     setShowSortMenu(false);
                   }}
                   className={`w-full text-left px-4 py-3 rounded-xl font-bold mb-2 transition-colors ${
-                    sortBy === option.value
-                      ? 'bg-orange-500 text-white'
-                      : 'bg-neutral-100 text-neutral-700'
+                    sortBy === option.value ? 'bg-orange-500 text-white' : 'bg-neutral-100 text-neutral-700'
                   }`}
                 >
                   {option.label}
