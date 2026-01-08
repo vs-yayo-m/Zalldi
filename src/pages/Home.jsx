@@ -51,7 +51,12 @@ export default function Home() {
         
         <CategoriesSection />
         
-        <FeaturedDealsSection />
+        {/* Featured Deals Section - NEW */}
+      <section className="py-8 lg:py-12 bg-white">
+        <div className="container mx-auto px-4">
+          <FeaturedDealsSection />
+        </div>
+      </section>
         
         <FeaturedProductsSection />
         
