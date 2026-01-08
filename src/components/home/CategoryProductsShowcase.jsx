@@ -35,27 +35,68 @@ export default function CategoryProductsShowcase({
   const fetchProducts = async () => {
     try {
       setLoading(true);
+      
+      if (!db) {
+        console.error('Firebase not initialized');
+        setLoading(false);
+        return;
+      }
+      
       const productsRef = collection(db, 'products');
+      
+      // Simplified query - only category and active filters, single orderBy
       const q = query(
         productsRef,
         where('category', '==', categoryId),
         where('active', '==', true),
-        where('stock', '>', 0),
         orderBy('rating', 'desc'),
-        orderBy('soldCount', 'desc'),
         limit(maxProducts)
       );
       
       const snapshot = await getDocs(q);
-      const productsData = snapshot.docs.map(doc => ({
+      
+      let productsData = snapshot.docs.map(doc => ({
         id: doc.id,
+        slug: doc.data().slug || doc.id,
         ...doc.data()
       }));
       
+      // Client-side sorting by rating then soldCount
+      productsData.sort((a, b) => {
+        if (b.rating !== a.rating) {
+          return (b.rating || 0) - (a.rating || 0);
+        }
+        return (b.soldCount || 0) - (a.soldCount || 0);
+      });
+      
+      console.log(`✅ Loaded ${productsData.length} products for ${categoryName}`);
       setProducts(productsData);
+      
     } catch (error) {
-      console.error('Error fetching products:', error);
-      setProducts([]);
+      console.error(`❌ Error for ${categoryName}:`, error.message);
+      
+      // Fallback: try without category filter
+      try {
+        const productsRef = collection(db, 'products');
+        const fallbackQuery = query(
+          productsRef,
+          where('active', '==', true),
+          limit(maxProducts)
+        );
+        
+        const fallbackSnapshot = await getDocs(fallbackQuery);
+        const fallbackData = fallbackSnapshot.docs.map(doc => ({
+          id: doc.id,
+          slug: doc.data().slug || doc.id,
+          ...doc.data()
+        }));
+        
+        console.log(`⚠️ Using fallback: ${fallbackData.length} products`);
+        setProducts(fallbackData);
+      } catch (fallbackError) {
+        console.error('❌ Fallback failed:', fallbackError);
+        setProducts([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -84,16 +125,16 @@ export default function CategoryProductsShowcase({
   
   if (loading) {
     return (
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <div className="h-6 w-48 bg-neutral-200 rounded animate-pulse" />
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <div className="h-5 w-48 bg-neutral-200 rounded animate-pulse" />
           <div className="h-4 w-16 bg-neutral-200 rounded animate-pulse" />
         </div>
         <div className="flex gap-3 overflow-hidden">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="flex-shrink-0 w-[140px] sm:w-[160px] md:w-[180px]">
+            <div key={i} className="flex-shrink-0 w-[140px] sm:w-[160px] md:w-[170px]">
               <div className="bg-neutral-100 rounded-xl aspect-square mb-2 animate-pulse" />
-              <div className="h-4 bg-neutral-100 rounded mb-2 animate-pulse" />
+              <div className="h-3 bg-neutral-100 rounded mb-2 animate-pulse" />
               <div className="h-3 bg-neutral-100 rounded w-2/3 animate-pulse" />
             </div>
           ))}
@@ -107,9 +148,9 @@ export default function CategoryProductsShowcase({
   }
   
   return (
-    <div className="mb-8 relative group">
+    <div className="mb-6 relative group">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-base sm:text-lg font-black text-neutral-900 tracking-tight">
+        <h2 className="text-sm sm:text-base font-black text-neutral-900 tracking-tight">
           {categoryName}
         </h2>
         <Link
@@ -125,7 +166,7 @@ export default function CategoryProductsShowcase({
         {canScrollLeft && (
           <button
             onClick={() => scroll('left')}
-            className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white shadow-xl rounded-full items-center justify-center text-neutral-700 hover:text-orange-500 hover:scale-110 transition-all opacity-0 group-hover:opacity-100"
+            className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-white shadow-xl rounded-full items-center justify-center text-neutral-700 hover:text-orange-500 hover:scale-110 transition-all opacity-0 group-hover:opacity-100"
             aria-label="Scroll left"
           >
             <ChevronLeft className="w-5 h-5" />
@@ -134,7 +175,7 @@ export default function CategoryProductsShowcase({
 
         <div
           ref={scrollContainerRef}
-          className="flex gap-3 overflow-x-auto scrollbar-hide scroll-smooth pb-2"
+          className="flex gap-2.5 overflow-x-auto scrollbar-hide scroll-smooth pb-2"
           style={{
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
@@ -147,9 +188,9 @@ export default function CategoryProductsShowcase({
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.05 }}
-              className="flex-shrink-0 w-[140px] sm:w-[160px] md:w-[180px]"
+              className="flex-shrink-0 w-[140px] sm:w-[160px] md:w-[170px]"
             >
-              <ProductCard product={product} compact />
+              <ProductCard product={product} compact={true} />
             </motion.div>
           ))}
         </div>
@@ -157,7 +198,7 @@ export default function CategoryProductsShowcase({
         {canScrollRight && (
           <button
             onClick={() => scroll('right')}
-            className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white shadow-xl rounded-full items-center justify-center text-neutral-700 hover:text-orange-500 hover:scale-110 transition-all opacity-0 group-hover:opacity-100"
+            className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-white shadow-xl rounded-full items-center justify-center text-neutral-700 hover:text-orange-500 hover:scale-110 transition-all opacity-0 group-hover:opacity-100"
             aria-label="Scroll right"
           >
             <ChevronRight className="w-5 h-5" />

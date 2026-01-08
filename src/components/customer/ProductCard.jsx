@@ -7,7 +7,7 @@ import { Plus, Minus, Clock, Heart } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import toast from 'react-hot-toast';
 
-export default function ProductCard({ product }) {
+export default function ProductCard({ product, compact = false }) {
   const { addItem, updateQuantity, getItemQuantity, removeItem } = useCart();
   const [isWishlisted, setIsWishlisted] = useState(false);
   
@@ -50,12 +50,112 @@ export default function ProductCard({ product }) {
   
   const stockInfo = stockBadge();
   
+  if (compact) {
+    return (
+      <Link
+        to={`/product/${product.slug}`}
+        className="block bg-white rounded-xl border border-neutral-100 overflow-hidden transition hover:shadow-lg hover:border-orange-200"
+      >
+        <div className="relative aspect-square bg-neutral-50 p-2">
+          <img
+            src={product.images?.[0] || '/placeholder.png'}
+            alt={product.name}
+            className="w-full h-full object-contain"
+            loading="lazy"
+          />
+
+          {discount && (
+            <div className="absolute top-1.5 left-1.5 text-[8px] font-black px-1.5 py-0.5 rounded bg-green-500 text-white">
+              {discount}% OFF
+            </div>
+          )}
+
+          <button
+            onClick={handleWishlist}
+            className="absolute top-1.5 right-1.5 p-1 bg-white rounded-full shadow-sm"
+          >
+            <Heart
+              className={`w-3 h-3 ${
+                isWishlisted ? 'fill-red-500 text-red-500' : 'text-neutral-400'
+              }`}
+            />
+          </button>
+
+          <AnimatePresence>
+            {quantity === 0 ? (
+              <motion.button
+                initial={{ scale: 0.85, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.85, opacity: 0 }}
+                onClick={handleAdd}
+                className="absolute bottom-1.5 right-1.5 px-2.5 py-1 rounded-md text-[9px] font-black bg-neutral-900 text-white hover:bg-orange-500"
+              >
+                ADD
+              </motion.button>
+            ) : (
+              <motion.div
+                initial={{ scale: 0.85, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.85, opacity: 0 }}
+                className="absolute bottom-1.5 right-1.5 flex items-center gap-1 bg-green-500 rounded-md"
+              >
+                <button onClick={handleDecrease} className="p-1 text-white">
+                  <Minus className="w-3 h-3" />
+                </button>
+                <span className="text-white font-black text-[10px]">{quantity}</span>
+                <button onClick={handleAdd} className="p-1 text-white">
+                  <Plus className="w-3 h-3" />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        <div className="p-2">
+          <div className="flex items-center gap-1 mb-0.5">
+            <Clock className="w-2.5 h-2.5 text-neutral-400" />
+            <span className="text-[8px] font-bold text-neutral-500">30 MINS</span>
+          </div>
+
+          <h3 className="text-[11px] font-normal text-neutral-800 leading-tight line-clamp-2 mb-1">
+            {product.name}
+          </h3>
+
+          {product.weight && (
+            <span className="inline-block text-[8px] font-bold px-1.5 py-0.5 rounded bg-green-50 text-green-700 border border-green-100 mb-1">
+              {product.weight}
+            </span>
+          )}
+
+          <div className="flex items-center gap-1.5 mb-1">
+            <span className="text-[13px] font-black text-neutral-900">
+              Rs.{product.discountPrice || product.price}
+            </span>
+            {product.discountPrice && (
+              <span className="text-[9px] text-neutral-400 line-through">
+                Rs.{product.price}
+              </span>
+            )}
+          </div>
+
+          {product.rating > 0 && (
+            <div className="flex items-center gap-0.5">
+              <span className="text-yellow-500 text-[10px]">★</span>
+              <span className="text-[9px] font-bold text-neutral-700">
+                {product.rating}
+              </span>
+            </div>
+          )}
+        </div>
+      </Link>
+    );
+  }
+  
   return (
     <Link
       to={`/product/${product.slug}`}
       className="block bg-white rounded-2xl border border-neutral-100 overflow-hidden transition hover:shadow-md"
     >
-      {/* IMAGE */}
       <div className="relative aspect-square bg-neutral-50 p-3">
         <img
           src={product.images?.[0] || '/placeholder.png'}
@@ -64,14 +164,12 @@ export default function ProductCard({ product }) {
           loading="lazy"
         />
 
-        {/* TAG (top-left) */}
         {product.tags?.length > 0 && (
           <div className="absolute top-2 left-2 text-[9px] font-bold px-2 py-0.5 rounded-full bg-green-50/60 text-green-700 border border-green-100">
             {product.tags[0]}
           </div>
         )}
 
-        {/* WISHLIST (top-right) */}
         <button
           onClick={handleWishlist}
           className="absolute top-2 right-2 p-1.5 bg-white rounded-full shadow-sm"
@@ -83,7 +181,6 @@ export default function ProductCard({ product }) {
           />
         </button>
 
-        {/* ADD / QUANTITY (bottom-right) */}
         <AnimatePresence>
           {quantity === 0 ? (
             <motion.button
@@ -114,9 +211,7 @@ export default function ProductCard({ product }) {
         </AnimatePresence>
       </div>
 
-      {/* CONTENT */}
       <div className="p-3">
-        {/* DELIVERY + WEIGHT */}
         <div className="flex items-center gap-2 mb-1">
           <Clock className="w-3 h-3 text-neutral-400" />
           <span className="text-[9px] font-bold text-neutral-500 uppercase">30 mins</span>
@@ -128,12 +223,10 @@ export default function ProductCard({ product }) {
           )}
         </div>
 
-        {/* NAME */}
-        <h3 className="text-[13px] font-normal text-neutral-800 leading-snug line-clamp-2 mb-1">
+        <h3 className="text-[12px] font-normal text-neutral-800 leading-snug line-clamp-2 mb-1">
           {product.name}
         </h3>
 
-        {/* DISCOUNT + STOCK */}
         <div className="flex items-center gap-2 mb-1">
           {discount && (
             <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-100">
@@ -148,19 +241,17 @@ export default function ProductCard({ product }) {
           </span>
         </div>
 
-        {/* PRICE */}
         <div className="flex items-center gap-2">
-          <span className="text-[15px] font-black text-neutral-900">
+          <span className="text-[14px] font-black text-neutral-900">
             Rs.{product.discountPrice || product.price}
           </span>
           {product.discountPrice && (
-            <span className="text-[11px] text-neutral-400 line-through">
+            <span className="text-[10px] text-neutral-400 line-through">
               Rs.{product.price}
             </span>
           )}
         </div>
 
-        {/* RATING (unchanged) */}
         {product.rating > 0 && (
           <div className="flex items-center gap-1 mt-2">
             <span className="text-yellow-500 text-xs">★</span>
@@ -177,6 +268,4 @@ export default function ProductCard({ product }) {
       </div>
     </Link>
   );
-  
-  
 }
