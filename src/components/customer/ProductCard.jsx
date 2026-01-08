@@ -7,7 +7,7 @@ import { Plus, Minus, Clock, Heart } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import toast from 'react-hot-toast';
 
-export default function ProductCard({ product }) {
+export default function ProductCard({ product, compact = false }) {
   const { addItem, updateQuantity, getItemQuantity, removeItem } = useCart();
   const [isWishlisted, setIsWishlisted] = useState(false);
   
@@ -177,4 +177,79 @@ export default function ProductCard({ product }) {
       </div>
     </Link>
   );
+  
+  if (compact) {
+    return (
+      <motion.div
+        whileHover={{ y: -4 }}
+        className="bg-white rounded-xl border border-neutral-100 hover:border-orange-500 hover:shadow-lg transition-all duration-300 overflow-hidden group"
+      >
+        <Link to={`/product/${product.slug}`} className="block">
+          {/* Image */}
+          <div className="relative aspect-square bg-neutral-50 overflow-hidden">
+            <img
+              src={product.images?.[0] || '/placeholder-product.png'}
+              alt={product.name}
+              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+              loading="lazy"
+            />
+            
+            {/* Discount Badge */}
+            {product.discount > 0 && (
+              <div className="absolute top-2 left-2 bg-orange-500 text-white text-xs font-black px-2 py-1 rounded-lg">
+                {product.discount}% OFF
+              </div>
+            )}
+
+            {/* Quick Add Button */}
+            <motion.button
+              initial={{ opacity: 0, y: 10 }}
+              whileHover={{ opacity: 1, y: 0 }}
+              onClick={(e) => {
+                e.preventDefault();
+                handleAddToCart();
+              }}
+              className="absolute bottom-2 right-2 w-8 h-8 bg-orange-500 hover:bg-orange-600 text-white rounded-lg flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <Plus className="w-4 h-4" />
+            </motion.button>
+          </div>
+
+          {/* Content */}
+          <div className="p-2">
+            {/* Rating */}
+            {product.rating > 0 && (
+              <div className="flex items-center gap-1 mb-1">
+                <Star className="w-3 h-3 fill-orange-500 text-orange-500" />
+                <span className="text-xs font-bold text-neutral-700">{product.rating.toFixed(1)}</span>
+              </div>
+            )}
+
+            {/* Name */}
+            <h3 className="text-xs font-bold text-neutral-800 line-clamp-2 mb-1 leading-tight">
+              {product.name}
+            </h3>
+
+            {/* Unit */}
+            {product.unit && (
+              <p className="text-xs text-neutral-500 mb-2">{product.unit}</p>
+            )}
+
+            {/* Price */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-black text-neutral-900">
+                ₹{product.price}
+              </span>
+              {product.comparePrice && product.comparePrice > product.price && (
+                <span className="text-xs text-neutral-400 line-through">
+                  ₹{product.comparePrice}
+                </span>
+              )}
+            </div>
+          </div>
+        </Link>
+      </motion.div>
+    );
+  }
+
 }
