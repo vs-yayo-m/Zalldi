@@ -7,7 +7,7 @@ import SearchSection from '@components/layout/SearchSection'
 import HeroSection from '@components/layout/HeroSection'
 import PromoStripSection from '@components/layout/PromoStripSection'
 import CategoriesSection from '@components/layout/CategoriesSection'
-import ProductDiscoverySection from '@components/layout/ProductDiscoverySection'
+import FeaturedDealsSection from '@components/home/FeaturedDealsSection'
 import FeaturedProductsSection from '@components/layout/FeaturedProductsSection'
 import TrustSection from '@components/layout/TrustSection'
 import { seoUtils } from '@utils/seo'
@@ -51,7 +51,7 @@ export default function Home() {
         
         <CategoriesSection />
         
-        <ProductDiscoverySection />
+        <FeaturedDealsSection />
         
         <FeaturedProductsSection />
         
