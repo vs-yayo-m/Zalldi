@@ -5,11 +5,11 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ChevronRight } from 'lucide-react';
 import CompactProductCard from '@/components/customer/CompactProductCard';
-import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 
 export default function DualRowCategoryShowcase({ categoryId, categoryName }) {
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState({ row1: [], row2: [] });
   const [topProducts, setTopProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const row1Ref = useRef(null);
@@ -23,21 +23,29 @@ export default function DualRowCategoryShowcase({ categoryId, categoryName }) {
     try {
       setLoading(true);
       const productsRef = collection(db, 'products');
+      
+      // Simplified query - no orderBy to avoid index requirement
       const q = query(
         productsRef,
         where('category', '==', categoryId),
         where('active', '==', true),
         where('stock', '>', 0),
-        orderBy('rating', 'desc'),
-        orderBy('soldCount', 'desc'),
-        limit(12)
+        limit(15)
       );
       
       const snapshot = await getDocs(q);
-      const productsData = snapshot.docs.map(doc => ({
+      let productsData = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
+      
+      // Sort in JavaScript instead of Firestore
+      productsData = productsData.sort((a, b) => {
+        if (b.rating !== a.rating) {
+          return (b.rating || 0) - (a.rating || 0);
+        }
+        return (b.soldCount || 0) - (a.soldCount || 0);
+      });
       
       const row1 = productsData.slice(0, 6);
       const row2 = productsData.slice(6, 12);
@@ -45,6 +53,8 @@ export default function DualRowCategoryShowcase({ categoryId, categoryName }) {
       
       setProducts({ row1, row2 });
       setTopProducts(top3);
+      
+      console.log(`Fetched ${productsData.length} products for ${categoryName}`);
     } catch (error) {
       console.error('Error fetching products:', error);
       setProducts({ row1: [], row2: [] });
@@ -128,40 +138,42 @@ export default function DualRowCategoryShowcase({ categoryId, categoryName }) {
             WebkitOverflowScrolling: 'touch'
           }}
         >
-          {products.row2?.length > 0 ? (
-            products.row2.map((product, index) => (
-              <motion.div
-                key={product.id}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="flex-shrink-0 w-[calc(33.333%-8px)] min-w-[110px]"
-              >
-                <CompactProductCard product={product} />
-              </motion.div>
-            ))
-          ) : null}
+          {products.row2?.length > 0 && products.row2.map((product, index) => (
+            <motion.div
+              key={product.id}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.05 }}
+              className="flex-shrink-0 w-[calc(33.333%-8px)] min-w-[110px]"
+            >
+              <CompactProductCard product={product} />
+            </motion.div>
+          ))}
 
           {/* See All Products Box */}
           <Link
             to={`/category/${categoryId}`}
             className="flex-shrink-0 w-[calc(33.333%-8px)] min-w-[110px] bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl border-2 border-dashed border-orange-300 flex flex-col items-center justify-center p-4 hover:from-orange-100 hover:to-orange-200 transition-all group"
           >
-            <div className="flex items-center justify-center -space-x-2 mb-2">
-              {topProducts.slice(0, 3).map((product, idx) => (
-                <div
-                  key={product.id}
-                  className="w-8 h-8 rounded-full border-2 border-white bg-white overflow-hidden shadow-sm"
-                  style={{ zIndex: 3 - idx }}
-                >
-                  <img
-                    src={product.images?.[0] || '/placeholder.png'}
-                    alt={product.name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              ))}
-            </div>
+            {topProducts.length > 0 ? (
+              <div className="flex items-center justify-center -space-x-2 mb-2">
+                {topProducts.slice(0, 3).map((product, idx) => (
+                  <div
+                    key={product.id}
+                    className="w-8 h-8 rounded-full border-2 border-white bg-white overflow-hidden shadow-sm"
+                    style={{ zIndex: 3 - idx }}
+                  >
+                    <img
+                      src={product.images?.[0] || '/placeholder.png'}
+                      alt={product.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-orange-200 mb-2" />
+            )}
             <p className="text-[10px] font-black text-orange-600 text-center leading-tight mb-1">
               See all products
             </p>
