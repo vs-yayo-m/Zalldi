@@ -7,8 +7,8 @@ import SearchSection from '@components/layout/SearchSection'
 import HeroSection from '@components/layout/HeroSection'
 import PromoStripSection from '@components/layout/PromoStripSection'
 import CategoriesSection from '@components/layout/CategoriesSection'
-import DualRowCategoryShowcase from '@components/home/DualRowCategoryShowcase'
 import FeaturedCategoriesProducts from '@components/home/FeaturedCategoriesProducts'
+import DualRowCategoriesSection from '@components/home/DualRowCategoriesSection'
 import FeaturedDealsSection from '@components/home/FeaturedDealsSection'
 import FeaturedProductsSection from '@components/layout/FeaturedProductsSection'
 import TrustSection from '@components/layout/TrustSection'
@@ -54,7 +54,8 @@ export default function Home() {
         <FeaturedCategoriesProducts />
         
         <CategoriesSection />
-        <DualRowCategoryShowcase />
+        
+        <DualRowCategoriesSection />
         
         <section className="py-8 lg:py-12 bg-white">
           <div className="container mx-auto px-4">
