@@ -298,6 +298,7 @@ export default function About() {
           </Card>
         </motion.div>
       </div>
+      <Footer />
     </div>
   );
 }
