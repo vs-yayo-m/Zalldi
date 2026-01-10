@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 
 // Constants & UI
+import Header from '@/components/layout/Header';
+import Footer from '@/components/layout/Footer';
 import { FOUNDER, APP_NAME } from '@/utils/constants';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -99,6 +101,7 @@ export default function About() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] selection:bg-orange-100">
+      <Header />
       {/* 1. HERO SECTION - ENTERPRISE GRADIENT MESH */}
       <section className="relative h-[70vh] flex items-center justify-center overflow-hidden bg-neutral-900">
         <div className="absolute inset-0 opacity-30">
