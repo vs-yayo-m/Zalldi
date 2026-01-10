@@ -9,7 +9,7 @@ import PromoStripSection from '@components/layout/PromoStripSection'
 import FeaturedCategoriesProducts from '@components/home/FeaturedCategoriesProducts'
 import CategoriesSection from '@components/layout/CategoriesSection'
 import ScrollRawCategories from '@components/home/ScrollRawCategories'
-
+import FeaturedCategoryGrids from '@components/home/FeaturedCategoryGrids'
 import DualRowCategoriesSection from '@components/home/DualRowCategoriesSection'
 
 import FeaturedProductsSection from '@components/layout/FeaturedProductsSection'
@@ -59,7 +59,11 @@ export default function Home() {
         
         <ScrollRawCategories />
         
-        <DualRowCategoriesSection />
+        <FeaturedCategoryGrids />
+        
+        
+      
+        <DualRowCategoriesSection /> 
         
         
         <FeaturedProductsSection />
