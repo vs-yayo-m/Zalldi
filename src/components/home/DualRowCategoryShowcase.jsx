@@ -5,8 +5,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ChevronRight } from 'lucide-react';
 import ProductCard from '@/components/customer/ProductCard';
-import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
-import { db } from '@/config/firebase';
+import { getFirestore, collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 
 export default function DualRowCategoryShowcase({ categoryId, categoryName }) {
   const [allProducts, setAllProducts] = useState([]);
@@ -25,6 +24,7 @@ export default function DualRowCategoryShowcase({ categoryId, categoryName }) {
   const fetchProducts = async () => {
     try {
       setLoading(true);
+      const db = getFirestore();
       const productsRef = collection(db, 'products');
       const q = query(
         productsRef,
@@ -32,7 +32,6 @@ export default function DualRowCategoryShowcase({ categoryId, categoryName }) {
         where('active', '==', true),
         where('stock', '>', 0),
         orderBy('rating', 'desc'),
-        orderBy('soldCount', 'desc'),
         limit(20)
       );
       
