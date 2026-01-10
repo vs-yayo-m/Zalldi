@@ -24,7 +24,8 @@ const SEARCH_PLACEHOLDERS = [
   "Search for 'Chocolates'",
   "Search for 'Birthday Gifts'",
   "Search for 'Fresh Milk'",
-  "Search for 'Snacks'"
+  "Search for 'Snacks'", 
+  "Search for 'yoga'"
 ]
 
 const TRENDING_TAGS = [
