@@ -9,7 +9,7 @@ import PromoStripSection from '@components/layout/PromoStripSection'
 import CategoriesSection from '@components/layout/CategoriesSection'
 import FeaturedCategoriesProducts from '@components/home/FeaturedCategoriesProducts'
 import DualRowCategoriesSection from '@components/home/DualRowCategoriesSection'
-import FeaturedDealsSection from '@components/home/FeaturedDealsSection'
+
 import FeaturedProductsSection from '@components/layout/FeaturedProductsSection'
 import TrustSection from '@components/layout/TrustSection'
 import { seoUtils } from '@utils/seo'
@@ -57,11 +57,6 @@ export default function Home() {
         
         <DualRowCategoriesSection />
         
-        <section className="py-8 lg:py-12 bg-white">
-          <div className="container mx-auto px-4">
-            <FeaturedDealsSection />
-          </div>
-        </section>
         
         <FeaturedProductsSection />
         
