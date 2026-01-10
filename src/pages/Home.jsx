@@ -6,8 +6,10 @@ import Footer from '@components/layout/Footer'
 import SearchSection from '@components/layout/SearchSection'
 import HeroSection from '@components/layout/HeroSection'
 import PromoStripSection from '@components/layout/PromoStripSection'
-import CategoriesSection from '@components/layout/CategoriesSection'
 import FeaturedCategoriesProducts from '@components/home/FeaturedCategoriesProducts'
+import CategoriesSection from '@components/layout/CategoriesSection'
+import ScrollRawCategories from '@components/home/ScrollRawCategories'
+
 import DualRowCategoriesSection from '@components/home/DualRowCategoriesSection'
 
 import FeaturedProductsSection from '@components/layout/FeaturedProductsSection'
