@@ -28,7 +28,7 @@ export const FOUNDER = {
 
 export const BUSINESS_HOURS = {
   open: '6:00 AM',
-  close: '11:00 PM',
+  close: '1:00 AM',
   timezone: 'Asia/Kathmandu'
 }
 
