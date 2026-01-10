@@ -34,6 +34,11 @@ const FEATURED_CATEGORIES = [
     id: 'bath-body',
     name: 'Bath & Body Essentials',
     priority: 6
+  },
+  {
+    id: 'drinks-juices',
+    name: 'Drinks & Juice',
+    priority: 7
   }
 ];
 
