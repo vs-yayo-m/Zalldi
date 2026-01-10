@@ -1,10 +1,10 @@
-// src/components/home/DoubleRowCategoriesCollection.jsx
+// src/components/home/DualRowCategoriesSection.jsx
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import DoubleRowCategorySection from './DoubleRowCategorySection';
+import DualRowCategoryShowcase from './DualRowCategoryShowcase';
 
-const DOUBLE_ROW_CATEGORIES = [
+const DUAL_ROW_CATEGORIES = [
   {
     id: 'chips-namkeen',
     name: 'Chips & Namkeen'
@@ -43,7 +43,7 @@ const DOUBLE_ROW_CATEGORIES = [
   }
 ];
 
-export default function DoubleRowCategoriesCollection() {
+export default function DualRowCategoriesSection() {
   return (
     <motion.section
       initial={{ opacity: 0, y: 20 }}
@@ -52,14 +52,14 @@ export default function DoubleRowCategoriesCollection() {
       className="py-6 bg-white"
     >
       <div className="container mx-auto px-4">
-        {DOUBLE_ROW_CATEGORIES.map((category, index) => (
+        {DUAL_ROW_CATEGORIES.map((category, index) => (
           <motion.div
             key={category.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
           >
-            <DoubleRowCategorySection
+            <DualRowCategoryShowcase
               categoryId={category.id}
               categoryName={category.name}
             />
