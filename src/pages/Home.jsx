@@ -57,6 +57,8 @@ export default function Home() {
         
         <CategoriesSection />
         
+        <ScrollRawCategories />
+        
         <DualRowCategoriesSection />
         
         
