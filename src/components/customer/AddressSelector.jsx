@@ -31,6 +31,8 @@ export default function AddressSelector({ isOpen, onClose, selectedAddress, onSe
     onClose()
   }
   
+  const [locationData, setLocationData] = useState(null)
+  
   const requestLocation = () => {
     if (!navigator.geolocation) {
       alert('Geolocation is not supported by your browser')
@@ -40,20 +42,20 @@ export default function AddressSelector({ isOpen, onClose, selectedAddress, onSe
     setRequestingLocation(true)
     
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords
-        
-        // In production, use reverse geocoding API to get address
-        // For now, just open form with coordinates
-        setShowForm(true)
-        setRequestingLocation(false)
-      },
-      (error) => {
-        console.error('Error getting location:', error)
-        alert('Unable to get your location. Please enter manually.')
-        setShowForm(true)
-        setRequestingLocation(false)
-      }
+      async (position) => {
+          const { latitude, longitude } = position.coords
+          
+          // Store coordinates for form
+          setLocationData({ latitude, longitude })
+          setShowForm(true)
+          setRequestingLocation(false)
+        },
+        (error) => {
+          console.error('Error getting location:', error)
+          alert('Unable to get your location. Please enter manually.')
+          setShowForm(true)
+          setRequestingLocation(false)
+        }
     )
   }
   
@@ -100,8 +102,12 @@ export default function AddressSelector({ isOpen, onClose, selectedAddress, onSe
           <div className="flex-1 overflow-y-auto p-4">
             {showForm ? (
               <AddressForm
+                locationData={locationData}
                 onSuccess={handleAddressCreated}
-                onCancel={() => setShowForm(false)}
+                onCancel={() => {
+                  setShowForm(false)
+                  setLocationData(null)
+                }}
               />
             ) : (
               <div className="space-y-3">

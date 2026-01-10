@@ -1,11 +1,12 @@
-// src/pages/admin/OrderDetail.jsx
+// src/pages/admin/OrderDetail.jsx (Fixed - Shows All Order Preferences)
 
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { 
   ArrowLeft, Package, User, MapPin, Phone, Mail, Clock, 
-  CheckCircle, XCircle, Truck, Edit, Printer, MessageSquare
+  CheckCircle, XCircle, Truck, Printer, MessageSquare,
+  Gift, Heart, Bell, Calendar
 } from 'lucide-react'
 import Header from '@components/layout/Header'
 import Footer from '@components/layout/Footer'
@@ -101,9 +102,7 @@ export default function AdminOrderDetail() {
     return statusFlow[currentStatus]
   }
 
-  if (loading) {
-    return <LoadingScreen />
-  }
+  if (loading) return <LoadingScreen />
 
   if (!order) {
     return (
@@ -177,29 +176,15 @@ export default function AdminOrderDetail() {
           </div>
         </div>
 
-        {/* Print-only header */}
-        <div className="print-only hidden">
-          <div className="print-header">
-            <h1 className="print-title">Zalldi</h1>
-            <p className="print-subtitle">Order Receipt</p>
-          </div>
-        </div>
-
         <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white rounded-2xl shadow-card p-6 print-section">
-              <div className="flex items-center justify-between mb-6 no-print">
+            {/* Order Status Timeline */}
+            <div className="bg-white rounded-2xl shadow-card p-6">
+              <div className="flex items-center justify-between mb-6">
                 <h2 className="text-title font-display font-bold text-neutral-900">Order Status</h2>
                 <Badge variant={getStatusColor(order.status)}>
                   {ORDER_STATUS_LABELS[order.status]}
                 </Badge>
-              </div>
-
-              {/* Print-only status */}
-              <div className="print-only hidden mb-4">
-                <span className={`print-badge ${order.status}`}>
-                  {ORDER_STATUS_LABELS[order.status]}
-                </span>
               </div>
 
               <div className="relative">
@@ -238,11 +223,11 @@ export default function AdminOrderDetail() {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-card p-6 print-section">
+            {/* Order Items */}
+            <div className="bg-white rounded-2xl shadow-card p-6">
               <h2 className="text-title font-display font-bold text-neutral-900 mb-4">Order Items</h2>
               
-              {/* Screen view */}
-              <div className="space-y-4 no-print">
+              <div className="space-y-4">
                 {(order.items || []).map((item, index) => (
                   <div key={index} className="flex gap-4 p-4 bg-neutral-50 rounded-xl">
                     <img 
@@ -263,147 +248,207 @@ export default function AdminOrderDetail() {
                 ))}
               </div>
 
-              {/* Print view - table format */}
-              <div className="print-only hidden">
-                <table className="print-table">
-                  <thead>
-                    <tr>
-                      <th>Item</th>
-                      <th>Qty</th>
-                      <th>Price</th>
-                      <th>Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(order.items || []).map((item, index) => (
-                      <tr key={index}>
-                        <td>{item.name}</td>
-                        <td>{item.quantity}</td>
-                        <td>{formatCurrency(item.price)}</td>
-                        <td>{formatCurrency(item.total)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="mt-6 pt-6 border-t border-neutral-200 space-y-3 print-summary">
-                <div className="flex justify-between text-body print-summary-row">
+              <div className="mt-6 pt-6 border-t border-neutral-200 space-y-3">
+                <div className="flex justify-between text-body">
                   <span className="text-neutral-600">Subtotal</span>
                   <span className="font-semibold">{formatCurrency(order.subtotal)}</span>
                 </div>
-                <div className="flex justify-between text-body print-summary-row">
+                
+                {order.fulfillmentFee > 0 && (
+                  <div className="flex justify-between text-body">
+                    <span className="text-neutral-600">Fulfillment Fee</span>
+                    <span className="font-semibold">{formatCurrency(order.fulfillmentFee)}</span>
+                  </div>
+                )}
+                
+                <div className="flex justify-between text-body">
                   <span className="text-neutral-600">Delivery Fee</span>
-                  <span className="font-semibold">{formatCurrency(order.deliveryFee)}</span>
+                  <span className="font-semibold">
+                    {order.deliveryFee === 0 ? (
+                      <span className="text-green-600">FREE</span>
+                    ) : (
+                      formatCurrency(order.deliveryFee)
+                    )}
+                  </span>
                 </div>
+                
+                {order.giftFee > 0 && (
+                  <div className="flex justify-between text-body">
+                    <span className="text-neutral-600">Gift Packaging</span>
+                    <span className="font-semibold">{formatCurrency(order.giftFee)}</span>
+                  </div>
+                )}
+                
+                {order.tip > 0 && (
+                  <div className="flex justify-between text-body">
+                    <span className="text-neutral-600">Tip for Delivery Partner</span>
+                    <span className="font-semibold text-orange-600">{formatCurrency(order.tip)}</span>
+                  </div>
+                )}
+                
                 {order.discount > 0 && (
-                  <div className="flex justify-between text-body print-summary-row">
+                  <div className="flex justify-between text-body">
                     <span className="text-neutral-600">Discount</span>
                     <span className="font-semibold text-green-600">-{formatCurrency(order.discount)}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-title font-bold pt-3 border-t border-neutral-200 print-summary-total">
+                
+                <div className="flex justify-between text-title font-bold pt-3 border-t border-neutral-200">
                   <span>Total</span>
                   <span className="text-orange-600">{formatCurrency(order.total)}</span>
                 </div>
               </div>
             </div>
+
+            {/* Customer Preferences - NEW SECTION */}
+            {(order.deliveryType || order.timeSlot || order.giftPackaging || order.tip > 0 || (order.instructions && order.instructions.length > 0)) && (
+              <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl shadow-card p-6 border-2 border-orange-200">
+                <h2 className="text-title font-display font-bold text-orange-900 mb-4 flex items-center">
+                  <Bell className="w-5 h-5 mr-2" />
+                  Customer Preferences & Instructions
+                </h2>
+
+                <div className="space-y-4">
+                  {/* Delivery Type */}
+                  {order.deliveryType && (
+                    <div className="flex items-start gap-3 p-3 bg-white rounded-xl">
+                      <Calendar className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold text-neutral-900 text-sm">Delivery Type</p>
+                        <p className="text-neutral-700 text-sm">
+                          {order.deliveryType === 'standard' ? 'Standard (60 min)' : 'Custom Time Slot'}
+                        </p>
+                        {order.timeSlot && (
+                          <p className="text-orange-600 font-bold text-xs mt-1">
+                            Scheduled: {order.timeSlot}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Gift Packaging */}
+                  {order.giftPackaging && (
+                    <div className="flex items-start gap-3 p-3 bg-white rounded-xl">
+                      <Gift className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="font-bold text-neutral-900 text-sm">Gift Packaging Requested</p>
+                        {order.giftMessage && (
+                          <p className="text-neutral-700 text-sm mt-1 italic">
+                            "{order.giftMessage}"
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tip */}
+                  {order.tip > 0 && (
+                    <div className="flex items-start gap-3 p-3 bg-white rounded-xl">
+                      <Heart className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold text-neutral-900 text-sm">Delivery Partner Tip</p>
+                        <p className="text-orange-600 font-bold">{formatCurrency(order.tip)}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Delivery Instructions */}
+                  {order.instructions && order.instructions.length > 0 && (
+                    <div className="flex items-start gap-3 p-3 bg-white rounded-xl">
+                      <MessageSquare className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="font-bold text-neutral-900 text-sm mb-2">Delivery Instructions</p>
+                        <ul className="space-y-1">
+                          {order.instructions.map((instruction, idx) => (
+                            <li key={idx} className="text-neutral-700 text-sm flex items-center gap-2">
+                              <span className="w-1.5 h-1.5 bg-orange-500 rounded-full"></span>
+                              {instruction}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
+          {/* Right Sidebar */}
           <div className="space-y-6">
-            <div className="bg-white rounded-2xl shadow-card p-6 print-info-box">
-              <h2 className="text-title font-display font-bold text-neutral-900 mb-4 flex items-center print-info-title no-print">
+            {/* Customer Details */}
+            <div className="bg-white rounded-2xl shadow-card p-6">
+              <h2 className="text-title font-display font-bold text-neutral-900 mb-4 flex items-center">
                 <User className="w-5 h-5 mr-2 text-orange-500" />
                 Customer Details
               </h2>
-              <span className="print-info-title print-only hidden">Customer Details</span>
               
-              <div className="space-y-3 print-info-content">
+              <div className="space-y-3">
                 <div>
                   <p className="text-body-sm text-neutral-600 mb-1">Name</p>
                   <p className="font-semibold text-neutral-900">{order.customerName}</p>
                 </div>
                 
                 <div>
-                  <p className="text-body-sm text-neutral-600 mb-1 flex items-center no-print">
+                  <p className="text-body-sm text-neutral-600 mb-1 flex items-center">
                     <Phone className="w-4 h-4 mr-1" />
                     Phone
                   </p>
-                  <p className="text-body-sm text-neutral-600 mb-1 print-only hidden">Phone</p>
                   <a 
                     href={`tel:${order.customerPhone}`}
-                    className="font-semibold text-orange-600 hover:underline no-print"
+                    className="font-semibold text-orange-600 hover:underline"
                   >
                     {order.customerPhone}
                   </a>
-                  <p className="font-semibold text-neutral-900 print-only hidden">
-                    {order.customerPhone}
-                  </p>
                 </div>
                 
                 {order.customerEmail && (
                   <div>
-                    <p className="text-body-sm text-neutral-600 mb-1 flex items-center no-print">
+                    <p className="text-body-sm text-neutral-600 mb-1 flex items-center">
                       <Mail className="w-4 h-4 mr-1" />
                       Email
                     </p>
-                    <p className="text-body-sm text-neutral-600 mb-1 print-only hidden">Email</p>
                     <a 
                       href={`mailto:${order.customerEmail}`}
-                      className="font-semibold text-orange-600 hover:underline break-all no-print"
+                      className="font-semibold text-orange-600 hover:underline break-all"
                     >
                       {order.customerEmail}
                     </a>
-                    <p className="font-semibold text-neutral-900 break-all print-only hidden">
-                      {order.customerEmail}
-                    </p>
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-card p-6 print-info-box">
-              <h2 className="text-title font-display font-bold text-neutral-900 mb-4 flex items-center print-info-title no-print">
+            {/* Delivery Address */}
+            <div className="bg-white rounded-2xl shadow-card p-6">
+              <h2 className="text-title font-display font-bold text-neutral-900 mb-4 flex items-center">
                 <MapPin className="w-5 h-5 mr-2 text-orange-500" />
                 Delivery Address
               </h2>
-              <span className="print-info-title print-only hidden">Delivery Address</span>
               
-              <p className="text-body text-neutral-700 leading-relaxed print-info-content">
+              <p className="text-body text-neutral-700 leading-relaxed">
                 {formatAddress(order.deliveryAddress)}
               </p>
               
               {order.deliveryAddress?.landmark && (
-                <p className="text-body-sm text-neutral-600 mt-2 print-info-content">
+                <p className="text-body-sm text-neutral-600 mt-2">
                   Landmark: {order.deliveryAddress.landmark}
                 </p>
               )}
             </div>
 
+            {/* Custom Notes */}
             {order.notes && (
-              <div className="bg-orange-50 rounded-2xl p-6 print-info-box">
-                <h2 className="text-title font-display font-bold text-neutral-900 mb-3 flex items-center print-info-title no-print">
+              <div className="bg-orange-50 rounded-2xl p-6">
+                <h2 className="text-title font-display font-bold text-neutral-900 mb-3 flex items-center">
                   <MessageSquare className="w-5 h-5 mr-2 text-orange-500" />
                   Order Notes
                 </h2>
-                <span className="print-info-title print-only hidden">Order Notes</span>
-                <p className="text-body text-neutral-700 print-info-content">{order.notes}</p>
+                <p className="text-body text-neutral-700">{order.notes}</p>
               </div>
             )}
           </div>
-        </div>
-
-        {/* Print footer */}
-        <div className="print-only hidden print-footer">
-          <p>Thank you for your order!</p>
-          <p className="print-contact">
-            Zalldi - Fast 1-Hour Delivery in Butwal<br />
-            Contact: +977 9821072912 | support.zalldi@gmail.com<br />
-            www.zalldi.com.np
-          </p>
-          <p style={{ fontSize: '8pt', marginTop: '10px' }}>
-            Printed on {new Date().toLocaleString()}
-          </p>
         </div>
       </div>
 

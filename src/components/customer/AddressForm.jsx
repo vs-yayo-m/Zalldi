@@ -1,8 +1,8 @@
-// src/components/customer/AddressForm.jsx
+// src/components/customer/AddressForm.jsx (With Location Auto-fill)
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { MapPin, Home, Briefcase, Lock } from 'lucide-react'
+import { MapPin, Home, Briefcase, Lock, Navigation } from 'lucide-react'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import { useAuth } from '../../hooks/useAuth'
@@ -11,23 +11,79 @@ import { WARDS, ADDRESS_TYPES } from '../../utils/constants'
 import { validateAddress } from '../../utils/validators'
 import toast from 'react-hot-toast'
 
-export default function AddressForm({ initialData = null, onSuccess, onCancel }) {
+export default function AddressForm({ initialData = null, locationData = null, onSuccess, onCancel }) {
   const { user } = useAuth()
   const { addAddress, updateAddress } = useUser(user?.uid)
   
   const [formData, setFormData] = useState({
     type: initialData?.type || 'home',
-    city: 'Butwal', // Locked to Butwal
+    city: 'Butwal',
     ward: initialData?.ward || '',
     area: initialData?.area || '',
     street: initialData?.street || '',
-    houseNo: initialData?.houseNo || '', // New field
+    houseNo: initialData?.houseNo || '',
     landmark: initialData?.landmark || '',
-    isDefault: initialData?.isDefault || false
+    isDefault: initialData?.isDefault || false,
+    coordinates: initialData?.coordinates || null
   })
   
   const [errors, setErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [detectingAddress, setDetectingAddress] = useState(false)
+
+  // Auto-fill from location if provided
+  useEffect(() => {
+    if (locationData && !initialData) {
+      detectAddressFromCoordinates(locationData.latitude, locationData.longitude)
+    }
+  }, [locationData])
+
+  const detectAddressFromCoordinates = async (lat, lng) => {
+    setDetectingAddress(true)
+    try {
+      // Use reverse geocoding API (Nominatim - free OpenStreetMap service)
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
+      )
+      const data = await response.json()
+
+      if (data && data.address) {
+        const addr = data.address
+        
+        // Try to extract ward number from suburb/neighbourhood
+        let detectedWard = ''
+        if (addr.suburb) {
+          const wardMatch = addr.suburb.match(/ward[\\s-]?(\\d+)/i)
+          if (wardMatch) detectedWard = wardMatch[1]
+        }
+
+        // Auto-fill form with detected data
+        setFormData(prev => ({
+          ...prev,
+          ward: detectedWard || prev.ward,
+          area: addr.suburb || addr.neighbourhood || addr.hamlet || '',
+          street: addr.road || '',
+          landmark: addr.amenity || addr.building || '',
+          coordinates: { lat, lng }
+        }))
+
+        toast.success('Location detected! Please verify and complete the details.', {
+          duration: 4000,
+          icon: '📍'
+        })
+      }
+    } catch (error) {
+      console.error('Error detecting address:', error)
+      toast.error('Could not detect address. Please enter manually.')
+      // Still save coordinates
+      setFormData(prev => ({
+        ...prev,
+        coordinates: { lat, lng }
+      }))
+    } finally {
+      setDetectingAddress(false)
+    }
+  }
   
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -39,8 +95,6 @@ export default function AddressForm({ initialData = null, onSuccess, onCancel })
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    // We pass a sanitized version for validation if needed, 
-    // ensuring street/houseNo combo satisfies existing validation logic
     const validationErrors = validateAddress(formData)
     if (validationErrors) {
       setErrors(validationErrors)
@@ -78,6 +132,27 @@ export default function AddressForm({ initialData = null, onSuccess, onCancel })
       onSubmit={handleSubmit}
       className="space-y-6 overflow-visible"
     >
+      {/* Location Detected Banner */}
+      {locationData && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-3 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3"
+        >
+          <Navigation className="w-5 h-5 text-green-600 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-bold text-green-900">
+              {detectingAddress ? 'Detecting your address...' : 'Location captured!'}
+            </p>
+            <p className="text-xs text-green-700">
+              {detectingAddress 
+                ? 'Please wait while we fetch your address details'
+                : 'Please verify and complete the details below'}
+            </p>
+          </div>
+        </motion.div>
+      )}
+
       {/* Address Type Selection */}
       <div>
         <label className="block text-sm font-bold text-neutral-700 mb-3">
@@ -239,13 +314,18 @@ export default function AddressForm({ initialData = null, onSuccess, onCancel })
         )}
         <Button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || detectingAddress}
           className="min-w-[160px] bg-orange-600 hover:bg-orange-700 shadow-lg shadow-orange-200 rounded-xl py-4"
         >
           {isSubmitting ? (
             <span className="flex items-center gap-2">
               <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               Saving...
+            </span>
+          ) : detectingAddress ? (
+            <span className="flex items-center gap-2">
+              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              Detecting...
             </span>
           ) : (
             initialData ? 'Update Address' : 'Add New Address'
@@ -255,4 +335,3 @@ export default function AddressForm({ initialData = null, onSuccess, onCancel })
     </motion.form>
   )
 }
-
