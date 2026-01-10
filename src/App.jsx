@@ -24,7 +24,7 @@ const Categories = lazy(() => import('@pages/Categories'))
 const Category = lazy(() => import('@pages/Category'))
 const Search = lazy(() => import('@pages/Search'))
 const Cart = lazy(() => import('@pages/Cart'))
-const Checkout = lazy(() => import('@pages/Checkout'))
+ 
 const OrderSuccess = lazy(() => import('@pages/OrderSuccess'))
 const OrderTracking = lazy(() => import('@pages/OrderTracking'))
 
