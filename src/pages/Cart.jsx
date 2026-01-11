@@ -8,7 +8,7 @@ import { useAuth } from '@hooks/useAuth'
 import { 
   ArrowLeft, MapPin, ChevronRight, Clock, Gift, 
   MessageSquare, Zap, ShieldCheck, ChevronDown, 
-  ChevronUp, Package, CreditCard, AlertCircle
+  ChevronUp, Package, CreditCard, AlertCircle, Navigation, CheckCircle
 } from 'lucide-react'
 import CartItemCompact from '@components/customer/CartItemCompact'
 import ProductSuggestions from '@components/customer/ProductSuggestions'
@@ -17,9 +17,8 @@ import BillSummary from '@components/customer/BillSummary'
 import AddressSelector from '@components/customer/AddressSelector'
 import { calculateOrderTotal } from '@utils/calculations'
 import { formatCurrency } from '@utils/formatters'
-import { createOrder } from '@services/order.service'
-import { getCurrentLocation } from '@services/location.service'
-import { createAdminNotification, shareViaWhatsApp } from '@services/notification.service'
+import { getCurrentLocation, getLocationPermissionStatus } from '@services/location.service'
+import { notifyAdminNewOrder } from '@services/notification.service'
 import toast from 'react-hot-toast'
 
 export default function CartPage() {
@@ -28,6 +27,8 @@ export default function CartPage() {
   const { items, clearCart } = useCart()
   
   const [selectedAddress, setSelectedAddress] = useState(null)
+  const [userLocation, setUserLocation] = useState(null)
+  const [locationPermission, setLocationPermission] = useState('prompt')
   const [showAddressModal, setShowAddressModal] = useState(false)
   const [deliveryType, setDeliveryType] = useState('standard')
   const [selectedTimeSlot, setSelectedTimeSlot] = useState(null)
@@ -38,8 +39,6 @@ export default function CartPage() {
   const [customInstruction, setCustomInstruction] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [storeOpen, setStoreOpen] = useState(true)
-  const [capturedLocation, setCapturedLocation] = useState(null)
-  const [capturingLocation, setCapturingLocation] = useState(false)
 
   const pricing = useMemo(() => {
     const subtotal = items.reduce((sum, item) => {
@@ -75,7 +74,25 @@ export default function CartPage() {
   useEffect(() => {
     const hour = new Date().getHours()
     setStoreOpen(hour >= 6 && hour < 23)
+    
+    checkLocationPermission()
   }, [])
+
+  const checkLocationPermission = async () => {
+    const status = await getLocationPermissionStatus()
+    setLocationPermission(status)
+  }
+
+  const requestLocation = async () => {
+    try {
+      const location = await getCurrentLocation()
+      setUserLocation(location)
+      toast.success('Location captured successfully!', { icon: '📍' })
+    } catch (error) {
+      console.error('Location error:', error)
+      toast.error(error.message || 'Could not get location')
+    }
+  }
 
   useEffect(() => {
     if (items.length === 0) {
@@ -109,20 +126,6 @@ export default function CartPage() {
     setIsProcessing(true)
 
     try {
-      let location = capturedLocation
-
-      if (!location) {
-        try {
-          setCapturingLocation(true)
-          location = await getCurrentLocation()
-          setCapturedLocation(location)
-        } catch (error) {
-          console.warn('Could not capture location:', error)
-        } finally {
-          setCapturingLocation(false)
-        }
-      }
-
       const orderData = {
         customerId: user.uid,
         customerName: user.displayName || user.email,
@@ -144,21 +147,22 @@ export default function CartPage() {
         discount: pricing.discount,
         total: pricing.total,
         deliveryAddress: selectedAddress,
+        location: userLocation || null,
         deliveryType,
         timeSlot: selectedTimeSlot,
         giftPackaging,
         giftMessage,
         instructions: [...instructions, customInstruction].filter(Boolean),
         paymentMethod: 'cod',
-        status: 'pending',
-        location: location || null
+        status: 'pending'
       }
 
       const order = await createOrder(orderData)
       
-      await createAdminNotification(order)
-      
-      shareViaWhatsApp(order)
+      await notifyAdminNewOrder({
+        ...order,
+        location: userLocation
+      })
       
       await clearCart()
       toast.success('Order placed successfully!')
@@ -225,17 +229,47 @@ export default function CartPage() {
 
       {/* Main Content */}
       <div className="max-w-2xl mx-auto pb-32">
-        {/* ETA Banner */}
-        <div className="mx-3 mt-3 p-3 bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl border border-orange-200">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
-              <Zap className="w-4 h-4 text-white" />
-            </div>
-            <div className="flex-1">
-              <div className="text-xs font-black text-orange-900">Zalldi is coming in ~60 minutes</div>
-              <div className="text-[10px] font-bold text-orange-700">Fresh delivery to your doorstep</div>
+        {/* ETA Banner with Location Request */}
+        <div className="mx-3 mt-3 space-y-2">
+          <div className="p-3 bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl border border-orange-200">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
+                <Zap className="w-4 h-4 text-white" />
+              </div>
+              <div className="flex-1">
+                <div className="text-xs font-black text-orange-900">Zalldi is coming in ~60 minutes</div>
+                <div className="text-[10px] font-bold text-orange-700">Fresh delivery to your doorstep</div>
+              </div>
             </div>
           </div>
+
+          {/* Location Sharing Banner */}
+          {!userLocation && locationPermission !== 'denied' && (
+            <button
+              onClick={requestLocation}
+              className="w-full p-3 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl border-2 border-blue-200 flex items-center gap-3 hover:from-blue-100 hover:to-blue-200 transition-all"
+            >
+              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                <Navigation className="w-4 h-4 text-white" />
+              </div>
+              <div className="flex-1 text-left">
+                <div className="text-xs font-black text-blue-900">Share your location (Optional)</div>
+                <div className="text-[10px] font-bold text-blue-700">Helps us find you faster</div>
+              </div>
+            </button>
+          )}
+
+          {userLocation && (
+            <div className="p-3 bg-green-50 rounded-xl border border-green-200 flex items-center gap-3">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+              <div className="flex-1">
+                <div className="text-xs font-black text-green-900">Location shared!</div>
+                <div className="text-[10px] font-bold text-green-700">
+                  We'll send the map link to our team
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Cart Items */}
