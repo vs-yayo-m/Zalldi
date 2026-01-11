@@ -10,7 +10,9 @@ import { generateGoogleMapsLink } from './location.service'
  * ADMIN NOTIFICATION SERVICE
  * Sends real-time notifications to admin when orders are placed
  */
-
+/**
+ * Send admin notification when new order is placed
+ */
 export const notifyAdminNewOrder = async (orderData) => {
   try {
     const notification = {
@@ -24,7 +26,11 @@ export const notifyAdminNewOrder = async (orderData) => {
       deliveryAddress: orderData.deliveryAddress,
       location: orderData.location || null,
       mapLink: orderData.location ?
-        generateGoogleMapsLink(orderData.location.latitude, orderData.location.longitude, `Order ${orderData.orderNumber}`) :
+        generateGoogleMapsLink(
+          orderData.location.latitude,
+          orderData.location.longitude,
+          `Order ${orderData.orderNumber}`
+        ) :
         null,
       read: false,
       createdAt: serverTimestamp()
@@ -32,8 +38,16 @@ export const notifyAdminNewOrder = async (orderData) => {
     
     await addDoc(collection(db, 'admin_notifications'), notification)
     
-    // --- CUSTOMER-SIDE WHATSAPP / window.open REMOVED ---
-    // Now only Firestore notification, no browser interaction
+    // Browser notification if permission granted
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification('New Order Received! 🔔', {
+        body: `Order ${orderData.orderNumber} - ${formatCurrency(orderData.total)} from ${orderData.customerName}`,
+        icon: '/logo.png',
+        badge: '/logo.png',
+        tag: orderData.id,
+        requireInteraction: true
+      })
+    }
     
     return notification
   } catch (error) {
@@ -43,8 +57,168 @@ export const notifyAdminNewOrder = async (orderData) => {
 }
 
 /**
- * General notification service for customers and suppliers
+ * Generate WhatsApp message with order details
  */
+export const generateWhatsAppMessage = (order) => {
+  const items = order.items?.map(item =>
+    `• ${item.name} x${item.quantity} - ${formatCurrency(item.total)}`
+  ).join('\n') || ''
+  
+  const mapLink = order.location ?
+    generateGoogleMapsLink(
+      order.location.latitude,
+      order.location.longitude,
+      `Order ${order.orderNumber}`
+    ) :
+    'Location not provided'
+  
+  const message = `
+🧡 *ZALLDI - NEW ORDER*
+
+📦 *Order:* ${order.orderNumber}
+💰 *Total:* ${formatCurrency(order.total)}
+📅 *Date:* ${formatDateTime(order.createdAt)}
+
+👤 *Customer Details:*
+Name: ${order.customerName}
+Phone: ${order.customerPhone}
+
+🏠 *Delivery Address:*
+${order.deliveryAddress?.street || ''}
+${order.deliveryAddress?.area || ''}
+Ward ${order.deliveryAddress?.ward || 'N/A'}
+${order.deliveryAddress?.landmark ? `Near: ${order.deliveryAddress.landmark}` : ''}
+
+📍 *Location:*
+${mapLink}
+
+🛍️ *Items Ordered:*
+${items}
+
+💳 *Payment:* ${order.paymentMethod?.toUpperCase() || 'COD'}
+${order.tip > 0 ? `\n💝 *Tip:* ${formatCurrency(order.tip)}` : ''}
+${order.giftPackaging ? '\n🎁 *Gift Packaging Requested*' : ''}
+${order.instructions?.length > 0 ? `\n📝 *Instructions:* ${order.instructions.join(', ')}` : ''}
+
+---
+Zalldi - 1 Hour Delivery 🚀
+  `.trim()
+  
+  return encodeURIComponent(message)
+}
+
+/**
+ * Share order via WhatsApp
+ */
+export const shareOrderViaWhatsApp = (order, phoneNumber = null) => {
+  const message = generateWhatsAppMessage(order)
+  const url = phoneNumber ?
+    `https://wa.me/${phoneNumber}?text=${message}` :
+    `https://wa.me/?text=${message}`
+  
+  window.open(url, '_blank')
+}
+
+/**
+ * Generate email body with order details
+ */
+export const generateEmailBody = (order) => {
+  const items = order.items?.map(item =>
+    `${item.name} x${item.quantity} - ${formatCurrency(item.total)}`
+  ).join('\n') || ''
+  
+  const mapLink = order.location ?
+    generateGoogleMapsLink(
+      order.location.latitude,
+      order.location.longitude,
+      `Order ${order.orderNumber}`
+    ) :
+    'Location not provided'
+  
+  return `
+Order: ${order.orderNumber}
+Total: ${formatCurrency(order.total)}
+Date: ${formatDateTime(order.createdAt)}
+
+Customer: ${order.customerName}
+Phone: ${order.customerPhone}
+
+Delivery Address:
+${order.deliveryAddress?.street || ''}
+${order.deliveryAddress?.area || ''}
+Ward ${order.deliveryAddress?.ward || 'N/A'}
+
+Location Map: ${mapLink}
+
+Items:
+${items}
+
+Payment: ${order.paymentMethod?.toUpperCase() || 'COD'}
+  `.trim()
+}
+
+/**
+ * Share order via Email
+ */
+export const shareOrderViaEmail = (order, recipientEmail = '') => {
+  const subject = encodeURIComponent(`New Order: ${order.orderNumber}`)
+  const body = encodeURIComponent(generateEmailBody(order))
+  
+  window.location.href = `mailto:${recipientEmail}?subject=${subject}&body=${body}`
+}
+
+/**
+ * Copy order details to clipboard
+ */
+export const copyOrderDetailsToClipboard = async (order) => {
+  const text = generateEmailBody(order)
+  
+  try {
+    await navigator.clipboard.writeText(text)
+    return true
+  } catch (error) {
+    // Fallback for older browsers
+    const textArea = document.createElement('textarea')
+    textArea.value = text
+    textArea.style.position = 'fixed'
+    textArea.style.left = '-999999px'
+    document.body.appendChild(textArea)
+    textArea.select()
+    
+    try {
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+      return true
+    } catch (err) {
+      document.body.removeChild(textArea)
+      return false
+    }
+  }
+}
+
+/**
+ * Request notification permission
+ */
+export const requestNotificationPermission = async () => {
+  if (!('Notification' in window)) {
+    return 'unsupported'
+  }
+  
+  if (Notification.permission === 'granted') {
+    return 'granted'
+  }
+  
+  if (Notification.permission !== 'denied') {
+    const permission = await Notification.requestPermission()
+    return permission
+  }
+  
+  return Notification.permission
+}
+
+
+
+
 export const notificationService = {
   async createNotification(userId, notification) {
     try {
@@ -59,6 +233,7 @@ export const notificationService = {
       }
       
       const docRef = await addDoc(collection(db, 'notifications'), notificationData)
+      
       return { id: docRef.id, ...notificationData }
     } catch (error) {
       throw error
@@ -150,7 +325,6 @@ export const notificationService = {
         actionUrl: `/track/${order.id}`
       })
       
-      // Notify suppliers
       const items = order.items || []
       const supplierIds = [...new Set(items.map(item => item.supplierId))]
       
