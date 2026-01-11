@@ -9,6 +9,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { useUser } from '../../hooks/useUsers'
 import { WARDS, ADDRESS_TYPES } from '../../utils/constants'
 import { validateAddress } from '../../utils/validators'
+import { reverseGeocode } from '../../services/location.service'
 import toast from 'react-hot-toast'
 
 export default function AddressForm({ initialData = null, locationData = null, onSuccess, onCancel }) {
@@ -41,41 +42,24 @@ export default function AddressForm({ initialData = null, locationData = null, o
   const detectAddressFromCoordinates = async (lat, lng) => {
     setDetectingAddress(true)
     try {
-      // Use reverse geocoding API (Nominatim - free OpenStreetMap service)
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
-      )
-      const data = await response.json()
+      const addressData = await reverseGeocode(lat, lng)
 
-      if (data && data.address) {
-        const addr = data.address
-        
-        // Try to extract ward number from suburb/neighbourhood
-        let detectedWard = ''
-        if (addr.suburb) {
-          const wardMatch = addr.suburb.match(/ward[\\s-]?(\\d+)/i)
-          if (wardMatch) detectedWard = wardMatch[1]
-        }
+      setFormData(prev => ({
+        ...prev,
+        ward: addressData.ward || prev.ward,
+        area: addressData.area || prev.area,
+        street: addressData.street || prev.street,
+        landmark: addressData.landmark || prev.landmark,
+        coordinates: { lat, lng }
+      }))
 
-        // Auto-fill form with detected data
-        setFormData(prev => ({
-          ...prev,
-          ward: detectedWard || prev.ward,
-          area: addr.suburb || addr.neighbourhood || addr.hamlet || '',
-          street: addr.road || '',
-          landmark: addr.amenity || addr.building || '',
-          coordinates: { lat, lng }
-        }))
-
-        toast.success('Location detected! Please verify and complete the details.', {
-          duration: 4000,
-          icon: '📍'
-        })
-      }
+      toast.success('Location detected! Please verify details.', {
+        duration: 4000,
+        icon: '📍'
+      })
     } catch (error) {
       console.error('Error detecting address:', error)
       toast.error('Could not detect address. Please enter manually.')
-      // Still save coordinates
       setFormData(prev => ({
         ...prev,
         coordinates: { lat, lng }

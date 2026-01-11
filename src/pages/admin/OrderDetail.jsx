@@ -13,6 +13,7 @@ import Footer from '@components/layout/Footer'
 import Button from '@components/ui/Button'
 import Badge from '@components/ui/Badge'
 import LoadingScreen from '@components/shared/LoadingScreen'
+import OrderActions from '@components/admin/OrderActions'
 import { getOrderById, updateOrderStatus, cancelOrder } from '@services/order.service'
 import { ORDER_STATUS, ORDER_STATUS_LABELS } from '@utils/constants'
 import { formatCurrency, formatDateTime, formatAddress } from '@utils/formatters'
@@ -146,6 +147,8 @@ export default function AdminOrderDetail() {
             </div>
             
             <div className="flex flex-wrap gap-3">
+              <OrderActions order={order} />
+              
               {canProgress && (
                 <Button
                   onClick={() => handleStatusUpdate(nextStatus)}

@@ -18,6 +18,8 @@ import AddressSelector from '@components/customer/AddressSelector'
 import { calculateOrderTotal } from '@utils/calculations'
 import { formatCurrency } from '@utils/formatters'
 import { createOrder } from '@services/order.service'
+import { getCurrentLocation } from '@services/location.service'
+import { createAdminNotification, shareViaWhatsApp } from '@services/notification.service'
 import toast from 'react-hot-toast'
 
 export default function CartPage() {
@@ -36,6 +38,8 @@ export default function CartPage() {
   const [customInstruction, setCustomInstruction] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [storeOpen, setStoreOpen] = useState(true)
+  const [capturedLocation, setCapturedLocation] = useState(null)
+  const [capturingLocation, setCapturingLocation] = useState(false)
 
   const pricing = useMemo(() => {
     const subtotal = items.reduce((sum, item) => {
@@ -105,6 +109,20 @@ export default function CartPage() {
     setIsProcessing(true)
 
     try {
+      let location = capturedLocation
+
+      if (!location) {
+        try {
+          setCapturingLocation(true)
+          location = await getCurrentLocation()
+          setCapturedLocation(location)
+        } catch (error) {
+          console.warn('Could not capture location:', error)
+        } finally {
+          setCapturingLocation(false)
+        }
+      }
+
       const orderData = {
         customerId: user.uid,
         customerName: user.displayName || user.email,
@@ -132,10 +150,16 @@ export default function CartPage() {
         giftMessage,
         instructions: [...instructions, customInstruction].filter(Boolean),
         paymentMethod: 'cod',
-        status: 'pending'
+        status: 'pending',
+        location: location || null
       }
 
       const order = await createOrder(orderData)
+      
+      await createAdminNotification(order)
+      
+      shareViaWhatsApp(order)
+      
       await clearCart()
       toast.success('Order placed successfully!')
       navigate(`/order-success/${order.id}`)
