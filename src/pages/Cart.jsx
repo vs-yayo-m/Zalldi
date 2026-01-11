@@ -19,7 +19,7 @@ import { calculateOrderTotal } from '@utils/calculations'
 import { formatCurrency } from '@utils/formatters'
 import { createOrder } from '../services/order.service'
 import { getCurrentLocation } from '@services/location.service'
-import { createAdminNotification, shareViaWhatsApp } from '@services/notification.service'
+import { createAdminNotification } from '@services/notification.service'
 import toast from 'react-hot-toast'
 
 export default function CartPage() {
@@ -156,10 +156,15 @@ export default function CartPage() {
 
       const order = await createOrder(orderData)
       
-      await createAdminNotification(order)
-      
-      shareViaWhatsApp(order)
-      
+      // Admin notification only
+      try {
+        await createAdminNotification(order)
+      } catch (notifError) {
+        console.error('Error creating admin notification:', notifError)
+      }
+
+      // WhatsApp removed for customer flow
+
       await clearCart()
       toast.success('Order placed successfully!')
       navigate(`/order-success/${order.id}`)
