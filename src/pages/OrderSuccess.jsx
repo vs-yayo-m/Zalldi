@@ -1,5 +1,4 @@
 // src/pages/OrderSuccess.jsx
-
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
@@ -8,7 +7,7 @@ import Button from '@components/ui/Button'
 import LoadingScreen from '@components/shared/LoadingScreen'
 import Confetti from '@components/animations/Confetti'
 import { formatCurrency, formatOrderNumber, formatDateTime } from '@utils/formatters'
-import { CheckCircle, Package, MapPin, Clock, ArrowRight } from 'lucide-react'
+import { CheckCircle, Package, MapPin, Clock, ArrowRight, Share2 } from 'lucide-react'
 
 export default function OrderSuccess() {
   const { orderId } = useParams()
@@ -16,12 +15,16 @@ export default function OrderSuccess() {
   const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showConfetti, setShowConfetti] = useState(true)
+  const [countdown, setCountdown] = useState('')
   
+  // Fetch order
   useEffect(() => {
     const fetchOrder = async () => {
       try {
         const orderData = await getOrderById(orderId)
         setOrder(orderData)
+        // Initialize countdown
+        updateCountdown(orderData.estimatedDelivery)
       } catch (error) {
         console.error('Failed to fetch order:', error)
       } finally {
@@ -29,20 +32,34 @@ export default function OrderSuccess() {
       }
     }
     
-    if (orderId) {
-      fetchOrder()
-    }
+    if (orderId) fetchOrder()
     
-    const timer = setTimeout(() => {
-      setShowConfetti(false)
-    }, 5000)
-    
-    return () => clearTimeout(timer)
+    // Stop confetti after 5s
+    const confettiTimer = setTimeout(() => setShowConfetti(false), 5000)
+    return () => clearTimeout(confettiTimer)
   }, [orderId])
   
-  if (loading) {
-    return <LoadingScreen />
+  // Countdown timer
+  useEffect(() => {
+    if (!order) return
+    const interval = setInterval(() => updateCountdown(order.estimatedDelivery), 1000)
+    return () => clearInterval(interval)
+  }, [order])
+  
+  const updateCountdown = (eta) => {
+    const now = new Date()
+    const end = new Date(eta)
+    const diff = end - now
+    if (diff <= 0) {
+      setCountdown('Arriving soon')
+      return
+    }
+    const minutes = Math.floor(diff / 1000 / 60)
+    const seconds = Math.floor((diff / 1000) % 60)
+    setCountdown(`${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')} mins`)
   }
+  
+  if (loading) return <LoadingScreen />
   
   if (!order) {
     return (
@@ -55,16 +72,34 @@ export default function OrderSuccess() {
     )
   }
   
+  const handleShare = () => {
+    const text = `
+Order Confirmation: ${formatOrderNumber(order.orderNumber)}
+Amount: ${formatCurrency(order.total)}
+Items: ${order.items.map(i => `${i.name} x${i.qty}`).join(', ')}
+Delivery: ${order.deliveryAddress.street}, ${order.deliveryAddress.area}, Ward ${order.deliveryAddress.ward}, Butwal
+Track: ${window.location.origin}/track/${order.id}
+    `
+    if (navigator.share) {
+      navigator.share({ text })
+    } else {
+      navigator.clipboard.writeText(text)
+      alert('Order details copied to clipboard!')
+    }
+  }
+  
   return (
-    <div className="min-h-screen bg-neutral-50 py-12">
+    <div className="min-h-screen bg-neutral-50 pb-24 sm:pb-12">
       {showConfetti && <Confetti />}
-      
+
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Main Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-white rounded-2xl shadow-card p-8 sm:p-12 text-center"
         >
+          {/* Success Icon */}
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
@@ -74,6 +109,7 @@ export default function OrderSuccess() {
             <CheckCircle className="w-12 h-12 text-green-600" />
           </motion.div>
 
+          {/* Headline */}
           <motion.h1
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -89,16 +125,17 @@ export default function OrderSuccess() {
             transition={{ delay: 0.4 }}
             className="text-lg text-neutral-600 mb-8"
           >
-            Thank you for your order. We'll deliver it within 1 hour.
+            Thank you for your order. We'll deliver it shortly.
           </motion.p>
 
+          {/* Order Summary */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="bg-primary-50 rounded-xl p-6 mb-8"
+            className="bg-primary-50 rounded-xl p-6 mb-8 text-left"
           >
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               <div>
                 <p className="text-sm text-neutral-600 mb-1">Order Number</p>
                 <p className="font-bold text-neutral-900 text-lg">
@@ -112,29 +149,41 @@ export default function OrderSuccess() {
                 </p>
               </div>
             </div>
+
+            {/* Products List */}
+            <div className="space-y-2">
+              {order.items.map((item) => (
+                <div key={item.id} className="flex items-center gap-3 bg-white p-2 rounded-lg shadow-sm">
+                  <img src={item.image} alt={item.name} className="w-12 h-12 object-cover rounded" />
+                  <div className="flex-1 text-left">
+                    <p className="text-neutral-900 font-semibold">{item.name}</p>
+                    <p className="text-sm text-neutral-600">{item.qty} x {formatCurrency(item.price)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </motion.div>
 
+          {/* Delivery Info */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
             className="space-y-4 mb-8"
           >
+            {/* ETA */}
             <div className="flex items-start gap-4 p-4 bg-neutral-50 rounded-xl text-left">
               <div className="flex-shrink-0 w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
                 <Clock className="w-5 h-5 text-primary-600" />
               </div>
               <div className="flex-1">
                 <p className="font-semibold text-neutral-900 mb-1">Estimated Delivery</p>
-                <p className="text-sm text-neutral-600">
-                  {formatDateTime(order.estimatedDelivery)}
-                </p>
-                <p className="text-sm text-primary-600 font-medium mt-1">
-                  Within 1 hour guaranteed
-                </p>
+                <p className="text-sm text-neutral-600">{formatDateTime(order.estimatedDelivery)}</p>
+                <p className="text-sm text-primary-600 font-medium mt-1">{countdown}</p>
               </div>
             </div>
 
+            {/* Delivery Address */}
             <div className="flex items-start gap-4 p-4 bg-neutral-50 rounded-xl text-left">
               <div className="flex-shrink-0 w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
                 <MapPin className="w-5 h-5 text-green-600" />
@@ -142,27 +191,21 @@ export default function OrderSuccess() {
               <div className="flex-1">
                 <p className="font-semibold text-neutral-900 mb-1">Delivery Address</p>
                 <p className="text-sm text-neutral-600">
-                  {order.deliveryAddress.street}, {order.deliveryAddress.area}
+                  {order.deliveryAddress.street}, {order.deliveryAddress.area}, Ward {order.deliveryAddress.ward}, Butwal
                 </p>
-                <p className="text-sm text-neutral-600">
-                  Ward {order.deliveryAddress.ward}, Butwal
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-4 p-4 bg-neutral-50 rounded-xl text-left">
-              <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Package className="w-5 h-5 text-blue-600" />
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold text-neutral-900 mb-1">Order Items</p>
-                <p className="text-sm text-neutral-600">
-                  {order.items.length} {order.items.length === 1 ? 'item' : 'items'}
-                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2"
+                  onClick={() => window.open(`https://maps.google.com?q=${encodeURIComponent(order.deliveryAddress.street + ',' + order.deliveryAddress.area)}`, '_blank')}
+                >
+                  View on Map
+                </Button>
               </div>
             </div>
           </motion.div>
 
+          {/* Action Buttons */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -183,29 +226,48 @@ export default function OrderSuccess() {
             >
               Track Order
             </Button>
+            <Button
+              variant="secondary"
+              onClick={handleShare}
+              leftIcon={<Share2 className="w-5 h-5" />}
+              className="flex-1"
+            >
+              Share Order
+            </Button>
+          </motion.div>
+
+          {/* Email & Support */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.8 }}
+            className="mt-8 text-center text-sm text-neutral-600"
+          >
+            <p>
+              You will receive a confirmation email at{' '}
+              <span className="font-semibold">{order.customerEmail}</span>
+            </p>
+            <p className="mt-2">
+              Need help?{' '}
+              <button
+                onClick={() => navigate('/contact')}
+                className="text-primary-600 hover:text-primary-700 font-semibold"
+              >
+                Contact Support
+              </button>
+            </p>
           </motion.div>
         </motion.div>
+      </div>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
-          className="mt-8 text-center text-sm text-neutral-600"
-        >
-          <p>
-            You will receive a confirmation email at{' '}
-            <span className="font-semibold">{order.customerEmail}</span>
-          </p>
-          <p className="mt-2">
-            Need help?{' '}
-            <button
-              onClick={() => navigate('/contact')}
-              className="text-primary-600 hover:text-primary-700 font-semibold"
-            >
-              Contact Support
-            </button>
-          </p>
-        </motion.div>
+      {/* Sticky Mobile Footer */}
+      <div className="fixed bottom-0 left-0 w-full bg-white p-3 shadow-top sm:hidden flex gap-2">
+        <Button onClick={() => navigate(`/track/${order.id}`)} className="flex-1">
+          Track Order
+        </Button>
+        <Button variant="outline" onClick={() => navigate('/')} className="flex-1">
+          Continue Shopping
+        </Button>
       </div>
     </div>
   )
