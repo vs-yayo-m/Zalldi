@@ -1,14 +1,11 @@
-// src/pages/Cart.jsx (Refactored - Payment Redirect Version)
-
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { 
+  ArrowLeft, MapPin, ChevronRight, Clock, Zap, ShieldCheck, 
+  Package, AlertCircle 
+} from 'lucide-react'
 import { useCart } from '@hooks/useCart'
 import { useAuth } from '@hooks/useAuth'
-import { 
-  ArrowLeft, MapPin, ChevronRight, Clock, Gift, 
-  ShieldCheck, ChevronDown, ChevronUp, Package, AlertCircle
-} from 'lucide-react'
 import CartItemCompact from '@components/customer/CartItemCompact'
 import ProductSuggestions from '@components/customer/ProductSuggestions'
 import ServicePreferences from '@components/customer/ServicePreferences'
@@ -16,15 +13,13 @@ import BillSummary from '@components/customer/BillSummary'
 import AddressSelector from '@components/customer/AddressSelector'
 import { calculateOrderTotal } from '@utils/calculations'
 import { formatCurrency } from '@utils/formatters'
-import { createOrder } from '../services/order.service'
 import { getCurrentLocation } from '@services/location.service'
-import { createAdminNotification } from '@services/notification.service'
 import toast from 'react-hot-toast'
 
 export default function CartPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { items, clearCart } = useCart()
+  const { items } = useCart()
   
   const [selectedAddress, setSelectedAddress] = useState(null)
   const [showAddressModal, setShowAddressModal] = useState(false)
@@ -45,18 +40,17 @@ export default function CartPage() {
       const price = item.discountPrice || item.price
       return sum + (price * item.quantity)
     }, 0)
-    
+
     const mrpTotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
     const discount = mrpTotal - subtotal
     const discountPercent = mrpTotal > 0 ? ((discount / mrpTotal) * 100).toFixed(0) : 0
-    
+
     const fulfillmentFee = 10
     const deliveryFee = subtotal >= 599 ? 0 : 59
     const giftFee = giftPackaging ? 99 : 0
     const tip = tipAmount
-    
     const total = subtotal + fulfillmentFee + deliveryFee + giftFee + tip
-    
+
     return {
       mrpTotal,
       subtotal,
@@ -122,6 +116,7 @@ export default function CartPage() {
         }
       }
 
+      // Prepare order data for payment page
       const orderData = {
         customerId: user.uid,
         customerName: user.displayName || user.email,
@@ -148,21 +143,17 @@ export default function CartPage() {
         giftPackaging,
         giftMessage,
         instructions: [...instructions, customInstruction].filter(Boolean),
-        paymentMethod: 'pending', // mark as pending for payment page
+        paymentMethod: null,
         status: 'pending',
         location: location || null
       }
 
-      const order = await createOrder(orderData)
-      
-      await createAdminNotification(order)
-      
-      await clearCart()
-      toast.success('Order created! Redirecting to payment...')
-      
-      navigate(`/payment/${order.id}`) // redirect to payment page
+      // Save to sessionStorage for PaymentPage
+      sessionStorage.setItem('pendingOrder', JSON.stringify(orderData))
+
+      navigate('/payment')
     } catch (error) {
-      toast.error('Failed to place order')
+      toast.error('Failed to proceed to payment')
       console.error(error)
     } finally {
       setIsProcessing(false)
@@ -173,43 +164,29 @@ export default function CartPage() {
 
   return (
     <div className="min-h-screen bg-neutral-50">
-      {/* Sticky Compact Header */}
+      {/* Sticky Header */}
       <div className="sticky top-0 z-40 bg-white border-b border-neutral-200 shadow-sm">
         <div className="max-w-2xl mx-auto px-3 py-2.5 flex items-center justify-between">
-          <button 
-            onClick={() => navigate(-1)}
-            className="p-1.5 hover:bg-neutral-100 rounded-lg transition-colors"
-          >
+          <button onClick={() => navigate(-1)} className="p-1.5 hover:bg-neutral-100 rounded-lg transition-colors">
             <ArrowLeft className="w-5 h-5 text-neutral-700" />
           </button>
           
           <div className="flex-1 ml-3">
-            <button
-              onClick={() => setShowAddressModal(true)}
-              className="w-full text-left"
-            >
+            <button onClick={() => setShowAddressModal(true)} className="w-full text-left">
               <div className="flex items-center gap-2">
-                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">
-                  Delivering to
-                </div>
+                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">Delivering to</div>
                 {!selectedAddress && (
-                  <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-[10px] font-black rounded uppercase">
-                    Select
-                  </span>
+                  <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-[10px] font-black rounded uppercase">Select</span>
                 )}
               </div>
               {selectedAddress ? (
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <MapPin className="w-3.5 h-3.5 text-orange-500 flex-shrink-0" />
-                  <span className="text-xs font-bold text-neutral-900 truncate">
-                    {selectedAddress.area}, Ward {selectedAddress.ward}
-                  </span>
+                  <span className="text-xs font-bold text-neutral-900 truncate">{selectedAddress.area}, Ward {selectedAddress.ward}</span>
                   <ChevronRight className="w-3.5 h-3.5 text-neutral-400 flex-shrink-0" />
                 </div>
               ) : (
-                <div className="text-xs text-orange-600 font-bold mt-0.5">
-                  Tap to add address
-                </div>
+                <div className="text-xs text-orange-600 font-bold mt-0.5">Tap to add address</div>
               )}
             </button>
           </div>
@@ -227,7 +204,7 @@ export default function CartPage() {
         <div className="mx-3 mt-3 p-3 bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl border border-orange-200">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
-              <Gift className="w-4 h-4 text-white" />
+              <Zap className="w-4 h-4 text-white" />
             </div>
             <div className="flex-1">
               <div className="text-xs font-black text-orange-900">Zalldi is coming in ~60 minutes</div>
@@ -239,22 +216,15 @@ export default function CartPage() {
         {/* Cart Items */}
         <div className="mx-3 mt-3 bg-white rounded-xl border border-neutral-200">
           <div className="px-4 py-3 border-b border-neutral-100 flex items-center justify-between">
-            <h2 className="text-sm font-black text-neutral-900 uppercase tracking-wide">
-              Your Items ({items.length})
-            </h2>
+            <h2 className="text-sm font-black text-neutral-900 uppercase tracking-wide">Your Items ({items.length})</h2>
           </div>
-          
           <div className="divide-y divide-neutral-100">
-            {items.map((item) => (
-              <CartItemCompact key={item.id} item={item} />
-            ))}
+            {items.map(item => <CartItemCompact key={item.id} item={item} />)}
           </div>
         </div>
 
-        {/* Product Suggestions */}
         <ProductSuggestions currentItems={items} />
 
-        {/* Service Preferences */}
         <ServicePreferences
           deliveryType={deliveryType}
           setDeliveryType={setDeliveryType}
@@ -272,7 +242,6 @@ export default function CartPage() {
           setCustomInstruction={setCustomInstruction}
         />
 
-        {/* Bill Summary */}
         <BillSummary pricing={pricing} />
 
         {/* Trust Indicators */}
@@ -317,9 +286,7 @@ export default function CartPage() {
             disabled={isProcessing || !selectedAddress || !storeOpen}
             className="w-full h-14 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:from-neutral-300 disabled:to-neutral-400 text-white rounded-2xl font-black text-sm uppercase tracking-wider shadow-lg disabled:shadow-none transition-all flex items-center justify-center gap-3"
           >
-            {isProcessing ? (
-              <span>Processing...</span>
-            ) : (
+            {isProcessing ? <span>Processing...</span> : (
               <>
                 <span>Place Order</span>
                 <span className="text-base">•</span>
@@ -330,7 +297,6 @@ export default function CartPage() {
         </div>
       </div>
 
-      {/* Address Modal */}
       <AddressSelector
         isOpen={showAddressModal}
         onClose={() => setShowAddressModal(false)}
