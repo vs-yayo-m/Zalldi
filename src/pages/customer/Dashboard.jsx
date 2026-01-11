@@ -1,205 +1,266 @@
-// src/pages/customer/Dashboard.jsx (PREMIUM - ENTERPRISE GRADE)
-
-import { useEffect, useMemo } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+// /src/pages/customer/Dashboard.jsx
+import React, { useEffect, useMemo } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Package, MapPin, Heart, HelpCircle, ChevronRight, Clock, Zap, TrendingUp,
-  ShoppingBag, Truck, Star, Gift, Calendar, CreditCard, Bell
-} from 'lucide-react'
-import { useAuth } from '@/hooks/useAuth'
-import { useOrders } from '@/hooks/useOrders'
-import Header from '@/components/layout/Header'
-import Footer from '@/components/layout/Footer'
-import Button from '@/components/ui/Button'
-import LoadingScreen from '@/components/shared/LoadingScreen'
-import EmptyState from '@/components/shared/EmptyState'
-import { formatCurrency, formatRelativeTime, formatDate } from '@/utils/formatters'
-import { ORDER_STATUS_LABELS } from '@/utils/constants'
+  Package, 
+  ShoppingBag, 
+  MapPin, 
+  User, 
+  Clock, 
+  ChevronRight, 
+  Zap, 
+  Heart, 
+  HelpCircle,
+  TrendingUp,
+  CreditCard,
+  ShieldCheck,
+  Truck,
+  Star,
+  Gift,
+  ArrowUpRight
+} from 'lucide-react';
+
+import { useAuth } from '@/hooks/useAuth';
+import { useOrders } from '@/hooks/useOrders';
+import Header from '@/components/layout/Header';
+import Footer from '@/components/layout/Footer';
+import OrderCard from '@/components/customer/OrderCard';
+import Button from '@/components/ui/Button';
+import Badge from '@/components/ui/Badge';
+import LoadingScreen from '@/components/shared/LoadingScreen';
+import EmptyState from '@/components/shared/EmptyState';
+import { formatCurrency, formatRelativeTime } from '@/utils/formatters';
+import { ORDER_STATUS_LABELS } from '@/utils/constants';
 
 export default function CustomerDashboard() {
-  const navigate = useNavigate()
-  const { user, loading: authLoading } = useAuth()
-  const { orders, activeOrders, completedOrders, loading: ordersLoading, totalOrders, activeCount } = useOrders()
+  const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
+  const { orders, loading: ordersLoading } = useOrders();
 
+  // Redirect if not authenticated
   useEffect(() => {
     if (!authLoading && !user) {
-      navigate('/login?redirect=/customer/dashboard', { replace: true })
+      navigate('/login?redirect=/customer/dashboard', { replace: true });
     }
-  }, [user, authLoading, navigate])
+  }, [user, authLoading, navigate]);
 
+  // Dynamic Greeting based on time
   const greeting = useMemo(() => {
-    const hour = new Date().getHours()
-    if (hour < 12) return 'Good Morning'
-    if (hour < 17) return 'Good Afternoon'
-    return 'Good Evening'
-  }, [])
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good Morning";
+    if (hour < 17) return "Good Afternoon";
+    return "Good Evening";
+  }, []);
 
+  // Performance optimized stats calculation
   const stats = useMemo(() => {
-    const totalSpent = completedOrders.reduce((sum, o) => sum + (o.total || 0), 0)
-    const totalSavings = completedOrders.reduce((sum, o) => sum + (o.discount || 0), 0)
-    const avgOrderValue = totalOrders > 0 ? totalSpent / totalOrders : 0
-    
+    const defaultStats = {
+      lifetimeOrders: 0,
+      monthlyOrders: 0,
+      activeDeliveries: 0,
+      totalSavings: 0,
+      walletBalance: user?.walletBalance || 0,
+      totalSpent: 0,
+      averageOrder: 0
+    };
+
+    if (!orders || orders.length === 0) return defaultStats;
+
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    const lifetimeOrders = orders.length;
+    let monthlyOrders = 0;
+    let activeDeliveries = 0;
+    let totalSavings = 0;
+    let totalSpent = 0;
+
+    orders.forEach(order => {
+      const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
+      
+      if (orderDate.getMonth() === currentMonth && orderDate.getFullYear() === currentYear) {
+        monthlyOrders++;
+      }
+
+      if (['confirmed', 'picking', 'packing', 'out_for_delivery'].includes(order.status)) {
+        activeDeliveries++;
+      }
+
+      totalSavings += (order.discount || 0);
+      totalSpent += (order.total || 0);
+    });
+
     return {
-      totalOrders,
-      activeOrders: activeCount,
-      completedOrders: completedOrders.length,
-      totalSpent,
+      lifetimeOrders,
+      monthlyOrders,
+      activeDeliveries,
       totalSavings,
-      avgOrderValue,
-      savedAddresses: user?.addresses?.length || 0,
-      memberSince: user?.createdAt
-    }
-  }, [orders, totalOrders, activeCount, completedOrders, user])
+      walletBalance: user?.walletBalance || 0,
+      totalSpent,
+      averageOrder: lifetimeOrders > 0 ? totalSpent / lifetimeOrders : 0
+    };
+  }, [orders, user]);
 
-  const recentOrders = useMemo(() => orders.slice(0, 3), [orders])
+  const activeOrders = useMemo(() => 
+    orders?.filter(o => ['confirmed', 'picking', 'packing', 'out_for_delivery'].includes(o.status)) || []
+  , [orders]);
+  
+  const recentOrders = useMemo(() => 
+    orders?.slice(0, 3) || []
+  , [orders]);
 
-  if (authLoading || ordersLoading) return <LoadingScreen />
-  if (!user) return null
+  if (authLoading || ordersLoading) return <LoadingScreen />;
+  if (!user) return null;
 
   return (
     <>
       <Header />
-      <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-orange-50/30 pb-24 pt-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="min-h-screen bg-[#F8F9FA] pb-24"
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
           
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 mb-8"
-          >
+          {/* Welcome Section */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
             <div>
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
-                <span className="text-xs font-black text-orange-600 uppercase tracking-widest">Live Dashboard</span>
-              </div>
-              <h1 className="text-4xl lg:text-5xl font-black text-neutral-900 tracking-tight">
-                {greeting}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-orange-600">
-                  {user.displayName?.split(' ')[0] || 'Friend'}
+              <div className="flex items-center gap-2 mb-1">
+                <span className="bg-orange-100 text-orange-600 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">
+                  Member Dashboard
                 </span>
+              </div>
+              <h1 className="text-4xl font-black text-gray-900 tracking-tight">
+                {greeting}, <span className="text-orange-500">{user.displayName?.split(' ')[0] || 'Member'}!</span>
               </h1>
-              <p className="text-neutral-600 mt-2 text-lg">Ready to order? Your favorites are just a tap away</p>
+              <p className="text-gray-500 font-medium mt-1">Manage your orders and account details.</p>
             </div>
-            
-            <Button 
-              onClick={() => navigate('/shop')} 
-              className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-700 hover:to-orange-600 shadow-xl shadow-orange-200 px-8 py-4 rounded-2xl group"
-            >
-              <Zap size={20} className="mr-2 group-hover:animate-pulse" /> 
-              <span className="font-black">Order Now</span>
-            </Button>
-          </motion.div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <Button
+              onClick={() => navigate('/shop')}
+              className="bg-orange-600 hover:bg-orange-700 text-white shadow-xl shadow-orange-200/40 px-8 py-4 rounded-2xl font-bold flex items-center gap-2 group transition-all"
+            >
+              <Zap size={20} className="fill-white group-hover:scale-110 transition-transform" />
+              Start New Order
+            </Button>
+          </div>
+
+          {/* Key Metrics Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
             <StatCard 
-              icon={ShoppingBag} 
-              label="Total Orders" 
-              value={stats.totalOrders}
-              color="from-blue-500 to-blue-600"
+              label="Lifetime Orders" 
+              value={stats.lifetimeOrders} 
+              icon={<ShoppingBag />} 
+              color="bg-blue-50 text-blue-600" 
+              trend={stats.monthlyOrders > 0 ? `+${stats.monthlyOrders} this month` : null}
               link="/customer/orders"
             />
             <StatCard 
-              icon={Truck} 
-              label="Active" 
-              value={stats.activeOrders}
-              color="from-orange-500 to-orange-600"
-              pulse={stats.activeOrders > 0}
+              label="Active Deliveries" 
+              value={stats.activeDeliveries} 
+              icon={<Truck />} 
+              color="bg-orange-50 text-orange-600" 
+              pulse={stats.activeDeliveries > 0}
               link="/customer/orders?status=active"
             />
             <StatCard 
-              icon={TrendingUp} 
-              label="Total Spent" 
-              value={formatCurrency(stats.totalSpent)}
-              color="from-green-500 to-green-600"
+              label="Total Savings" 
+              value={formatCurrency(stats.totalSavings)} 
+              icon={<TrendingUp />} 
+              color="bg-green-50 text-green-600" 
+              link="/customer/orders"
             />
             <StatCard 
-              icon={Gift} 
-              label="Savings" 
-              value={formatCurrency(stats.totalSavings)}
-              color="from-purple-500 to-purple-600"
+              label="Wallet Balance" 
+              value={formatCurrency(stats.walletBalance)} 
+              icon={<CreditCard />} 
+              color="bg-purple-50 text-purple-600" 
+              link="/customer/wallet"
             />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             
-            <div className="lg:col-span-8 space-y-6">
+            {/* Main Content: Orders */}
+            <div className="lg:col-span-8 space-y-8">
               
               <AnimatePresence>
                 {activeOrders.length > 0 && (
                   <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-3xl p-8 text-white shadow-2xl shadow-orange-200"
+                    className="space-y-4"
                   >
-                    <div className="flex items-center justify-between mb-6">
-                      <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                          <span className="text-xs font-black uppercase tracking-widest">Live Tracking</span>
-                        </div>
-                        <h2 className="text-3xl font-black">Active Deliveries</h2>
-                      </div>
-                      <div className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">
-                        <span className="font-black text-lg">{activeOrders.length}</span>
-                      </div>
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-xl font-black text-gray-900 flex items-center gap-2 uppercase tracking-tight">
+                        <span className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
+                        Live Deliveries
+                      </h2>
+                      <Badge className="bg-orange-100 text-orange-600 border-none font-bold">
+                        {activeOrders.length} In Progress
+                      </Badge>
                     </div>
-                    
                     <div className="space-y-4">
-                      {activeOrders.slice(0, 2).map((order, idx) => (
+                      {activeOrders.map((order) => (
                         <Link
                           key={order.id}
-                          to={`/track/${order.id}`}
-                          className="block bg-white/10 backdrop-blur-sm hover:bg-white/20 rounded-2xl p-6 transition-all border border-white/20 group"
+                          to={`/customer/orders/${order.id}`}
+                          className="block bg-white rounded-[2rem] p-6 border border-transparent hover:border-orange-100 hover:shadow-lg transition-all group"
                         >
-                          <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-start justify-between mb-4">
                             <div>
-                              <p className="text-white/80 text-sm font-bold mb-1">Order #{order.orderNumber}</p>
-                              <div className="flex items-center gap-2">
-                                <Clock size={14} />
-                                <span className="text-sm">{formatRelativeTime(order.createdAt)}</span>
+                              <p className="text-xs font-black text-neutral-400 uppercase tracking-widest mb-1">
+                                Order #{order.orderNumber}
+                              </p>
+                              <div className="flex items-center gap-2 text-xs text-neutral-500 font-medium">
+                                <Clock className="w-3.5 h-3.5" />
+                                {formatRelativeTime(order.createdAt?.toDate ? order.createdAt.toDate() : order.createdAt)}
                               </div>
                             </div>
-                            <span className="bg-white text-orange-600 text-xs font-black px-3 py-1.5 rounded-full">
+                            <span className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-orange-50 text-orange-600 border border-orange-100">
                               {ORDER_STATUS_LABELS[order.status]}
                             </span>
                           </div>
-                          
+
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <Truck size={18} />
-                              <span className="text-sm font-medium">Track in real-time</span>
+                            <div className="flex -space-x-3">
+                              {order.items?.slice(0, 4).map((item, idx) => (
+                                <div key={idx} className="w-10 h-10 rounded-full border-2 border-white bg-neutral-100 overflow-hidden shadow-sm">
+                                  {item.image && <img src={item.image} alt="" className="w-full h-full object-cover" />}
+                                </div>
+                              ))}
+                              {order.items?.length > 4 && (
+                                <div className="w-10 h-10 rounded-full border-2 border-white bg-neutral-800 flex items-center justify-center text-[10px] font-bold text-white shadow-sm">
+                                  +{order.items.length - 4}
+                                </div>
+                              )}
                             </div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-black text-xl">{formatCurrency(order.total)}</span>
-                              <ChevronRight className="group-hover:translate-x-1 transition-transform" />
-                            </div>
+                            <p className="text-xl font-black text-neutral-900">
+                              {formatCurrency(order.total)}
+                            </p>
                           </div>
                         </Link>
                       ))}
                     </div>
-                    
-                    {activeOrders.length > 2 && (
-                      <Link 
-                        to="/customer/orders?status=active"
-                        className="block mt-4 text-center text-white/90 hover:text-white text-sm font-bold"
-                      >
-                        View all {activeOrders.length} active orders →
-                      </Link>
-                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
 
-              <div className="bg-white rounded-3xl border border-neutral-100 p-8 shadow-sm">
-                <div className="flex items-center justify-between mb-6">
+              <div className="bg-white rounded-[2.5rem] border border-gray-100 p-8">
+                <div className="flex items-center justify-between mb-8">
                   <div>
-                    <h2 className="text-2xl font-black text-neutral-900">Recent Orders</h2>
-                    <p className="text-neutral-600 text-sm mt-1">Your last 3 purchases</p>
+                    <h2 className="text-2xl font-black text-gray-900 tracking-tight">Recent Orders</h2>
+                    <p className="text-sm text-gray-500 font-medium">Tracking your last 3 purchases</p>
                   </div>
-                  {totalOrders > 0 && (
-                    <Link to="/customer/orders" className="text-orange-600 text-sm font-bold flex items-center gap-1 hover:gap-2 transition-all">
-                      View All <ChevronRight size={16} />
+                  {recentOrders.length > 0 && (
+                    <Link
+                      to="/customer/orders"
+                      className="text-sm font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1 transition-colors"
+                    >
+                      View All History <ChevronRight size={16} />
                     </Link>
                   )}
                 </div>
@@ -208,182 +269,144 @@ export default function CustomerDashboard() {
                   <EmptyState
                     icon={Package}
                     title="No orders yet"
-                    description="Start shopping to see your order history"
-                    action={{ label: 'Browse Products', onClick: () => navigate('/shop') }}
+                    description="When you shop, your order history will appear here."
+                    action={{ label: 'Go Shopping', onClick: () => navigate('/shop') }}
                   />
                 ) : (
                   <div className="space-y-4">
-                    {recentOrders.map((order, idx) => (
-                      <OrderCard key={order.id} order={order} index={idx} />
+                    {recentOrders.map((order) => (
+                      <OrderCard key={order.id} order={order} />
                     ))}
                   </div>
                 )}
               </div>
             </div>
 
+            {/* Sidebar: Navigation Tiles & Membership */}
             <div className="lg:col-span-4 space-y-6">
+              <h2 className="text-xl font-black text-gray-900 px-2 uppercase tracking-tight">Quick Access</h2>
               
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 }}
-                className="bg-gradient-to-br from-neutral-900 to-neutral-800 rounded-3xl p-8 text-white overflow-hidden relative shadow-2xl"
-              >
-                <div className="relative z-10">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-12 h-12 bg-orange-500/20 rounded-2xl flex items-center justify-center">
-                      <Star className="w-6 h-6 text-orange-500" />
-                    </div>
-                    <div>
-                      <p className="text-white/60 text-xs font-bold uppercase tracking-widest">Member Status</p>
-                      <p className="text-2xl font-black">Zalldi Premium</p>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <StatRow icon={Calendar} label="Member Since" value={formatDate(stats.memberSince?.toDate?.() || stats.memberSince, 'MMM yyyy')} />
-                    <StatRow icon={ShoppingBag} label="Orders Placed" value={stats.totalOrders} />
-                    <StatRow icon={CreditCard} label="Avg Order" value={formatCurrency(stats.avgOrderValue)} />
-                    <StatRow icon={Gift} label="Total Saved" value={formatCurrency(stats.totalSavings)} highlight />
-                  </div>
-                </div>
-                
-                <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-orange-500/10 rounded-full blur-3xl" />
-              </motion.div>
-
-              <div className="space-y-3">
-                <h3 className="text-sm font-black text-neutral-900 uppercase tracking-widest px-2">Quick Actions</h3>
-                
-                <QuickAction 
-                  icon={MapPin} 
-                  label="Addresses" 
-                  count={stats.savedAddresses}
+              <div className="grid grid-cols-2 gap-4">
+                <NavTile 
+                  onClick={() => navigate('/customer/addresses')}
+                  icon={<MapPin size={24} />}
+                  label="Addresses"
+                  sub={`${user.addresses?.length || 0} saved`}
                   color="bg-blue-500"
-                  to="/customer/addresses"
                 />
-                
-                <QuickAction 
-                  icon={Heart} 
-                  label="Wishlist" 
+                <NavTile 
+                  onClick={() => navigate('/customer/wishlist')}
+                  icon={<Heart size={24} />}
+                  label="Wishlist"
+                  sub="Your Favs"
                   color="bg-rose-500"
-                  to="/customer/wishlist"
                 />
-                
-                <QuickAction 
-                  icon={Bell} 
-                  label="Notifications" 
-                  color="bg-purple-500"
-                  to="/customer/settings"
+                <NavTile 
+                  onClick={() => navigate('/customer/profile')}
+                  icon={<User size={24} />}
+                  label="Profile"
+                  sub="Edit Settings"
+                  color="bg-orange-500"
                 />
-                
-                <QuickAction 
-                  icon={HelpCircle} 
-                  label="Help & Support" 
-                  color="bg-emerald-500"
-                  to="/contact"
+                <NavTile 
+                  onClick={() => navigate('/contact')}
+                  icon={<HelpCircle size={24} />}
+                  label="Support"
+                  sub="24/7 Help"
+                  color="bg-emerald-600"
                 />
               </div>
+
+              {/* Membership Insight Card */}
+              {stats.lifetimeOrders > 0 && (
+                <div className="bg-neutral-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden group">
+                  <div className="relative z-10">
+                    <div className="bg-orange-500/20 text-orange-500 p-3 rounded-2xl w-fit mb-6">
+                        <Gift size={28} />
+                    </div>
+                    <h4 className="font-black text-2xl uppercase tracking-tighter mb-4">Zalldi Gold</h4>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                        <span className="text-neutral-400 text-xs font-bold uppercase">Total Spent</span>
+                        <span className="font-black text-orange-500">{formatCurrency(stats.totalSpent)}</span>
+                      </div>
+                      <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                        <span className="text-neutral-400 text-xs font-bold uppercase">Average Order</span>
+                        <span className="font-black">{formatCurrency(stats.averageOrder)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-neutral-400 text-xs font-bold uppercase">Member Since</span>
+                        <span className="font-black">
+                          {new Date(user.createdAt?.toDate ? user.createdAt.toDate() : user.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="absolute -bottom-12 -right-12 w-48 h-48 bg-orange-600/10 rounded-full blur-3xl group-hover:bg-orange-600/20 transition-all duration-700" />
+                </div>
+              )}
+
+              {/* Secure Payments Info */}
+              <div className="bg-white rounded-[2rem] border border-gray-100 p-6 flex items-center gap-4">
+                <div className="bg-green-50 p-3 rounded-2xl text-green-600">
+                  <ShieldCheck size={24} />
+                </div>
+                <div>
+                  <h4 className="font-black text-neutral-900 text-sm uppercase">Zalldi Secure</h4>
+                  <p className="text-[10px] text-neutral-400 font-bold uppercase">PCI Compliant Payments</p>
+                </div>
+              </div>
             </div>
+
           </div>
         </div>
-      </div>
+      </motion.div>
       <Footer />
     </>
-  )
+  );
 }
 
-const StatCard = ({ icon: Icon, label, value, color, pulse, link }) => (
-  <Link to={link || '#'}>
+const StatCard = ({ label, value, icon, color, trend, pulse, link }) => (
+  <Link to={link || '#'} className="block">
     <motion.div
-      whileHover={{ y: -4, scale: 1.02 }}
-      className="bg-white rounded-2xl p-6 border border-neutral-100 hover:shadow-xl hover:shadow-orange-100/20 transition-all h-full relative overflow-hidden group"
+      whileHover={{ y: -4 }}
+      className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-orange-100/10 transition-all cursor-pointer h-full"
     >
-      <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${color} opacity-5 rounded-full -mr-8 -mt-8 group-hover:opacity-10 transition-opacity`} />
-      
-      <div className="relative z-10">
-        <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${color} flex items-center justify-center mb-4 shadow-lg`}>
-          <Icon className="w-6 h-6 text-white" />
+      <div className="flex items-center justify-between mb-4">
+        <div className={`p-3 rounded-2xl ${color} shadow-sm`}>
+          {React.cloneElement(icon, { size: 20 })}
         </div>
-        
-        <p className="text-xs font-black text-neutral-400 uppercase tracking-widest mb-2">{label}</p>
-        <p className="text-3xl font-black text-neutral-900">{value}</p>
-        
         {pulse && (
-          <div className="absolute top-4 right-4">
-            <div className="relative flex h-3 w-3">
-              <div className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
-              <div className="relative inline-flex rounded-full h-3 w-3 bg-orange-500" />
-            </div>
-          </div>
+          <span className="flex h-2.5 w-2.5 relative">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500"></span>
+          </span>
         )}
       </div>
+      <p className="text-[10px] font-black text-neutral-400 uppercase tracking-[0.15em] mb-1">{label}</p>
+      <h3 className="text-2xl font-black text-neutral-900 tracking-tight">{value}</h3>
+      {trend && (
+        <p className="text-[10px] font-bold mt-2 flex items-center gap-1 text-green-600">
+          <ArrowUpRight size={12} />
+          {trend}
+        </p>
+      )}
     </motion.div>
   </Link>
-)
+);
 
-const StatRow = ({ icon: Icon, label, value, highlight }) => (
-  <div className={`flex items-center justify-between p-4 rounded-2xl ${highlight ? 'bg-orange-500/20' : 'bg-white/5'}`}>
-    <div className="flex items-center gap-3">
-      <Icon size={18} className={highlight ? 'text-orange-400' : 'text-white/60'} />
-      <span className="text-sm font-medium text-white/80">{label}</span>
+const NavTile = ({ onClick, icon, label, sub, color }) => (
+  <button
+    onClick={onClick}
+    className="p-5 rounded-[2rem] bg-white border border-gray-100 text-left hover:border-orange-200 hover:shadow-lg transition-all group flex flex-col h-full"
+  >
+    <div className={`w-11 h-11 ${color} rounded-xl flex items-center justify-center text-white mb-4 shadow-md group-hover:scale-110 transition-transform`}>
+      {React.cloneElement(icon, { size: 20 })}
     </div>
-    <span className={`font-black ${highlight ? 'text-orange-400' : 'text-white'}`}>{value}</span>
-  </div>
-)
+    <div className="mt-auto">
+      <p className="font-black text-neutral-900 text-sm uppercase tracking-tight leading-tight">{label}</p>
+      <p className="text-[9px] text-neutral-400 font-bold uppercase tracking-widest mt-1">{sub}</p>
+    </div>
+  </button>
+);
 
-const QuickAction = ({ icon: Icon, label, count, color, to }) => (
-  <Link to={to}>
-    <motion.div
-      whileHover={{ x: 4 }}
-      className="bg-white rounded-2xl p-5 border border-neutral-100 hover:border-orange-200 hover:shadow-md transition-all group"
-    >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className={`w-12 h-12 ${color} rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform`}>
-            <Icon className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <p className="font-black text-neutral-900">{label}</p>
-            {count !== undefined && (
-              <p className="text-sm text-neutral-600">{count} saved</p>
-            )}
-          </div>
-        </div>
-        <ChevronRight className="text-neutral-400 group-hover:text-orange-600 group-hover:translate-x-1 transition-all" />
-      </div>
-    </motion.div>
-  </Link>
-)
-
-const OrderCard = ({ order, index }) => (
-  <Link to={`/customer/orders/${order.id}`}>
-    <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: index * 0.1 }}
-      className="p-5 bg-neutral-50 hover:bg-orange-50 rounded-2xl transition-all border-2 border-transparent hover:border-orange-200 group"
-    >
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <p className="text-sm font-black text-neutral-900">#{order.orderNumber}</p>
-          <p className="text-xs text-neutral-500 flex items-center gap-1 mt-1">
-            <Clock size={12} /> {formatRelativeTime(order.createdAt)}
-          </p>
-        </div>
-        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-          order.status === 'delivered' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
-        }`}>
-          {ORDER_STATUS_LABELS[order.status]}
-        </span>
-      </div>
-      
-      <div className="flex items-center justify-between">
-        <span className="text-sm text-neutral-600">{order.items?.length || 0} items</span>
-        <div className="flex items-center gap-2">
-          <span className="font-black text-lg text-neutral-900">{formatCurrency(order.total)}</span>
-          <ChevronRight className="text-neutral-400 group-hover:text-orange-600 group-hover:translate-x-1 transition-all" size={18} />
-        </div>
-      </div>
-    </motion.div>
-  </Link>
-)
