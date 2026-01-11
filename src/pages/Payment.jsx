@@ -130,10 +130,10 @@ export default function PaymentPage() {
           {/* eSewa */}
           <div className="flex items-center gap-2 bg-neutral-100 px-3 py-2 rounded-lg">
             <img
-              src="/payments/esewa.png"
-              alt="eSewa"
-              className="h-6 object-contain"
-            />
+  src="/payments/esewa.png"
+  alt="eSewa"
+  className="h-12 w-auto object-contain scale-125"
+/>
             <span className="text-xs font-bold text-neutral-600">
               eSewa
             </span>
@@ -144,7 +144,7 @@ export default function PaymentPage() {
             <img
               src="/payments/khalti.png"
               alt="Khalti"
-              className="h-6 object-contain"
+              className="h-12 w-auto object-contain scale-125"
             />
             <span className="text-xs font-bold text-neutral-600">
               Khalti
