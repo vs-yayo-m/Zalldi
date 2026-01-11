@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { getOrderById, updateOrder } from '../services/order.service'
+import { getOrderById } from '../services/order.service'
 import { formatCurrency } from '@utils/formatters'
 import { ShieldCheck, Truck, Clock } from 'lucide-react'
 
@@ -28,25 +28,16 @@ export default function PaymentPage() {
     fetchOrder()
   }, [orderId])
   
-  const confirmCOD = async () => {
+  const confirmCOD = () => {
     if (!order) return
-    
     setIsProcessing(true)
-    try {
-      await updateOrder(order.id, {
-        paymentMethod: 'cod',
-        paymentStatus: 'pending',
-        status: 'pending'
-      })
-      
+    
+    // ✅ COD is already set in order creation, so we just navigate to success
+    setTimeout(() => {
+      setIsProcessing(false)
       toast.success('Order confirmed (Cash on Delivery)')
       navigate(`/order-success/${order.id}`)
-    } catch (error) {
-      toast.error('Failed to confirm order')
-      console.error(error)
-    } finally {
-      setIsProcessing(false)
-    }
+    }, 500) // small delay for UX
   }
   
   if (!order) {
@@ -59,24 +50,16 @@ export default function PaymentPage() {
   
   return (
     <div className="max-w-2xl mx-auto min-h-screen px-4 py-6 bg-neutral-50">
-      <h1 className="text-xl font-black text-neutral-900 mb-4">
-        Payment
-      </h1>
+      <h1 className="text-xl font-black text-neutral-900 mb-4">Payment</h1>
 
       {/* Order Summary */}
       <div className="bg-white rounded-xl border border-neutral-200 p-4 mb-5">
-        <h2 className="text-sm font-black text-neutral-700 mb-3 uppercase">
-          Order Summary
-        </h2>
+        <h2 className="text-sm font-black text-neutral-700 mb-3 uppercase">Order Summary</h2>
 
         {order.items.map(item => (
           <div key={item.productId} className="flex justify-between text-sm mb-1">
-            <span className="font-medium">
-              {item.name} × {item.quantity}
-            </span>
-            <span className="font-bold">
-              {formatCurrency(item.total)}
-            </span>
+            <span className="font-medium">{item.name} × {item.quantity}</span>
+            <span className="font-bold">{formatCurrency(item.total)}</span>
           </div>
         ))}
 
@@ -88,13 +71,11 @@ export default function PaymentPage() {
         </div>
       </div>
 
-      {/* Cash on Delivery (Default) */}
+      {/* Cash on Delivery */}
       <div className="bg-white rounded-xl border border-green-300 p-4 mb-4">
         <div className="flex items-center gap-2 mb-2">
           <Truck className="w-5 h-5 text-green-600" />
-          <h2 className="text-sm font-black text-green-700">
-            Cash on Delivery (Default)
-          </h2>
+          <h2 className="text-sm font-black text-green-700">Cash on Delivery (Default)</h2>
         </div>
 
         <p className="text-xs text-neutral-600 mb-3">
@@ -110,45 +91,29 @@ export default function PaymentPage() {
         </button>
       </div>
 
-      {/* Online Payment (Coming Soon – Trust Section) */}
+      {/* Online Payment (Coming Soon) */}
       <div className="bg-white rounded-xl border border-neutral-200 p-4 opacity-90">
         <div className="flex items-center gap-2 mb-3">
           <ShieldCheck className="w-5 h-5 text-neutral-600" />
-          <h2 className="text-sm font-black text-neutral-700">
-            Online Payments
-          </h2>
-          <span className="text-[10px] font-black text-orange-600 bg-orange-100 px-2 py-0.5 rounded">
-            Coming Soon
-          </span>
+          <h2 className="text-sm font-black text-neutral-700">Online Payments</h2>
+          <span className="text-[10px] font-black text-orange-600 bg-orange-100 px-2 py-0.5 rounded">Coming Soon</span>
         </div>
 
         <p className="text-xs text-neutral-500 mb-4">
-          Secure online payments will be available soon. We are integrating trusted Nepal payment gateways.
+          Secure online payments will be available soon. Trusted Nepal gateways integration.
         </p>
 
         <div className="flex gap-4 items-center">
           {/* eSewa */}
           <div className="flex items-center gap-2 bg-neutral-100 px-3 py-2 rounded-lg">
-            <img
-  src="/payments/esewa.png"
-  alt="eSewa"
-  className="h-12 w-auto object-contain scale-110"
-/>
-            <span className="text-xs font-bold text-neutral-600">
-              eSewa
-            </span>
+            <img src="/payments/esewa.png" alt="eSewa" className="h-12 w-auto object-contain scale-110" />
+            <span className="text-xs font-bold text-neutral-600">eSewa</span>
           </div>
 
           {/* Khalti */}
           <div className="flex items-center gap-2 bg-neutral-100 px-3 py-2 rounded-lg">
-            <img
-              src="/payments/khalti.png"
-              alt="Khalti"
-              className="h-12 w-auto object-contain scale-110"
-            />
-            <span className="text-xs font-bold text-neutral-600">
-              Khalti
-            </span>
+            <img src="/payments/khalti.png" alt="Khalti" className="h-12 w-auto object-contain scale-110" />
+            <span className="text-xs font-bold text-neutral-600">Khalti</span>
           </div>
         </div>
 
