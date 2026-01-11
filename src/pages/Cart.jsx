@@ -1,4 +1,4 @@
-// src/pages/Cart.jsx (With Recipient Details & Payment Options)
+// src/pages/Cart.jsx
 
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -7,8 +7,8 @@ import { useCart } from '@hooks/useCart'
 import { useAuth } from '@hooks/useAuth'
 import { 
   ArrowLeft, MapPin, ChevronRight, Clock, Gift, 
-  MessageSquare, Zap, ShieldCheck, User, Phone,
-  Package, CreditCard, AlertCircle, CheckCircle
+  Zap, ShieldCheck, ChevronDown, 
+  ChevronUp, Package, CreditCard, AlertCircle
 } from 'lucide-react'
 import CartItemCompact from '@components/customer/CartItemCompact'
 import ProductSuggestions from '@components/customer/ProductSuggestions'
@@ -17,7 +17,7 @@ import BillSummary from '@components/customer/BillSummary'
 import AddressSelector from '@components/customer/AddressSelector'
 import { calculateOrderTotal } from '@utils/calculations'
 import { formatCurrency } from '@utils/formatters'
-import { createOrder } from '@services/order.service'
+import { createOrder } from '../services/order.service'
 import { getCurrentLocation } from '@services/location.service'
 import { createAdminNotification } from '@services/notification.service'
 import toast from 'react-hot-toast'
@@ -29,14 +29,6 @@ export default function CartPage() {
   
   const [selectedAddress, setSelectedAddress] = useState(null)
   const [showAddressModal, setShowAddressModal] = useState(false)
-  
-  // Recipient Details
-  const [recipientName, setRecipientName] = useState('')
-  const [recipientPhone, setRecipientPhone] = useState('')
-  
-  // Payment Method
-  const [paymentMethod, setPaymentMethod] = useState('cod')
-  
   const [deliveryType, setDeliveryType] = useState('standard')
   const [selectedTimeSlot, setSelectedTimeSlot] = useState(null)
   const [giftPackaging, setGiftPackaging] = useState(false)
@@ -46,6 +38,8 @@ export default function CartPage() {
   const [customInstruction, setCustomInstruction] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [storeOpen, setStoreOpen] = useState(true)
+  const [capturedLocation, setCapturedLocation] = useState(null)
+  const [capturingLocation, setCapturingLocation] = useState(false)
 
   const pricing = useMemo(() => {
     const subtotal = items.reduce((sum, item) => {
@@ -78,30 +72,6 @@ export default function CartPage() {
     }
   }, [items, giftPackaging, tipAmount])
 
-  // Load saved recipient details
-  useEffect(() => {
-    const savedRecipient = localStorage.getItem('zalldi_recipient_details')
-    if (savedRecipient) {
-      try {
-        const data = JSON.parse(savedRecipient)
-        setRecipientName(data.name || '')
-        setRecipientPhone(data.phone || '')
-      } catch (error) {
-        console.error('Error loading recipient details:', error)
-      }
-    }
-  }, [])
-
-  // Save recipient details whenever they change
-  useEffect(() => {
-    if (recipientName || recipientPhone) {
-      localStorage.setItem('zalldi_recipient_details', JSON.stringify({
-        name: recipientName,
-        phone: recipientPhone
-      }))
-    }
-  }, [recipientName, recipientPhone])
-
   useEffect(() => {
     const hour = new Date().getHours()
     setStoreOpen(hour >= 6 && hour < 23)
@@ -125,18 +95,6 @@ export default function CartPage() {
       return
     }
 
-    if (!recipientName.trim()) {
-      toast.error('Please enter recipient name')
-      document.getElementById('recipient-name')?.focus()
-      return
-    }
-
-    if (!recipientPhone.trim()) {
-      toast.error('Please enter recipient phone number')
-      document.getElementById('recipient-phone')?.focus()
-      return
-    }
-
     if (!storeOpen) {
       toast.error('Store is currently closed')
       return
@@ -151,11 +109,18 @@ export default function CartPage() {
     setIsProcessing(true)
 
     try {
-      let location = null
-      try {
-        location = await getCurrentLocation()
-      } catch (error) {
-        console.warn('Could not capture location:', error)
+      let location = capturedLocation
+
+      if (!location) {
+        try {
+          setCapturingLocation(true)
+          location = await getCurrentLocation()
+          setCapturedLocation(location)
+        } catch (error) {
+          console.warn('Could not capture location:', error)
+        } finally {
+          setCapturingLocation(false)
+        }
       }
 
       const orderData = {
@@ -163,11 +128,6 @@ export default function CartPage() {
         customerName: user.displayName || user.email,
         customerPhone: user.phoneNumber || '',
         customerEmail: user.email,
-        
-        // Recipient Details
-        recipientName: recipientName.trim(),
-        recipientPhone: recipientPhone.trim(),
-        
         items: items.map(item => ({
           productId: item.id,
           name: item.name,
@@ -189,22 +149,21 @@ export default function CartPage() {
         giftPackaging,
         giftMessage,
         instructions: [...instructions, customInstruction].filter(Boolean),
-        paymentMethod,
+        paymentMethod: 'cod', // default, will be updated in payment page
         status: 'pending',
         location: location || null
       }
 
       const order = await createOrder(orderData)
       
-      try {
-        await createAdminNotification(order)
-      } catch (notifError) {
-        console.error('Error creating admin notification:', notifError)
-      }
-
+      // Notify admin
+      await createAdminNotification(order)
+      
+      // Clear cart
       await clearCart()
-      toast.success('Order placed successfully!')
-      navigate(`/order-success/${order.id}`)
+
+      // Redirect to Payment Page
+      navigate(`/payment/${order.id}`)
     } catch (error) {
       toast.error('Failed to place order')
       console.error(error)
@@ -266,7 +225,7 @@ export default function CartPage() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-2xl mx-auto pb-44">
+      <div className="max-w-2xl mx-auto pb-32">
         {/* ETA Banner */}
         <div className="mx-3 mt-3 p-3 bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl border border-orange-200">
           <div className="flex items-center gap-2">
@@ -298,58 +257,6 @@ export default function CartPage() {
         {/* Product Suggestions */}
         <ProductSuggestions currentItems={items} />
 
-        {/* Recipient Details - MANDATORY */}
-        <div className="mx-3 mt-3 bg-white rounded-xl border-2 border-orange-200 p-4">
-          <div className="flex items-center gap-2 mb-4">
-            <User className="w-5 h-5 text-orange-600" />
-            <div className="flex-1">
-              <h3 className="text-sm font-black text-neutral-900 uppercase tracking-wide">
-                Recipient Details
-              </h3>
-              <p className="text-[10px] font-bold text-orange-600 uppercase">Mandatory</p>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <div>
-              <label htmlFor="recipient-name" className="block text-xs font-bold text-neutral-700 mb-1.5">
-                Receiver Name *
-              </label>
-              <input
-                id="recipient-name"
-                type="text"
-                value={recipientName}
-                onChange={(e) => setRecipientName(e.target.value)}
-                placeholder="Who will receive this order?"
-                className="w-full px-3 py-2.5 border-2 border-neutral-200 rounded-lg text-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-100 outline-none transition-all"
-                required
-              />
-            </div>
-
-            <div>
-              <label htmlFor="recipient-phone" className="block text-xs font-bold text-neutral-700 mb-1.5">
-                Phone Number *
-              </label>
-              <input
-                id="recipient-phone"
-                type="tel"
-                value={recipientPhone}
-                onChange={(e) => setRecipientPhone(e.target.value)}
-                placeholder="+977 98XXXXXXXX"
-                className="w-full px-3 py-2.5 border-2 border-neutral-200 rounded-lg text-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-100 outline-none transition-all"
-                required
-              />
-            </div>
-
-            <div className="flex items-start gap-2 p-2 bg-blue-50 rounded-lg">
-              <CheckCircle className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-              <p className="text-[10px] text-blue-700 leading-relaxed">
-                Your details are saved and will be auto-filled for future orders
-              </p>
-            </div>
-          </div>
-        </div>
-
         {/* Service Preferences */}
         <ServicePreferences
           deliveryType={deliveryType}
@@ -368,77 +275,6 @@ export default function CartPage() {
           setCustomInstruction={setCustomInstruction}
         />
 
-        {/* Payment Options */}
-        <div className="mx-3 mt-3 bg-white rounded-xl border border-neutral-200 p-4">
-          <div className="flex items-center gap-2 mb-4">
-            <CreditCard className="w-5 h-5 text-orange-600" />
-            <h3 className="text-sm font-black text-neutral-900 uppercase tracking-wide">
-              Payment Method
-            </h3>
-          </div>
-
-          <div className="space-y-2">
-            {/* Cash on Delivery */}
-            <button
-              onClick={() => setPaymentMethod('cod')}
-              className={`w-full p-3 rounded-xl border-2 transition-all text-left ${
-                paymentMethod === 'cod'
-                  ? 'border-orange-500 bg-orange-50'
-                  : 'border-neutral-200 hover:border-neutral-300'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                  paymentMethod === 'cod' ? 'border-orange-500' : 'border-neutral-300'
-                }`}>
-                  {paymentMethod === 'cod' && (
-                    <div className="w-2.5 h-2.5 rounded-full bg-orange-500" />
-                  )}
-                </div>
-                <div className="flex-1">
-                  <div className="text-xs font-bold text-neutral-900">Cash on Delivery</div>
-                  <div className="text-[10px] text-neutral-500">Pay when you receive</div>
-                </div>
-                <Package className="w-5 h-5 text-neutral-400" />
-              </div>
-            </button>
-
-            {/* eSewa - Coming Soon */}
-            <div className="relative">
-              <div className="w-full p-3 rounded-xl border-2 border-neutral-100 bg-neutral-50 opacity-60">
-                <div className="flex items-center gap-3">
-                  <div className="w-5 h-5 rounded-full border-2 border-neutral-300" />
-                  <div className="flex-1">
-                    <div className="text-xs font-bold text-neutral-700">eSewa</div>
-                    <div className="text-[10px] text-orange-600 font-bold uppercase">Coming Soon</div>
-                  </div>
-                  <img 
-                    src="https://upload.wikimedia.org/wikipedia/commons/f/ff/Esewa_logo.png" 
-                    alt="eSewa" 
-                    className="h-6 w-auto grayscale opacity-50"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Khalti - Coming Soon */}
-            <div className="relative">
-              <div className="w-full p-3 rounded-xl border-2 border-neutral-100 bg-neutral-50 opacity-60">
-                <div className="flex items-center gap-3">
-                  <div className="w-5 h-5 rounded-full border-2 border-neutral-300" />
-                  <div className="flex-1">
-                    <div className="text-xs font-bold text-neutral-700">Khalti</div>
-                    <div className="text-[10px] text-orange-600 font-bold uppercase">Coming Soon</div>
-                  </div>
-                  <div className="h-6 w-12 bg-purple-600 rounded opacity-50 flex items-center justify-center">
-                    <span className="text-white text-[10px] font-black">K</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Bill Summary */}
         <BillSummary pricing={pricing} />
 
@@ -455,15 +291,15 @@ export default function CartPage() {
         </div>
 
         {/* Cancellation Policy */}
-        <div className="mx-3 mt-3 mb-3 p-3 bg-neutral-50 rounded-xl border border-neutral-200">
+        <div className="mx-3 mt-3 p-3 bg-neutral-50 rounded-xl border border-neutral-200">
           <p className="text-[9px] text-neutral-500 leading-relaxed">
             <span className="font-bold">Cancellation policy:</span> Please double-check your order and address details. Orders are non-refundable once placed.
           </p>
         </div>
       </div>
 
-      {/* Sticky Bottom CTA - Positioned above mobile nav */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-neutral-200 shadow-2xl pb-20 md:pb-0">
+      {/* Sticky Bottom CTA */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-neutral-200 shadow-2xl">
         <div className="max-w-2xl mx-auto px-3 py-3">
           {!storeOpen && (
             <div className="mb-2 p-2 bg-red-50 rounded-lg flex items-center gap-2">
@@ -479,16 +315,9 @@ export default function CartPage() {
             </div>
           )}
 
-          {(!recipientName || !recipientPhone) && (
-            <div className="mb-2 p-2 bg-orange-50 rounded-lg flex items-center gap-2">
-              <User className="w-4 h-4 text-orange-600 flex-shrink-0" />
-              <span className="text-[11px] font-bold text-orange-700">Please fill recipient details above</span>
-            </div>
-          )}
-
           <button
             onClick={handlePlaceOrder}
-            disabled={isProcessing || !selectedAddress || !storeOpen || !recipientName || !recipientPhone}
+            disabled={isProcessing || !selectedAddress || !storeOpen}
             className="w-full h-14 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:from-neutral-300 disabled:to-neutral-400 text-white rounded-2xl font-black text-sm uppercase tracking-wider shadow-lg disabled:shadow-none transition-all flex items-center justify-center gap-3"
           >
             {isProcessing ? (
