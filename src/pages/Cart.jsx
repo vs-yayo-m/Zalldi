@@ -83,6 +83,7 @@ export default function CartPage() {
     }
   }, [items, navigate])
 
+  // ✅ Updated: Redirect to Payment page
   const handlePlaceOrder = async () => {
     if (!user) {
       navigate('/login?redirect=/cart')
@@ -155,7 +156,7 @@ export default function CartPage() {
       }
 
       const order = await createOrder(orderData)
-      
+
       // Admin notification only
       try {
         await createAdminNotification(order)
@@ -163,13 +164,10 @@ export default function CartPage() {
         console.error('Error creating admin notification:', notifError)
       }
 
-      // WhatsApp removed for customer flow
-
-      await clearCart()
-      toast.success('Order placed successfully!')
-      navigate(`/order-success/${order.id}`)
+      // Redirect to Payment page with order ID
+      navigate(`/payment/${order.id}`)
     } catch (error) {
-      toast.error('Failed to place order')
+      toast.error('Failed to proceed to payment')
       console.error(error)
     } finally {
       setIsProcessing(false)
