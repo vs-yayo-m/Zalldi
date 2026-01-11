@@ -1,158 +1,65 @@
-// src/components/customer/TrackingMap.jsx
+// src/components/customer/TrackingMap.jsx (NEW - MAP PLACEHOLDER)
 
- import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  MapPin, 
-  Navigation, 
-  Truck, 
-  Map as MapIcon, 
-  ExternalLink,
-  ShieldCheck,
-  Zap
-} from 'lucide-react';
+import { motion } from 'framer-motion'
+import { MapPin, Navigation } from 'lucide-react'
 
-/**
- * ZALLDI - Enterprise Delivery Tracking Map
- * Features: Visual delivery simulation, Butwal-optimized coordinates, and robust fallbacks.
- */
-
-export default function TrackingMap({ destination, orderStatus }) {
-  const [mapError, setMapError] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Butwal center coordinates as fallback if destination is missing
-  const BUTWAL_COORDS = { lat: 27.7006, lng: 83.4484 };
-  const finalCoords = destination || BUTWAL_COORDS;
-
-  const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${finalCoords.lng - 0.005},${finalCoords.lat - 0.005},${finalCoords.lng + 0.005},${finalCoords.lat + 0.005}&layer=mapnik&marker=${finalCoords.lat},${finalCoords.lng}`;
-
-  useEffect(() => {
-    setMapError(false);
-    setIsLoading(true);
-  }, [destination]);
-
-  const isOutForDelivery = orderStatus?.toLowerCase() === 'out_for_delivery';
-
+export default function TrackingMap({ order }) {
+  const address = order.deliveryAddress
+  
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-4"
-    >
-      {/* Map Container */}
-      <div className="relative w-full h-96 bg-gray-100 rounded-[2.5rem] overflow-hidden border-4 border-white shadow-xl">
-        
-        {/* Animated Status Overlays */}
-        <div className="absolute top-4 left-4 right-4 z-10 flex flex-col gap-2">
-          <AnimatePresence>
-            {isOutForDelivery && (
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white/90 backdrop-blur-md px-4 py-3 rounded-2xl shadow-lg border border-orange-100 flex items-center justify-between"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <Truck className="text-orange-600" size={20} />
-                    <motion.div 
-                      animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                      className="absolute inset-0 bg-orange-400 rounded-full -z-10"
-                    />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest leading-none mb-1">Live Tracking</p>
-                    <p className="text-sm font-black text-gray-900 leading-none">Driver is approaching</p>
-                  </div>
-                </div>
-                <Badge pulse>ON THE WAY</Badge>
-              </motion.div>
-            )}
-          </AnimatePresence>
+    <div className="space-y-4">
+      <div className="relative w-full h-64 bg-gradient-to-br from-orange-100 to-orange-50 rounded-2xl overflow-hidden flex items-center justify-center">
+        <div className="absolute inset-0 opacity-10">
+          <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <path d="M0,50 Q25,30 50,50 T100,50" stroke="currentColor" strokeWidth="0.5" fill="none" className="text-orange-600" />
+            <path d="M0,60 Q25,40 50,60 T100,60" stroke="currentColor" strokeWidth="0.5" fill="none" className="text-orange-600" />
+          </svg>
         </div>
 
-        {/* Loading Overlay */}
-        {isLoading && (
-          <div className="absolute inset-0 z-0 bg-gray-50 flex flex-col items-center justify-center">
-            <motion.div 
-              animate={{ rotate: 360 }}
-              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-            >
-              <Zap className="text-orange-200" size={40} />
-            </motion.div>
-            <p className="text-xs font-bold text-gray-400 mt-4 uppercase tracking-tighter">Locating Delivery Point...</p>
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: 'spring', delay: 0.2 }}
+          className="relative z-10 text-center"
+        >
+          <div className="w-20 h-20 bg-orange-500 rounded-full flex items-center justify-center mb-4 mx-auto shadow-xl shadow-orange-200">
+            <MapPin className="w-10 h-10 text-white" />
           </div>
-        )}
+          <p className="font-black text-neutral-900 text-lg">Delivery Location</p>
+          <p className="text-neutral-600 text-sm mt-1">Ward {address.ward}, {address.area}</p>
+        </motion.div>
 
-        {/* Map Iframe */}
-        {!mapError ? (
-          <iframe
-            title="Delivery Location"
-            src={mapUrl}
-            className={`w-full h-full border-0 transition-opacity duration-700 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
-            loading="lazy"
-            onLoad={() => setIsLoading(false)}
-            onError={() => setMapError(true)}
-          />
-        ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center bg-gray-50">
-            <MapIcon className="w-16 h-16 text-gray-200 mb-4" />
-            <h4 className="font-bold text-gray-900">Map View Unavailable</h4>
-            <p className="text-sm text-gray-500 mb-6 max-w-[240px]">We're having trouble loading the visual map, but your delivery is still on track.</p>
-            <Button 
-              onClick={() => window.open(`https://www.google.com/maps?q=${finalCoords.lat},${finalCoords.lng}`, '_blank')}
-              className="bg-gray-900 text-white rounded-xl text-xs font-black uppercase flex items-center gap-2"
-            >
-              Open Google Maps <ExternalLink size={14} />
-            </Button>
-          </div>
-        )}
-
-        {/* Floating Safe-Badge */}
-        <div className="absolute bottom-4 left-4 z-10 bg-gray-900/80 backdrop-blur-md px-3 py-2 rounded-xl border border-white/10 flex items-center gap-2">
-           <ShieldCheck className="text-green-400" size={16} />
-           <span className="text-[10px] font-bold text-white uppercase tracking-wider">Contactless Delivery Enabled</span>
-        </div>
-      </div>
-
-      {/* Location Meta Footer */}
-      <div className="bg-white rounded-3xl border border-gray-100 p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-600 flex-shrink-0">
-            <MapPin size={28} />
-          </div>
-          <div>
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Precise Destination</p>
-            <p className="font-black text-gray-900">
-              {finalCoords.lat.toFixed(4)}° N, {finalCoords.lng.toFixed(4)}° E
-            </p>
-            <p className="text-xs text-orange-600 font-bold mt-1 flex items-center gap-1">
-              <Zap size={10} fill="currentColor" /> Butwal, Rupandehi
-            </p>
-          </div>
-        </div>
-
-        <div className="flex gap-2 w-full sm:w-auto">
-          <a
-            href={`https://www.google.com/maps?q=${finalCoords.lat},${finalCoords.lng}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-3 bg-orange-600 text-white text-sm font-black rounded-2xl hover:bg-orange-700 transition-all shadow-lg shadow-orange-200 group"
+        {order.status === 'out_for_delivery' && (
+          <motion.div
+            initial={{ opacity: 0, x: -100 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.5, duration: 2, repeat: Infinity }}
+            className="absolute top-1/2 left-10 transform -translate-y-1/2"
           >
-            <Navigation className="w-4 h-4 group-hover:rotate-12 transition-transform" />
-            GET DIRECTIONS
-          </a>
+            <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
+              <Navigation className="w-6 h-6 text-white" />
+            </div>
+          </motion.div>
+        )}
+      </div>
+
+      <div className="p-4 bg-blue-50 rounded-xl flex items-start gap-3">
+        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+          <MapPin size={16} className="text-blue-600" />
+        </div>
+        <div>
+          <p className="text-sm font-bold text-blue-900 mb-1">Live Tracking</p>
+          <p className="text-xs text-blue-700">
+            {order.status === 'out_for_delivery' 
+              ? 'Your order is on the way! Track your delivery in real-time.' 
+              : 'Tracking will be available once your order is out for delivery.'}
+          </p>
         </div>
       </div>
-    </motion.div>
-  );
+
+      <div className="text-center text-xs text-neutral-500 pt-2">
+        <p>Google Maps integration available in future update</p>
+      </div>
+    </div>
+  )
 }
-
-const Badge = ({ children, pulse }) => (
-  <span className="flex items-center gap-1.5 px-2 py-1 bg-orange-100 text-orange-700 rounded-lg text-[10px] font-black tracking-tighter">
-    {pulse && <span className="w-1.5 h-1.5 bg-orange-600 rounded-full animate-pulse" />}
-    {children}
-  </span>
-);
-
