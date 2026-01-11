@@ -2,12 +2,12 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { getOrderById } from '@services/order.service'
+import { getOrderById, getRecommendedProducts } from '@services/order.service'
 import Button from '@components/ui/Button'
 import LoadingScreen from '@components/shared/LoadingScreen'
 import Confetti from '@components/animations/Confetti'
 import { formatCurrency, formatOrderNumber, formatDateTime } from '@utils/formatters'
-import { CheckCircle, Package, MapPin, Clock, ArrowRight, Share2 } from 'lucide-react'
+import { CheckCircle, Package, MapPin, Clock, ArrowRight, Share2, Plus } from 'lucide-react'
 
 export default function OrderSuccess() {
   const { orderId } = useParams()
@@ -16,36 +16,38 @@ export default function OrderSuccess() {
   const [loading, setLoading] = useState(true)
   const [showConfetti, setShowConfetti] = useState(true)
   const [countdown, setCountdown] = useState('')
-  
+  const [recommended, setRecommended] = useState([])
+
   // Fetch order
   useEffect(() => {
     const fetchOrder = async () => {
       try {
         const orderData = await getOrderById(orderId)
         setOrder(orderData)
-        // Initialize countdown
         updateCountdown(orderData.estimatedDelivery)
+
+        // Fetch recommended products
+        const recs = await getRecommendedProducts(orderData.items.map(i => i.id))
+        setRecommended(recs)
       } catch (error) {
         console.error('Failed to fetch order:', error)
       } finally {
         setLoading(false)
       }
     }
-    
+
     if (orderId) fetchOrder()
-    
-    // Stop confetti after 5s
     const confettiTimer = setTimeout(() => setShowConfetti(false), 5000)
     return () => clearTimeout(confettiTimer)
   }, [orderId])
-  
+
   // Countdown timer
   useEffect(() => {
     if (!order) return
     const interval = setInterval(() => updateCountdown(order.estimatedDelivery), 1000)
     return () => clearInterval(interval)
   }, [order])
-  
+
   const updateCountdown = (eta) => {
     const now = new Date()
     const end = new Date(eta)
@@ -58,9 +60,9 @@ export default function OrderSuccess() {
     const seconds = Math.floor((diff / 1000) % 60)
     setCountdown(`${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')} mins`)
   }
-  
+
   if (loading) return <LoadingScreen />
-  
+
   if (!order) {
     return (
       <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-4">
@@ -71,7 +73,7 @@ export default function OrderSuccess() {
       </div>
     )
   }
-  
+
   const handleShare = () => {
     const text = `
 Order Confirmation: ${formatOrderNumber(order.orderNumber)}
@@ -87,7 +89,12 @@ Track: ${window.location.origin}/track/${order.id}
       alert('Order details copied to clipboard!')
     }
   }
-  
+
+  const handleAddToCart = (product) => {
+    // Add to cart logic (depends on your Cart context/service)
+    console.log('Add to cart', product)
+  }
+
   return (
     <div className="min-h-screen bg-neutral-50 pb-24 sm:pb-12">
       {showConfetti && <Confetti />}
@@ -258,6 +265,30 @@ Track: ${window.location.origin}/track/${order.id}
             </p>
           </motion.div>
         </motion.div>
+
+        {/* Recommended / Reorder Carousel */}
+        {recommended.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.9 }}
+            className="mt-8"
+          >
+            <h2 className="text-xl font-semibold text-neutral-900 mb-4">You Might Also Like</h2>
+            <div className="flex overflow-x-auto gap-4 pb-2">
+              {recommended.map(product => (
+                <div key={product.id} className="min-w-[140px] bg-white rounded-xl p-2 shadow-sm flex-shrink-0 flex flex-col items-center">
+                  <img src={product.image} alt={product.name} className="w-24 h-24 object-cover rounded mb-2" />
+                  <p className="text-sm font-semibold text-neutral-900 text-center">{product.name}</p>
+                  <p className="text-sm text-primary-600">{formatCurrency(product.price)}</p>
+                  <Button size="sm" className="mt-2 w-full flex items-center justify-center gap-1" onClick={() => handleAddToCart(product)}>
+                    <Plus className="w-4 h-4" /> Add
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
       </div>
 
       {/* Sticky Mobile Footer */}
