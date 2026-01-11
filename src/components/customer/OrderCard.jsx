@@ -1,122 +1,77 @@
-// src/components/customer/OrderCard.jsx
+// src/components/customer/OrderCard.jsx (NEW - REUSABLE)
 
-import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import Badge from '@components/ui/Badge'
-import Button from '@components/ui/Button'
-import { formatCurrency, formatOrderNumber, formatDateTime, formatTimeRemaining } from '@utils/formatters'
-import { ORDER_STATUS_LABELS } from '@utils/constants'
-import { Package, Clock, MapPin, ChevronRight } from 'lucide-react'
+import { Clock, ChevronRight } from 'lucide-react'
+import { formatCurrency, formatRelativeTime } from '@/utils/formatters'
+import { ORDER_STATUS_LABELS } from '@/utils/constants'
 
-export default function OrderCard({ order }) {
-  const navigate = useNavigate()
-  
-  const getStatusVariant = () => {
-    switch (order.status) {
-      case 'delivered':
-        return 'success'
-      case 'cancelled':
-        return 'error'
-      case 'out_for_delivery':
-        return 'warning'
-      default:
-        return 'info'
+export default function OrderCard({ order, index = 0 }) {
+  const getStatusColor = (status) => {
+    const colors = {
+      pending: 'bg-yellow-100 text-yellow-700',
+      confirmed: 'bg-blue-100 text-blue-700',
+      picking: 'bg-purple-100 text-purple-700',
+      packing: 'bg-indigo-100 text-indigo-700',
+      out_for_delivery: 'bg-orange-100 text-orange-700',
+      delivered: 'bg-green-100 text-green-700',
+      cancelled: 'bg-red-100 text-red-700'
     }
+    return colors[status] || 'bg-neutral-100 text-neutral-700'
   }
-  
-  const isActive = ['pending', 'confirmed', 'picking', 'packing', 'out_for_delivery'].includes(order.status)
   
   return (
     <motion.div
-      whileHover={{ y: -4, boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)' }}
-      className="bg-white rounded-2xl shadow-card p-6 cursor-pointer"
-      onClick={() => navigate(`/customer/orders/${order.id}`)}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05 }}
     >
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <p className="font-bold text-lg text-neutral-900 mb-1">
-            {formatOrderNumber(order.orderNumber)}
-          </p>
-          <p className="text-sm text-neutral-600">
-            {formatDateTime(order.createdAt)}
-          </p>
-        </div>
-        <Badge variant={getStatusVariant()} size="lg">
-          {ORDER_STATUS_LABELS[order.status]}
-        </Badge>
-      </div>
-
-      <div className="space-y-3 mb-4">
-        <div className="flex items-center gap-3 text-sm">
-          <Package className="w-4 h-4 text-neutral-500 flex-shrink-0" />
-          <span className="text-neutral-600">
-            {order.items.length} {order.items.length === 1 ? 'item' : 'items'}
-          </span>
-          <span className="text-neutral-400">•</span>
-          <span className="font-semibold text-primary-600">
-            {formatCurrency(order.total)}
-          </span>
-        </div>
-
-        {isActive && order.estimatedDelivery && (
-          <div className="flex items-center gap-3 text-sm">
-            <Clock className="w-4 h-4 text-orange-500 flex-shrink-0" />
-            <span className="text-neutral-600">
-              Delivery in {formatTimeRemaining(order.estimatedDelivery)}
-            </span>
+      <Link
+        to={`/customer/orders/${order.id}`}
+        className="block bg-white rounded-2xl p-6 hover:shadow-md transition-all border border-neutral-100 hover:border-orange-200 group"
+      >
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <p className="text-sm font-bold text-neutral-500 mb-1">
+              Order #{order.orderNumber}
+            </p>
+            <p className="text-xs text-neutral-400 flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              {formatRelativeTime(order.createdAt)}
+            </p>
           </div>
-        )}
-
-        <div className="flex items-start gap-3 text-sm">
-          <MapPin className="w-4 h-4 text-neutral-500 flex-shrink-0 mt-0.5" />
-          <span className="text-neutral-600 line-clamp-1">
-            {order.deliveryAddress.area}, Ward {order.deliveryAddress.ward}
+          <span className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(order.status)}`}>
+            {ORDER_STATUS_LABELS[order.status]}
           </span>
         </div>
-      </div>
 
-      <div className="flex items-center gap-3 pt-4 border-t border-neutral-200">
-        <div className="flex -space-x-2">
-          {order.items.slice(0, 3).map((item, index) => (
-            item.image && (
-              <div
-                key={index}
-                className="w-10 h-10 rounded-lg border-2 border-white overflow-hidden bg-neutral-100"
-              >
-                <img
-                  src={item.image}
-                  alt={item.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            )
+        <div className="flex items-center gap-3 mb-4">
+          {order.items?.slice(0, 3).map((item, idx) => (
+            <div key={idx} className="w-12 h-12 rounded-lg bg-neutral-100 overflow-hidden">
+              {item.image && (
+                <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+              )}
+            </div>
           ))}
-          {order.items.length > 3 && (
-            <div className="w-10 h-10 rounded-lg border-2 border-white bg-neutral-200 flex items-center justify-center">
-              <span className="text-xs font-semibold text-neutral-600">
-                +{order.items.length - 3}
-              </span>
+          {order.items?.length > 3 && (
+            <div className="w-12 h-12 rounded-lg bg-neutral-100 flex items-center justify-center text-xs font-bold text-neutral-500">
+              +{order.items.length - 3}
             </div>
           )}
         </div>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          rightIcon={<ChevronRight className="w-4 h-4" />}
-          className="ml-auto"
-          onClick={(e) => {
-            e.stopPropagation()
-            if (isActive) {
-              navigate(`/track/${order.id}`)
-            } else {
-              navigate(`/customer/orders/${order.id}`)
-            }
-          }}
-        >
-          {isActive ? 'Track Order' : 'View Details'}
-        </Button>
-      </div>
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-neutral-600">
+            {order.items?.length || 0} item{order.items?.length !== 1 ? 's' : ''}
+          </p>
+          <div className="flex items-center gap-2">
+            <p className="text-lg font-black text-neutral-900">
+              {formatCurrency(order.total)}
+            </p>
+            <ChevronRight className="w-5 h-5 text-neutral-400 group-hover:text-orange-500 transition-colors" />
+          </div>
+        </div>
+      </Link>
     </motion.div>
   )
 }
