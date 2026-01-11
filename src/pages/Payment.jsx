@@ -1,72 +1,53 @@
-// /src/pages/Payment.jsx
+// src/pages/Payment.jsx
 
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { createOrder } from '@services/order.service'
-import toast from 'react-hot-toast'
+import { useParams, useNavigate } from 'react-router-dom'
+import { useEffect } from 'react'
 
 export default function PaymentPage() {
+  const { orderId } = useParams()
   const navigate = useNavigate()
-  const [orderData, setOrderData] = useState(null)
-  const [isProcessing, setIsProcessing] = useState(false)
   
   useEffect(() => {
-    const pendingOrder = sessionStorage.getItem('pendingOrder')
-    if (!pendingOrder) {
-      navigate('/cart')
-      return
-    }
-    setOrderData(JSON.parse(pendingOrder))
-  }, [navigate])
-  
-  const handleCOD = async () => {
-    if (!orderData) return
-    setIsProcessing(true)
-    
-    try {
-      const order = await createOrder({ ...orderData, paymentMethod: 'cod' })
-      sessionStorage.removeItem('pendingOrder')
-      toast.success('Order placed successfully with COD!')
-      navigate(`/order-success/${order.id}`)
-    } catch (error) {
-      toast.error('Failed to place order. Try again.')
-      console.error(error)
-    } finally {
-      setIsProcessing(false)
-    }
-  }
+    // Placeholder for actual payment integration
+    console.log('Order ready for payment:', orderId)
+  }, [orderId])
   
   const handleOnlinePayment = (method) => {
-    toast('Online payment coming soon! 🛠️', { icon: '⚡' })
+    alert(`${method} payment is coming soon for Order ID: ${orderId}`)
   }
   
-  if (!orderData) return null
+  const handleCashOnDelivery = () => {
+    // Redirect to order success page
+    navigate(`/order-success/${orderId}`)
+  }
   
   return (
-    <div className="max-w-xl mx-auto mt-10 p-5">
-      <h2 className="text-lg font-bold mb-4">Choose Payment Method</h2>
+    <div className="min-h-screen flex items-center justify-center bg-neutral-50 px-4">
+      <div className="bg-white rounded-xl shadow-lg p-6 max-w-md w-full text-center">
+        <h1 className="text-xl font-bold mb-4">Payment Options</h1>
+        <p className="mb-6">Order ID: <span className="font-mono">{orderId}</span></p>
 
-      <button
-        onClick={handleCOD}
-        disabled={isProcessing}
-        className="w-full mb-3 p-3 bg-green-600 text-white font-bold rounded"
-      >
-        {isProcessing ? 'Processing...' : 'Cash on Delivery'}
-      </button>
+        <button
+          onClick={() => handleOnlinePayment('eSewa')}
+          className="w-full mb-3 h-12 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition-colors"
+        >
+          Pay with eSewa
+        </button>
 
-      <button
-        onClick={() => handleOnlinePayment('esewa')}
-        className="w-full mb-3 p-3 bg-blue-600 text-white font-bold rounded"
-      >
-        Pay with eSewa (Coming Soon)
-      </button>
+        <button
+          onClick={() => handleOnlinePayment('Khalti')}
+          className="w-full mb-3 h-12 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors"
+        >
+          Pay with Khalti
+        </button>
 
-      <button
-        onClick={() => handleOnlinePayment('khalti')}
-        className="w-full mb-3 p-3 bg-purple-600 text-white font-bold rounded"
-      >
-        Pay with Khalti (Coming Soon)
-      </button>
+        <button
+          onClick={handleCashOnDelivery}
+          className="w-full mt-4 h-12 border border-neutral-300 rounded-xl font-bold hover:bg-neutral-100 transition-colors"
+        >
+          Cash on Delivery
+        </button>
+      </div>
     </div>
   )
 }

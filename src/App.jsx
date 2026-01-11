@@ -28,7 +28,7 @@ const Categories = lazy(() => import('@pages/Categories'))
 const Category = lazy(() => import('@pages/Category'))
 const Search = lazy(() => import('@pages/Search'))
 const Cart = lazy(() => import('@pages/Cart'))
-const PaymentPage = lazy(() => import('@pages/Payment')) // Added PaymentPage
+const PaymentPage = lazy(() => import('@pages/Payment')) // ✅ Added Payment Page
 
 const OrderSuccess = lazy(() => import('@pages/OrderSuccess'))
 const OrderTracking = lazy(() => import('@pages/OrderTracking'))
@@ -102,7 +102,7 @@ export default function App() {
                         <Route path="/product/:slug" element={<ProductDetail />} />
                         <Route path={ROUTES.SEARCH} element={<Search />} />
                         <Route path={ROUTES.CART} element={<Cart />} />
-                        <Route path="/payment/:orderId" element={<PaymentPage />} /> {/* PaymentPage route */}
+                        <Route path="/payment/:orderId" element={<PaymentPage />} /> {/* ✅ Payment Route */}
 
                         {/* Auth */}
                         <Route path={ROUTES.LOGIN} element={<Login />} />
