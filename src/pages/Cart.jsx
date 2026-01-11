@@ -19,6 +19,8 @@ import { calculateOrderTotal } from '@utils/calculations'
 import { formatCurrency } from '@utils/formatters'
 import { getCurrentLocation, getLocationPermissionStatus } from '@services/location.service'
 import { notifyAdminNewOrder } from '@services/notification.service'
+import { createOrder } from '@services/order.service'
+
 import toast from 'react-hot-toast'
 
 export default function CartPage() {
