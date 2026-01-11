@@ -1,7 +1,13 @@
-// src/services/user.service.js
+// src/services/user.service.js (UPDATED - MERGED WITH EXISTING)
 
 import { db } from '@config/firebase'
-import { collection, doc, getDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, limit, arrayUnion, arrayRemove, serverTimestamp, Timestamp } from 'firebase/firestore'
+import { 
+  collection, doc, getDoc, getDocs, updateDoc, deleteDoc, setDoc,
+  query, where, orderBy, limit, arrayUnion, arrayRemove, 
+  serverTimestamp, Timestamp 
+} from 'firebase/firestore'
+
+const USERS_COLLECTION = 'users'
 
 export const userService = {
   async getUser(userId) {
@@ -55,7 +61,6 @@ export const userService = {
       const userData = userDoc.data()
       const addresses = Array.isArray(userData.addresses) ? [...userData.addresses] : []
       
-      // Use Timestamp.now() instead of serverTimestamp() for nested objects
       const newAddress = {
         id: Date.now().toString(),
         type: address.type || 'home',
@@ -67,7 +72,6 @@ export const userService = {
         createdAt: Timestamp.now()
       }
       
-      // Set as default if it's the first address or explicitly marked
       if (address.isDefault || addresses.length === 0) {
         addresses.forEach(addr => {
           if (addr && typeof addr === 'object') {
@@ -293,10 +297,76 @@ export const userService = {
   }
 }
 
-/**
- * Update user wishlist (ADD / REMOVE product)
- * Used by WishlistContext
- */
+// NEW: Create user profile
+export const createUserProfile = async (uid, userData) => {
+  try {
+    const userRef = doc(db, USERS_COLLECTION, uid)
+    const userDoc = {
+      ...userData,
+      addresses: [],
+      wishlist: [],
+      orderCount: 0,
+      totalSpent: 0,
+      notifications: {
+        email: true,
+        push: true,
+        sms: false,
+        orderUpdates: true,
+        promotions: true
+      },
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    }
+    
+    await setDoc(userRef, userDoc)
+    return userDoc
+  } catch (error) {
+    console.error('Error creating user profile:', error)
+    throw new Error('Failed to create user profile')
+  }
+}
+
+// NEW: Get user profile
+export const getUserProfile = async (uid) => {
+  try {
+    const userRef = doc(db, USERS_COLLECTION, uid)
+    const userSnap = await getDoc(userRef)
+    
+    if (!userSnap.exists()) {
+      return null
+    }
+    
+    return {
+      uid,
+      ...userSnap.data()
+    }
+  } catch (error) {
+    console.error('Error fetching user profile:', error)
+    throw new Error('Failed to fetch user profile')
+  }
+}
+
+// NEW: Increment order statistics
+export const incrementOrderCount = async (uid, amount = 0) => {
+  try {
+    const userRef = doc(db, USERS_COLLECTION, uid)
+    const userSnap = await getDoc(userRef)
+    
+    if (userSnap.exists()) {
+      const currentData = userSnap.data()
+      await updateDoc(userRef, {
+        orderCount: (currentData.orderCount || 0) + 1,
+        totalSpent: (currentData.totalSpent || 0) + amount,
+        updatedAt: serverTimestamp()
+      })
+    }
+  } catch (error) {
+    console.error('Error incrementing order count:', error)
+    throw new Error('Failed to update order statistics')
+  }
+}
+
+// BACKWARD COMPATIBLE: Wishlist updater (array operations)
 export const updateUserWishlist = async (userId, productId, action = 'add') => {
   try {
     if (!userId || !productId) {
@@ -325,11 +395,7 @@ export const updateUserWishlist = async (userId, productId, action = 'add') => {
   }
 }
 
-/**
- * Bulk update user addresses
- * ⚠️ SAFE: backward-compatible with existing imports
- * Used by Addresses.jsx and other legacy files
- */
+// BACKWARD COMPATIBLE: Bulk update addresses
 export const updateUserAddresses = async (userId, addresses = []) => {
   try {
     if (!userId) {
@@ -380,10 +446,7 @@ export const updateUserAddresses = async (userId, addresses = []) => {
   }
 }
 
-/**
- * Backward-compatible profile updater
- * Used by legacy files (Profile.jsx etc.)
- */
+// BACKWARD COMPATIBLE: Profile updater
 export const updateUserProfile = async (userId, profileData = {}) => {
   try {
     if (!userId) {
@@ -401,10 +464,7 @@ export const updateUserProfile = async (userId, profileData = {}) => {
   }
 }
 
-/**
- * Backward-compatible user settings updater
- * Used by legacy Settings.jsx and others
- */
+// BACKWARD COMPATIBLE: Settings updater
 export const updateUserSettings = async (userId, settings = {}) => {
   try {
     if (!userId) {

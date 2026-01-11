@@ -1,17 +1,9 @@
-// src/components/customer/OrderTimeline.jsx
+// src/components/customer/OrderTimeline.jsx (REFACTORED)
 
 import { motion } from 'framer-motion'
-import { formatDateTime } from '@utils/formatters'
-import { ORDER_STATUS_LABELS } from '@utils/constants'
-import {
-  ShoppingCart,
-  CheckCircle,
-  Package,
-  PackageCheck,
-  Truck,
-  Home,
-  XCircle
-} from 'lucide-react'
+import { formatDateTime } from '@/utils/formatters'
+import { ORDER_STATUS_LABELS } from '@/utils/constants'
+import { ShoppingCart, CheckCircle, Package, PackageCheck, Truck, Home, XCircle } from 'lucide-react'
 
 const statusIcons = {
   pending: ShoppingCart,
@@ -23,33 +15,14 @@ const statusIcons = {
   cancelled: XCircle
 }
 
-const statusColors = {
-  pending: 'bg-blue-100 text-blue-600',
-  confirmed: 'bg-green-100 text-green-600',
-  picking: 'bg-orange-100 text-orange-600',
-  packing: 'bg-purple-100 text-purple-600',
-  out_for_delivery: 'bg-primary-100 text-primary-600',
-  delivered: 'bg-green-100 text-green-600',
-  cancelled: 'bg-red-100 text-red-600'
-}
-
-const statusOrder = [
-  'pending',
-  'confirmed',
-  'picking',
-  'packing',
-  'out_for_delivery',
-  'delivered'
-]
+const statusOrder = ['pending', 'confirmed', 'picking', 'packing', 'out_for_delivery', 'delivered']
 
 export default function OrderTimeline({ order }) {
   const currentStatusIndex = statusOrder.indexOf(order.status)
   const isCancelled = order.status === 'cancelled'
   
   const getStepStatus = (index) => {
-    if (isCancelled) {
-      return index === 0 ? 'completed' : 'cancelled'
-    }
+    if (isCancelled) return index === 0 ? 'completed' : 'cancelled'
     if (index < currentStatusIndex) return 'completed'
     if (index === currentStatusIndex) return 'current'
     return 'upcoming'
@@ -102,19 +75,18 @@ export default function OrderTimeline({ order }) {
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: 'spring', delay: index * 0.1 }}
-                className={`
-                  relative flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center
-                  ${stepStatus === 'completed' ? 'bg-green-500 text-white' : ''}
-                  ${stepStatus === 'current' ? statusColors[step.status] : ''}
-                  ${stepStatus === 'upcoming' ? 'bg-neutral-200 text-neutral-400' : ''}
-                  ${stepStatus === 'cancelled' ? 'bg-red-500 text-white' : ''}
-                `}
+                className={`relative flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+                  stepStatus === 'completed' ? 'bg-green-500 text-white' :
+                  stepStatus === 'current' ? 'bg-orange-500 text-white' :
+                  stepStatus === 'cancelled' ? 'bg-red-500 text-white' :
+                  'bg-neutral-200 text-neutral-400'
+                }`}
               >
                 <Icon className="w-5 h-5" />
                 
                 {stepStatus === 'current' && (
                   <motion.div
-                    className="absolute inset-0 rounded-full border-2 border-primary-200"
+                    className="absolute inset-0 rounded-full border-2 border-orange-200"
                     initial={{ scale: 1, opacity: 0 }}
                     animate={{ scale: 1.5, opacity: [0, 1, 0] }}
                     transition={{ duration: 2, repeat: Infinity }}
@@ -124,24 +96,20 @@ export default function OrderTimeline({ order }) {
 
               <div className="flex-1 pb-6">
                 <div className="flex items-center justify-between mb-1">
-                  <p className={`
-                    font-semibold
-                    ${stepStatus === 'completed' || stepStatus === 'current' ? 'text-neutral-900' : 'text-neutral-500'}
-                    ${stepStatus === 'cancelled' ? 'text-red-600' : ''}
-                  `}>
+                  <p className={`font-semibold ${
+                    stepStatus === 'completed' || stepStatus === 'current' ? 'text-neutral-900' : 'text-neutral-500'
+                  } ${stepStatus === 'cancelled' ? 'text-red-600' : ''}`}>
                     {step.label}
                   </p>
                   {history && (
                     <span className="text-sm text-neutral-500">
-                      {formatDateTime(history.timestamp.toDate())}
+                      {formatDateTime(history.timestamp?.toDate ? history.timestamp.toDate() : history.timestamp)}
                     </span>
                   )}
                 </div>
                 
                 {history?.note && (
-                  <p className="text-sm text-neutral-600 mt-1">
-                    {history.note}
-                  </p>
+                  <p className="text-sm text-neutral-600 mt-1">{history.note}</p>
                 )}
 
                 {stepStatus === 'current' && !isCancelled && (
@@ -152,12 +120,10 @@ export default function OrderTimeline({ order }) {
                           initial={{ width: 0 }}
                           animate={{ width: '100%' }}
                           transition={{ duration: 2, repeat: Infinity }}
-                          className="h-full bg-primary-500"
+                          className="h-full bg-orange-500"
                         />
                       </div>
-                      <span className="text-xs text-primary-600 font-medium">
-                        In Progress
-                      </span>
+                      <span className="text-xs text-orange-600 font-medium">In Progress</span>
                     </div>
                   </div>
                 )}
