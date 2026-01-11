@@ -132,7 +132,7 @@ export default function PaymentPage() {
             <img
   src="/payments/esewa.png"
   alt="eSewa"
-  className="h-12 w-auto object-contain scale-125"
+  className="h-12 w-auto object-contain scale-110"
 />
             <span className="text-xs font-bold text-neutral-600">
               eSewa
@@ -144,7 +144,7 @@ export default function PaymentPage() {
             <img
               src="/payments/khalti.png"
               alt="Khalti"
-              className="h-12 w-auto object-contain scale-125"
+              className="h-12 w-auto object-contain scale-110"
             />
             <span className="text-xs font-bold text-neutral-600">
               Khalti
