@@ -17,15 +17,13 @@ import BillSummary from '@components/customer/BillSummary'
 import AddressSelector from '@components/customer/AddressSelector'
 import { calculateOrderTotal } from '@utils/calculations'
 import { formatCurrency } from '@utils/formatters'
-import { createOrder } from '../services/order.service'
 import { getCurrentLocation } from '@services/location.service'
-import { createAdminNotification } from '@services/notification.service'
 import toast from 'react-hot-toast'
 
 export default function CartPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { items, clearCart } = useCart()
+  const { items } = useCart()
   
   const [selectedAddress, setSelectedAddress] = useState(null)
   const [showAddressModal, setShowAddressModal] = useState(false)
@@ -83,6 +81,7 @@ export default function CartPage() {
     }
   }, [items, navigate])
 
+  // --- Updated handlePlaceOrder ---
   const handlePlaceOrder = async () => {
     if (!user) {
       navigate('/login?redirect=/cart')
@@ -149,32 +148,23 @@ export default function CartPage() {
         giftPackaging,
         giftMessage,
         instructions: [...instructions, customInstruction].filter(Boolean),
-        paymentMethod: 'cod',
+        paymentMethod: null, // not selected yet
         status: 'pending',
         location: location || null
       }
 
-      const order = await createOrder(orderData)
+      // Save order temporarily and redirect to PaymentPage
+      sessionStorage.setItem('pendingOrder', JSON.stringify(orderData))
+      navigate('/payment')
       
-      // Admin notification only
-      try {
-        await createAdminNotification(order)
-      } catch (notifError) {
-        console.error('Error creating admin notification:', notifError)
-      }
-
-      // WhatsApp removed for customer flow
-
-      await clearCart()
-      toast.success('Order placed successfully!')
-      navigate(`/order-success/${order.id}`)
     } catch (error) {
-      toast.error('Failed to place order')
+      toast.error('Failed to proceed to payment')
       console.error(error)
     } finally {
       setIsProcessing(false)
     }
   }
+  // --- End of update ---
 
   if (items.length === 0) return null
 
