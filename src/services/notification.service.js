@@ -10,212 +10,134 @@ import { generateGoogleMapsLink } from './location.service'
  * ADMIN NOTIFICATION SERVICE
  * Sends real-time notifications to admin when orders are placed
  */
-/**
- * Send admin notification when new order is placed
- */
-export const notifyAdminNewOrder = async (orderData) => {
+
+export const createAdminNotification = async (order) => {
   try {
     const notification = {
       type: 'new_order',
-      orderId: orderData.id,
-      orderNumber: orderData.orderNumber,
-      customerName: orderData.customerName,
-      customerPhone: orderData.customerPhone,
-      total: orderData.total,
-      status: orderData.status,
-      deliveryAddress: orderData.deliveryAddress,
-      location: orderData.location || null,
-      mapLink: orderData.location ?
-        generateGoogleMapsLink(
-          orderData.location.latitude,
-          orderData.location.longitude,
-          `Order ${orderData.orderNumber}`
-        ) :
-        null,
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      title: `New Order: ${order.orderNumber}`,
+      message: `${order.customerName} placed an order for ${formatCurrency(order.total)}`,
+      data: {
+        customerName: order.customerName,
+        customerPhone: order.customerPhone,
+        total: order.total,
+        itemCount: order.items?.length || 0,
+        deliveryAddress: order.deliveryAddress,
+        location: order.location || null
+      },
       read: false,
+      priority: 'high',
       createdAt: serverTimestamp()
     }
-    
-    await addDoc(collection(db, 'admin_notifications'), notification)
-    
-    // Browser notification if permission granted
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification('New Order Received! 🔔', {
-        body: `Order ${orderData.orderNumber} - ${formatCurrency(orderData.total)} from ${orderData.customerName}`,
-        icon: '/logo.png',
-        badge: '/logo.png',
-        tag: orderData.id,
-        requireInteraction: true
-      })
-    }
-    
-    return notification
+
+    const docRef = await addDoc(collection(db, 'notifications'), notification)
+    return docRef.id
   } catch (error) {
-    console.error('Error sending admin notification:', error)
+    console.error('Error creating notification:', error)
     throw error
   }
 }
 
-/**
- * Generate WhatsApp message with order details
- */
-export const generateWhatsAppMessage = (order) => {
-  const items = order.items?.map(item =>
-    `• ${item.name} x${item.quantity} - ${formatCurrency(item.total)}`
-  ).join('\n') || ''
-  
-  const mapLink = order.location ?
-    generateGoogleMapsLink(
-      order.location.latitude,
-      order.location.longitude,
-      `Order ${order.orderNumber}`
-    ) :
-    'Location not provided'
-  
-  const message = `
-🧡 *ZALLDI - NEW ORDER*
+export const generateOrderShareText = (order) => {
+  const itemsList = order.items
+    ?.map((item, idx) => `${idx + 1}. ${item.name} (x${item.quantity}) - ${formatCurrency(item.total)}`)
+    .join('\n') || ''
 
-📦 *Order:* ${order.orderNumber}
-💰 *Total:* ${formatCurrency(order.total)}
-📅 *Date:* ${formatDateTime(order.createdAt)}
+  const locationLink = order.location
+    ? `\n📍 Location: ${generateGoogleMapsLink(order.location.latitude, order.location.longitude)}`
+    : ''
 
-👤 *Customer Details:*
-Name: ${order.customerName}
-Phone: ${order.customerPhone}
+  const preferences = []
+  if (order.deliveryType === 'custom' && order.timeSlot) {
+    preferences.push(`⏰ Time Slot: ${order.timeSlot}`)
+  }
+  if (order.giftPackaging) {
+    preferences.push('🎁 Gift Packaging Requested')
+  }
+  if (order.tip > 0) {
+    preferences.push(`💝 Tip: ${formatCurrency(order.tip)}`)
+  }
+  if (order.instructions?.length > 0) {
+    preferences.push(`📝 Instructions: ${order.instructions.join(', ')}`)
+  }
 
-🏠 *Delivery Address:*
-${order.deliveryAddress?.street || ''}
-${order.deliveryAddress?.area || ''}
-Ward ${order.deliveryAddress?.ward || 'N/A'}
+  const preferencesText = preferences.length > 0
+    ? `\n\n🔔 Customer Preferences:\n${preferences.join('\n')}`
+    : ''
+
+  return `
+🧡 ZALLDI NEW ORDER 🧡
+
+📦 Order: ${order.orderNumber}
+👤 Customer: ${order.customerName}
+📞 Phone: ${order.customerPhone}
+
+🛍️ Items (${order.items?.length || 0}):
+${itemsList}
+
+💰 Order Summary:
+• Subtotal: ${formatCurrency(order.subtotal)}
+• Delivery: ${order.deliveryFee === 0 ? 'FREE' : formatCurrency(order.deliveryFee)}
+• Total: ${formatCurrency(order.total)}
+
+📍 Delivery Address:
+${order.deliveryAddress?.street}, ${order.deliveryAddress?.area}
+Ward ${order.deliveryAddress?.ward}, Butwal
 ${order.deliveryAddress?.landmark ? `Near: ${order.deliveryAddress.landmark}` : ''}
+${locationLink}
+${preferencesText}
 
-📍 *Location:*
-${mapLink}
+💳 Payment: ${order.paymentMethod?.toUpperCase() || 'COD'}
+📅 Placed: ${formatDateTime(order.createdAt)}
 
-🛍️ *Items Ordered:*
-${items}
-
-💳 *Payment:* ${order.paymentMethod?.toUpperCase() || 'COD'}
-${order.tip > 0 ? `\n💝 *Tip:* ${formatCurrency(order.tip)}` : ''}
-${order.giftPackaging ? '\n🎁 *Gift Packaging Requested*' : ''}
-${order.instructions?.length > 0 ? `\n📝 *Instructions:* ${order.instructions.join(', ')}` : ''}
-
----
-Zalldi - 1 Hour Delivery 🚀
-  `.trim()
-  
-  return encodeURIComponent(message)
+⚡ Deliver within 60 minutes!
+`.trim()
 }
 
-/**
- * Share order via WhatsApp
- */
-export const shareOrderViaWhatsApp = (order, phoneNumber = null) => {
-  const message = generateWhatsAppMessage(order)
-  const url = phoneNumber ?
-    `https://wa.me/${phoneNumber}?text=${message}` :
-    `https://wa.me/?text=${message}`
-  
+export const shareViaWhatsApp = (order, adminPhone = '+9779821072912') => {
+  const text = generateOrderShareText(order)
+  const encodedText = encodeURIComponent(text)
+  const url = `https://wa.me/${adminPhone.replace(/\D/g, '')}?text=${encodedText}`
   window.open(url, '_blank')
 }
 
-/**
- * Generate email body with order details
- */
-export const generateEmailBody = (order) => {
-  const items = order.items?.map(item =>
-    `${item.name} x${item.quantity} - ${formatCurrency(item.total)}`
-  ).join('\n') || ''
-  
-  const mapLink = order.location ?
-    generateGoogleMapsLink(
-      order.location.latitude,
-      order.location.longitude,
-      `Order ${order.orderNumber}`
-    ) :
-    'Location not provided'
-  
-  return `
-Order: ${order.orderNumber}
-Total: ${formatCurrency(order.total)}
-Date: ${formatDateTime(order.createdAt)}
-
-Customer: ${order.customerName}
-Phone: ${order.customerPhone}
-
-Delivery Address:
-${order.deliveryAddress?.street || ''}
-${order.deliveryAddress?.area || ''}
-Ward ${order.deliveryAddress?.ward || 'N/A'}
-
-Location Map: ${mapLink}
-
-Items:
-${items}
-
-Payment: ${order.paymentMethod?.toUpperCase() || 'COD'}
-  `.trim()
-}
-
-/**
- * Share order via Email
- */
-export const shareOrderViaEmail = (order, recipientEmail = '') => {
+export const shareViaEmail = (order, adminEmail = 'zalldi.vishalsharma@gmail.com') => {
   const subject = encodeURIComponent(`New Order: ${order.orderNumber}`)
-  const body = encodeURIComponent(generateEmailBody(order))
-  
-  window.location.href = `mailto:${recipientEmail}?subject=${subject}&body=${body}`
+  const body = encodeURIComponent(generateOrderShareText(order))
+  const url = `mailto:${adminEmail}?subject=${subject}&body=${body}`
+  window.location.href = url
 }
 
-/**
- * Copy order details to clipboard
- */
-export const copyOrderDetailsToClipboard = async (order) => {
-  const text = generateEmailBody(order)
-  
+export const copyOrderDetails = async (order) => {
+  const text = generateOrderShareText(order)
   try {
     await navigator.clipboard.writeText(text)
     return true
   } catch (error) {
-    // Fallback for older browsers
-    const textArea = document.createElement('textarea')
-    textArea.value = text
-    textArea.style.position = 'fixed'
-    textArea.style.left = '-999999px'
-    document.body.appendChild(textArea)
-    textArea.select()
-    
+    console.error('Copy failed:', error)
+    return false
+  }
+}
+
+export const shareOrderDetails = async (order) => {
+  if (navigator.share) {
     try {
-      document.execCommand('copy')
-      document.body.removeChild(textArea)
+      await navigator.share({
+        title: `Order ${order.orderNumber}`,
+        text: generateOrderShareText(order),
+      })
       return true
-    } catch (err) {
-      document.body.removeChild(textArea)
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        console.error('Share failed:', error)
+      }
       return false
     }
   }
+  return false
 }
-
-/**
- * Request notification permission
- */
-export const requestNotificationPermission = async () => {
-  if (!('Notification' in window)) {
-    return 'unsupported'
-  }
-  
-  if (Notification.permission === 'granted') {
-    return 'granted'
-  }
-  
-  if (Notification.permission !== 'denied') {
-    const permission = await Notification.requestPermission()
-    return permission
-  }
-  
-  return Notification.permission
-}
-
 
 
 

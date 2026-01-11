@@ -1,42 +1,27 @@
 // src/services/location.service.js
 
 /**
- * Location Service - Handles geolocation and map link generation
+ * ZALLDI LOCATION SERVICE
+ * Handles geolocation capture, reverse geocoding, and map link generation
  */
 
 export const getCurrentLocation = () => {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
-      reject(new Error('Geolocation is not supported by your browser'))
+      reject(new Error('Geolocation not supported'))
       return
     }
     
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const { latitude, longitude, accuracy } = position.coords
         resolve({
-          latitude,
-          longitude,
-          accuracy,
-          timestamp: new Date().toISOString()
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy
         })
       },
       (error) => {
-        let errorMessage = 'Unable to retrieve location'
-        
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            errorMessage = 'Location permission denied'
-            break
-          case error.POSITION_UNAVAILABLE:
-            errorMessage = 'Location information unavailable'
-            break
-          case error.TIMEOUT:
-            errorMessage = 'Location request timed out'
-            break
-        }
-        
-        reject(new Error(errorMessage))
+        reject(error)
       },
       {
         enableHighAccuracy: true,
@@ -53,47 +38,27 @@ export const reverseGeocode = async (latitude, longitude) => {
       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
       {
         headers: {
-          'User-Agent': 'Zalldi Quick Commerce App'
+          'Accept-Language': 'en'
         }
       }
     )
     
-    if (!response.ok) {
-      throw new Error('Geocoding failed')
-    }
+    if (!response.ok) throw new Error('Geocoding failed')
     
     const data = await response.json()
     
     if (!data || !data.address) {
-      throw new Error('No address found')
-    }
-    
-    const addr = data.address
-    
-    // Extract ward number
-    let ward = ''
-    if (addr.suburb) {
-      const wardMatch = addr.suburb.match(/ward[\s-]?(\d+)/i)
-      if (wardMatch) ward = wardMatch[1]
+      throw new Error('No address data found')
     }
     
     return {
-      ward: ward || '',
-      area: addr.suburb || addr.neighbourhood || addr.hamlet || '',
-      street: addr.road || '',
-      landmark: addr.amenity || addr.building || '',
-      city: addr.city || addr.town || addr.village || 'Butwal',
-      district: addr.state_district || '',
-      state: addr.state || '',
-      country: addr.country || 'Nepal',
-      postcode: addr.postcode || '',
-      displayName: data.display_name || '',
-      formattedAddress: [
-        addr.road,
-        addr.suburb || addr.neighbourhood,
-        addr.city || addr.town,
-        addr.postcode
-      ].filter(Boolean).join(', ')
+      formattedAddress: data.display_name,
+      address: data.address,
+      ward: extractWardNumber(data.address),
+      area: data.address.suburb || data.address.neighbourhood || data.address.hamlet || '',
+      street: data.address.road || '',
+      city: data.address.city || data.address.town || 'Butwal',
+      landmark: data.address.amenity || data.address.building || ''
     }
   } catch (error) {
     console.error('Reverse geocoding error:', error)
@@ -101,26 +66,48 @@ export const reverseGeocode = async (latitude, longitude) => {
   }
 }
 
-export const generateGoogleMapsLink = (latitude, longitude, label = 'Delivery Location') => {
-  // Encode label for URL
-  const encodedLabel = encodeURIComponent(label)
+const extractWardNumber = (address) => {
+  const wardFields = [
+    address.suburb,
+    address.neighbourhood,
+    address.hamlet,
+    address.county
+  ]
   
-  // Google Maps link that opens in app or browser
-  return `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}&query_place_id=${encodedLabel}`
+  for (const field of wardFields) {
+    if (!field) continue
+    const wardMatch = field.match(/ward[\s-]?(\d+)/i)
+    if (wardMatch) return wardMatch[1]
+  }
+  
+  return ''
 }
 
-export const generateGoogleMapsDirectionsLink = (latitude, longitude) => {
-  // Opens Google Maps with directions from current location
-  return `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`
+export const generateGoogleMapsLink = (latitude, longitude, label = '') => {
+  if (label) {
+    return `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}&query_place_id=${encodeURIComponent(label)}`
+  }
+  return `https://www.google.com/maps?q=${latitude},${longitude}`
 }
 
-export const generateMapPreviewUrl = (latitude, longitude, zoom = 15) => {
-  // Static map image URL (using OpenStreetMap based services)
+export const generateAppleMapsLink = (latitude, longitude) => {
+  return `http://maps.apple.com/?ll=${latitude},${longitude}&q=Delivery Location`
+}
+
+export const generateWazeMapsLink = (latitude, longitude) => {
+  return `https://waze.com/ul?ll=${latitude},${longitude}&navigate=yes`
+}
+
+export const getDirectionsLink = (fromLat, fromLng, toLat, toLng) => {
+  return `https://www.google.com/maps/dir/?api=1&origin=${fromLat},${fromLng}&destination=${toLat},${toLng}&travelmode=driving`
+}
+
+export const generateStaticMapImage = (latitude, longitude, zoom = 15, width = 400, height = 300) => {
+  // Using OpenStreetMap static image (free alternative to Google Static Maps)
   return `https://www.openstreetmap.org/export/embed.html?bbox=${longitude - 0.01},${latitude - 0.01},${longitude + 0.01},${latitude + 0.01}&layer=mapnik&marker=${latitude},${longitude}`
 }
 
 export const calculateDistance = (lat1, lon1, lat2, lon2) => {
-  // Haversine formula to calculate distance in kilometers
   const R = 6371 // Earth's radius in km
   const dLat = toRad(lat2 - lat1)
   const dLon = toRad(lon2 - lon1)
@@ -133,39 +120,26 @@ export const calculateDistance = (lat1, lon1, lat2, lon2) => {
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
   const distance = R * c
   
-  return distance
+  return distance.toFixed(2)
 }
 
 const toRad = (degrees) => {
   return degrees * (Math.PI / 180)
 }
 
-export const formatCoordinates = (latitude, longitude) => {
-  return `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
-}
-
-export const isValidCoordinates = (latitude, longitude) => {
-  return (
-    typeof latitude === 'number' &&
-    typeof longitude === 'number' &&
-    latitude >= -90 &&
-    latitude <= 90 &&
-    longitude >= -180 &&
-    longitude <= 180 &&
-    !isNaN(latitude) &&
-    !isNaN(longitude)
-  )
-}
-
-export const getLocationPermissionStatus = async () => {
-  if (!navigator.permissions) {
-    return 'unsupported'
+export const isWithinButwalBounds = (latitude, longitude) => {
+  // Butwal approximate bounds
+  const bounds = {
+    north: 27.7200,
+    south: 27.6700,
+    east: 83.4800,
+    west: 83.4200
   }
   
-  try {
-    const result = await navigator.permissions.query({ name: 'geolocation' })
-    return result.state // 'granted', 'denied', or 'prompt'
-  } catch (error) {
-    return 'unsupported'
-  }
+  return (
+    latitude >= bounds.south &&
+    latitude <= bounds.north &&
+    longitude >= bounds.west &&
+    longitude <= bounds.east
+  )
 }
