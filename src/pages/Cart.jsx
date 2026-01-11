@@ -1,4 +1,4 @@
-// src/pages/Cart.jsx (Refactored - All-in-One Checkout)
+// src/pages/Cart.jsx (Refactored - Payment Redirect Version)
 
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -7,8 +7,7 @@ import { useCart } from '@hooks/useCart'
 import { useAuth } from '@hooks/useAuth'
 import { 
   ArrowLeft, MapPin, ChevronRight, Clock, Gift, 
-  MessageSquare, Zap, ShieldCheck, ChevronDown, 
-  ChevronUp, Package, CreditCard, AlertCircle
+  ShieldCheck, ChevronDown, ChevronUp, Package, AlertCircle
 } from 'lucide-react'
 import CartItemCompact from '@components/customer/CartItemCompact'
 import ProductSuggestions from '@components/customer/ProductSuggestions'
@@ -149,7 +148,7 @@ export default function CartPage() {
         giftPackaging,
         giftMessage,
         instructions: [...instructions, customInstruction].filter(Boolean),
-        paymentMethod: 'cod',
+        paymentMethod: 'pending', // mark as pending for payment page
         status: 'pending',
         location: location || null
       }
@@ -159,11 +158,9 @@ export default function CartPage() {
       await createAdminNotification(order)
       
       await clearCart()
-
-      toast.success('Order placed successfully!')
-
-      // 🔹 Redirect to payment page instead of marking COD
-      navigate(`/payment/${order.id}`)
+      toast.success('Order created! Redirecting to payment...')
+      
+      navigate(`/payment/${order.id}`) // redirect to payment page
     } catch (error) {
       toast.error('Failed to place order')
       console.error(error)
@@ -230,7 +227,7 @@ export default function CartPage() {
         <div className="mx-3 mt-3 p-3 bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl border border-orange-200">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
-              <Zap className="w-4 h-4 text-white" />
+              <Gift className="w-4 h-4 text-white" />
             </div>
             <div className="flex-1">
               <div className="text-xs font-black text-orange-900">Zalldi is coming in ~60 minutes</div>
