@@ -130,7 +130,7 @@ export default function PaymentPage() {
           {/* eSewa */}
           <div className="flex items-center gap-2 bg-neutral-100 px-3 py-2 rounded-lg">
             <img
-              src="/public/payments/esewa.png"
+              src="/payments/esewa.png"
               alt="eSewa"
               className="h-6 object-contain"
             />
@@ -142,7 +142,7 @@ export default function PaymentPage() {
           {/* Khalti */}
           <div className="flex items-center gap-2 bg-neutral-100 px-3 py-2 rounded-lg">
             <img
-              src="/public/payments/khalti.png"
+              src="/payments/khalti.png"
               alt="Khalti"
               className="h-6 object-contain"
             />
