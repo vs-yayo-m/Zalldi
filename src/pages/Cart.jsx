@@ -19,7 +19,7 @@ import { calculateOrderTotal } from '@utils/calculations'
 import { formatCurrency } from '@utils/formatters'
 import { createOrder } from '@services/order.service'
 import { getCurrentLocation } from '@services/location.service'
-// closed for now to share the details in WhatsApp: import { createAdminNotification, shareViaWhatsApp } from '@services/notification.service'
+import { createAdminNotification, shareViaWhatsApp } from '@services/notification.service'
 import toast from 'react-hot-toast'
 
 export default function CartPage() {
