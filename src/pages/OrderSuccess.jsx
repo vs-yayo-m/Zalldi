@@ -1,5 +1,3 @@
-// /src/pages/OrderSuccess.jsx
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -7,8 +5,9 @@ import { getOrderById } from '@/services/order.service';
 import Button from '@/components/ui/Button';
 import LoadingScreen from '@/components/shared/LoadingScreen';
 import Confetti from '@/components/animations/Confetti';
+import Header from '@/components/layout/Header';
 import { formatCurrency, formatOrderNumber, formatDateTime } from '@/utils/formatters';
-import { CheckCircle2, Package, MapPin, Clock, ArrowRight, Zap, Receipt, ShoppingBag } from 'lucide-react';
+import { CheckCircle2, Package, MapPin, Clock, ArrowRight, Zap } from 'lucide-react';
 
 export default function OrderSuccess() {
   const { orderId } = useParams();
@@ -53,6 +52,8 @@ export default function OrderSuccess() {
   
   return (
     <div className="min-h-screen bg-[#FDFDFD] relative overflow-hidden">
+      <Header />
+
       {/* Confetti Explosion */}
       <AnimatePresence>
         {showConfetti && (
@@ -67,7 +68,7 @@ export default function OrderSuccess() {
         )}
       </AnimatePresence>
 
-      <div className="max-w-3xl mx-auto px-4 py-12 lg:py-20 relative z-10">
+      <div className="max-w-3xl mx-auto px-4 py-12 lg:py-16 relative z-10">
         
         {/* HERO: Success Message */}
         <div className="text-center mb-12">
@@ -208,4 +209,5 @@ export default function OrderSuccess() {
     </div>
   )
 }
+
 
