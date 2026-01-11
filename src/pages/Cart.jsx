@@ -1,4 +1,4 @@
-// src/pages/Cart.jsx
+// src/pages/Cart.jsx (Refactored - All-in-One Checkout)
 
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -7,7 +7,7 @@ import { useCart } from '@hooks/useCart'
 import { useAuth } from '@hooks/useAuth'
 import { 
   ArrowLeft, MapPin, ChevronRight, Clock, Gift, 
-  Zap, ShieldCheck, ChevronDown, 
+  MessageSquare, Zap, ShieldCheck, ChevronDown, 
   ChevronUp, Package, CreditCard, AlertCircle
 } from 'lucide-react'
 import CartItemCompact from '@components/customer/CartItemCompact'
@@ -149,21 +149,25 @@ export default function CartPage() {
         giftPackaging,
         giftMessage,
         instructions: [...instructions, customInstruction].filter(Boolean),
-        paymentMethod: 'cod', // default, will be updated in payment page
+        paymentMethod: 'cod',
         status: 'pending',
         location: location || null
       }
 
       const order = await createOrder(orderData)
       
-      // Notify admin
-      await createAdminNotification(order)
-      
-      // Clear cart
-      await clearCart()
+      // Admin notification only
+      try {
+        await createAdminNotification(order)
+      } catch (notifError) {
+        console.error('Error creating admin notification:', notifError)
+      }
 
-      // Redirect to Payment Page
-      navigate(`/payment/${order.id}`)
+      // WhatsApp removed for customer flow
+
+      await clearCart()
+      toast.success('Order placed successfully!')
+      navigate(`/order-success/${order.id}`)
     } catch (error) {
       toast.error('Failed to place order')
       console.error(error)
